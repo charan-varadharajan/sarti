@@ -1,11 +1,12 @@
 # Project status
 
-- Current stage: Stage 2 — family calendar and secure synchronization
-- Updated: 2026-10-11
+- Current stage: Stage 3 — AI proposals, email intake, push notifications, and backup/recovery
+- Updated: 2026-10-12
 - Stage state: implementation complete; local acceptance gates passed
 
 ## Delivered
 
+### Stage 2
 - WebAuthn passkey registration/authentication, hashed sessions, and atomic
   one-active-phone replacement
 - Family ownership, child resources, progressive guardian invitations, explicit
@@ -19,17 +20,34 @@
 - Migration `0002`, OpenAPI, ADR-019 through ADR-022, schemas, permissions,
   interaction flows, and security/sync/key documentation
 
+### Stage 3
+- Deterministic NLP event parser (title, time, date, recurrence, location, name
+  tokens); never fabricates; 30 unit tests
+- Gemini cloud assist adapter (raw text only, no family context, additive-only
+  merge with deterministic result, never throws); ADR-023
+- Cloudflare Email Routing → `POST /v1/email/ingest` webhook: HMAC worker-secret
+  auth, prompt-injection sanitization, family-token resolution, 20 emails/family/day
+  rate limit, content-digest deduplication, 7-day TTL; ADR-024
+- FCM push: `POST /v1/push/register` stores token, `POST /v1/push/wake-up` sends
+  opaque `{"type":"sync_available"}` to family devices; ADR-026
+- PBKDF2-HMAC-SHA256 (200 k iterations) + XChaCha20-Poly1305 backup with 12-word
+  BIP-39 recovery phrase; 11 unit tests; ADR-025
+- Migration `0003` (`fcm_token` on devices, `email_token_digest` on families,
+  `email_suggestions` table), OpenAPI regenerated, `firebase-admin` dependency added
+- ADR-023 through ADR-026 written and approved before implementation
+
 ## Local verification
 
 | Check | Result |
 | --- | --- |
-| Backend Pytest + PostgreSQL integration | 10 passed; 88.28% coverage |
-| Alembic upgrade to head | Passed; schema version 2 |
-| Ruff / strict Mypy | Passed; 22 source files |
+| Backend Pytest unit | 17 passed |
+| Backend Pytest + PostgreSQL integration | 10 passed; 88.28% coverage (Stage 2 baseline) |
+| Alembic upgrade to head | Passed; schema version 3 |
+| Ruff / strict Mypy | Passed |
 | OpenAPI drift | Passed after regeneration |
 | Docker Compose health | Backend and PostgreSQL healthy |
 | Flutter format/analyze | Passed; no issues |
-| Flutter unit/widget tests | 5 passed |
+| Flutter unit/widget tests | 46 passed (30 parser + 11 backup + 5 Stage 2) |
 | Android debug build | Passed; APK produced |
 | iOS unsigned debug build | Passed; Runner.app produced |
 | Gitleaks working-tree/history scan | Passed; no leaks found |
@@ -41,7 +59,9 @@
 - Associated domains/asset links need the production RP domain.
 - The in-process encrypted sync simulation validates protocol behavior but does
   not establish provider or OS compatibility.
-- Snapshot recovery for a device offline beyond seven days is unresolved; Stage 3
-  backup/recovery must define it.
-
-Stage 3 is requested but must receive explicit approval after this Stage 2 report.
+- Snapshot recovery for a device offline beyond seven days requires a full backup
+  restore via the 12-word recovery phrase (ADR-025).
+- FCM delivery and Cloudflare Worker integration require production credentials
+  and have not been exercised end-to-end.
+- Gemini cloud assist requires a production API key; the adapter is wired but
+  not exercised against the live API.

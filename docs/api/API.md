@@ -46,3 +46,26 @@ content and are absent from these requests.
 
 The complete field constraints and response schemas are in `backend/openapi.json`.
 The encryption/AAD construction is specified in `docs/architecture/OFFLINE-SYNC.md`.
+
+## Email intake (ADR-024)
+
+- `POST /v1/email/ingest` — Cloudflare Worker webhook only. Authenticated via
+  `X-Worker-Secret` header (HMAC constant-time comparison). Accepts
+  `family_token`, `sender`, `subject`, and `body`. The family token is resolved
+  to a family ID via its SHA-256 digest; an unknown token returns 404.
+  `<INPUT>` tags are stripped from subject and body before storage. Rate limited
+  to 20 emails per family per 24 hours. Identical content (same digest) is
+  deduplicated and returns the existing suggestion ID. Suggestions expire after
+  7 days. Raw email is never stored; only sanitized subject and body are kept.
+  Returns `suggestion_id` and `expires_at` on 201.
+
+## Push notifications (ADR-026)
+
+- `POST /v1/push/register` — Authenticated. Stores the FCM token for the
+  calling device. Returns `{"registered": true}`.
+- `POST /v1/push/wake-up` — Authenticated. Accepts `family_id`. Verifies the
+  caller is an active member, then sends `{"type": "sync_available"}` to all
+  other active family devices that have a registered FCM token. No family
+  content, child names, or event data is included in the FCM payload. Returns
+  `{"dispatched": N}`. If `fcm_credentials_file` is not configured, returns
+  `{"dispatched": 0}` without error.

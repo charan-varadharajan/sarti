@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     database_url: str = Field(min_length=1, repr=False)
     webauthn_rp_id: str = Field(default="localhost", min_length=1)
     webauthn_origin: str = Field(default="http://localhost:8000", min_length=1)
+    email_worker_secret: str = Field(default="", repr=False)
+    gemini_api_key: str = Field(default="", repr=False)
+    fcm_credentials_file: str = Field(default="")
 
 
 @lru_cache

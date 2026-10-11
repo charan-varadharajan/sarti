@@ -28,6 +28,10 @@ unresolved rather than inferred.
 | [ADR-020](adr/020-device-and-resource-key-protocol.md) | Device keys and resource-scoped encryption protocol | Accepted |
 | [ADR-021](adr/021-encrypted-operation-sync-and-conflicts.md) | Encrypted operation sync and explicit conflicts | Accepted |
 | [ADR-022](adr/022-calendar-time-permissions-and-reminders.md) | Calendar time semantics, permissions, and reminders | Accepted |
+| [ADR-023](adr/023-natural-language-event-parsing.md) | Natural-language event parsing and AI assist | Accepted |
+| [ADR-024](adr/024-inbound-email-gateway.md) | Inbound email gateway | Accepted |
+| [ADR-025](adr/025-backup-and-recovery.md) | User-owned encrypted backup and recovery | Accepted |
+| [ADR-026](adr/026-push-notifications.md) | Push notifications | Accepted |
 
 New records use the next three-digit number. Accepted decisions are changed only
 by an explicitly approved superseding ADR.

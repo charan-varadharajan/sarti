@@ -10,8 +10,10 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from sarti_backend.api.auth import router as auth_router
+from sarti_backend.api.email import router as email_router
 from sarti_backend.api.health import router as health_router
 from sarti_backend.api.households import router as households_router
+from sarti_backend.api.push import router as push_router
 from sarti_backend.api.sync import router as sync_router
 from sarti_backend.core.config import Settings, get_settings
 from sarti_backend.core.errors import ApiError
@@ -132,6 +134,9 @@ def create_app(
     app.include_router(auth_router)
     app.include_router(households_router)
     app.include_router(sync_router)
+    app.include_router(email_router)
+    app.include_router(push_router)
+    app.state.settings = resolved_settings
     return app
 
 

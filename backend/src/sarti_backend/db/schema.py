@@ -32,6 +32,7 @@ devices = sa.Table(
     sa.Column("last_sync_sequence", sa.BigInteger(), nullable=False),
     sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
     sa.Column("revoked_at", sa.DateTime(timezone=True)),
+    sa.Column("fcm_token", sa.Text()),
 )
 
 sessions = sa.Table(
@@ -65,6 +66,7 @@ families = sa.Table(
     sa.Column("created_by", postgresql.UUID(as_uuid=True), nullable=False),
     sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
     sa.Column("deleted_at", sa.DateTime(timezone=True)),
+    sa.Column("email_token_digest", sa.LargeBinary()),
 )
 
 memberships = sa.Table(
@@ -138,6 +140,20 @@ sync_operations = sa.Table(
     sa.Column("nonce", sa.LargeBinary(), nullable=False),
     sa.Column("ciphertext", sa.LargeBinary(), nullable=False),
     sa.Column("content_digest", sa.LargeBinary(), nullable=False),
+    sa.Column("received_at", sa.DateTime(timezone=True), nullable=False),
+    sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
+)
+
+email_suggestions = sa.Table(
+    "email_suggestions",
+    metadata,
+    sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
+    sa.Column("family_id", postgresql.UUID(as_uuid=True), nullable=False),
+    sa.Column("sender", sa.Text(), nullable=False),
+    sa.Column("subject_sanitized", sa.Text(), nullable=False),
+    sa.Column("body_sanitized", sa.Text(), nullable=False),
+    sa.Column("content_digest", sa.LargeBinary(), nullable=False),
+    sa.Column("status", sa.Text(), nullable=False),
     sa.Column("received_at", sa.DateTime(timezone=True), nullable=False),
     sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
 )

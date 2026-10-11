@@ -70,6 +70,62 @@
         "title": "DeviceKeys",
         "type": "object"
       },
+      "EmailIngestPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "default": "",
+            "maxLength": 102400,
+            "title": "Body",
+            "type": "string"
+          },
+          "family_token": {
+            "maxLength": 256,
+            "minLength": 16,
+            "title": "Family Token",
+            "type": "string"
+          },
+          "sender": {
+            "maxLength": 320,
+            "minLength": 1,
+            "title": "Sender",
+            "type": "string"
+          },
+          "subject": {
+            "default": "",
+            "maxLength": 998,
+            "title": "Subject",
+            "type": "string"
+          }
+        },
+        "required": [
+          "family_token",
+          "sender"
+        ],
+        "title": "EmailIngestPayload",
+        "type": "object"
+      },
+      "EmailSuggestionResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "suggestion_id": {
+            "format": "uuid",
+            "title": "Suggestion Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "suggestion_id",
+          "expires_at"
+        ],
+        "title": "EmailSuggestionResponse",
+        "type": "object"
+      },
       "FamilyResponse": {
         "additionalProperties": false,
         "properties": {
@@ -488,6 +544,34 @@
         "title": "PermissionAssignment",
         "type": "object"
       },
+      "PushTokenRegister": {
+        "additionalProperties": false,
+        "properties": {
+          "fcm_token": {
+            "title": "Fcm Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fcm_token"
+        ],
+        "title": "PushTokenRegister",
+        "type": "object"
+      },
+      "PushTokenResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "registered": {
+            "title": "Registered",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "registered"
+        ],
+        "title": "PushTokenResponse",
+        "type": "object"
+      },
       "RelayOperation": {
         "additionalProperties": false,
         "properties": {
@@ -703,6 +787,35 @@
         ],
         "title": "ValidationError",
         "type": "object"
+      },
+      "WakeUpRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "family_id": {
+            "format": "uuid",
+            "title": "Family Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "family_id"
+        ],
+        "title": "WakeUpRequest",
+        "type": "object"
+      },
+      "WakeUpResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "dispatched": {
+            "title": "Dispatched",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "dispatched"
+        ],
+        "title": "WakeUpResponse",
+        "type": "object"
       }
     }
   },
@@ -834,6 +947,65 @@
         "summary": "Registration Options",
         "tags": [
           "authentication"
+        ]
+      }
+    },
+    "/v1/email/ingest": {
+      "post": {
+        "operationId": "ingest_email_v1_email_ingest_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-worker-secret",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Worker-Secret"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailIngestPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailSuggestionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ingest Email",
+        "tags": [
+          "email"
         ]
       }
     },
@@ -1513,6 +1685,126 @@
         "summary": "Create Key Grant",
         "tags": [
           "encrypted-sync"
+        ]
+      }
+    },
+    "/v1/push/register": {
+      "post": {
+        "description": "Store an FCM token for the authenticated device.",
+        "operationId": "register_push_token_v1_push_register_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushTokenRegister"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushTokenResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Register Push Token",
+        "tags": [
+          "push"
+        ]
+      }
+    },
+    "/v1/push/wake-up": {
+      "post": {
+        "description": "Send an opaque sync_available wake-up to all other active family devices.\n\nPayload sent to FCM: {\"type\": \"sync_available\"} only.\nNo event titles, child names, family identifiers, or any family content\nare included (ADR-026).",
+        "operationId": "send_wake_up_v1_push_wake_up_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WakeUpRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WakeUpResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Send Wake Up",
+        "tags": [
+          "push"
         ]
       }
     },
