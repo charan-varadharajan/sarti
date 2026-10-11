@@ -37,9 +37,15 @@ cannot be met; an SDK fails privacy requirements; a service adds unexpected cost
 or exposure; a dependency has material security or licensing concerns; a
 fundamental architecture assumption fails; or work exceeds P0.
 
-## Repository conventions to establish with scaffolding
+## Repository conventions
 
-Formatting, lint rules, supported language versions, branching, release versioning,
-commit conventions, generated-file policy, and CI commands will be finalized when
-the Flutter and Python scaffolds are proposed. They must not be invented before
-toolchain and dependency compatibility is verified.
+- Python targets 3.13 with Ruff formatting/lint and strict Mypy.
+- Flutter uses its generated analysis configuration and `dart format`.
+- Direct and resolved dependencies are pinned; lock files are committed.
+- FastAPI generates `backend/openapi.json`; manual edits are prohibited.
+- Alembic revisions are append-only after merge and must have migration tests.
+- CI runs on pushes to `main` and pull requests. Required checks should be branch
+  protected when repository settings are configured.
+- Build products, local environments, coverage output, and secrets are ignored.
+- Release versioning and production branching remain unresolved until the first
+  release plan.

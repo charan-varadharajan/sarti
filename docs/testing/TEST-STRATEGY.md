@@ -36,17 +36,17 @@ are not applicable with a reason in its completion report.
 - Logs, URLs, crash data, and push payloads contain no sensitive content.
 - Backup restore detects corruption and requires valid recovery material.
 
-## Quality gates
+## Stage 1 automated gates
 
-CI will eventually require formatting, static analysis, unit and integration
-tests, generated OpenAPI drift detection, migration verification, dependency
-review, vulnerability scanning, secret scanning, and build smoke tests. Exact
-tools are selected alongside the initial code scaffolds and documented before
-they become required.
+- Python: Ruff format/lint, strict Mypy, Bandit, pip-audit, Pytest with branch
+  coverage, API/OpenAPI contract, PostgreSQL migration, and tenant/error tests.
+- Flutter: Dart format, Flutter analyze, widget/unit tests, real SQLCipher engine
+  check, Android debug build, and unsigned iOS debug build.
+- Repository: Docker health smoke, Gitleaks secret scan, Dependabot, and pull
+  request dependency review at high severity.
+- Contract drift: generated FastAPI OpenAPI must equal `backend/openapi.json`.
 
-## Stage 1 applicability
-
-Stage 1 changes documentation only. Automated code, API, migration, security, and
-UI suites are not applicable because no implementation, dependency, schema, or
-executable contract exists. Documentation links and repository consistency are
-checked manually in this stage.
+The Stage 1 tenant test exercises reusable fail-closed infrastructure; there are
+no protected resource endpoints yet. Sync, AI, email, passkey, authorization,
+backup, local migration, device, export/deletion, and end-to-end tests are not
+applicable because those behaviors are deliberately unimplemented.

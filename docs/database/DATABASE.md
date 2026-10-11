@@ -1,17 +1,22 @@
 # Database documentation
 
-No schemas or migrations exist in Stage 1.
+## Stores
 
-## Planned stores
+- Local: SQLite linked to SQLCipher through the Dart `sqlite3` build hook. Stage 1
+  verifies the engine but introduces no persistent content schema.
+- Server: PostgreSQL 17 for operational metadata. Stage 1 contains only the
+  operational `schema_metadata` table.
 
-- Device: SQLite encrypted with SQLCipher, containing private family state,
-  pending sync operations, and migration metadata.
-- Server: PostgreSQL containing minimized operational metadata, authorization and
-  active-device state, job state, and relay ciphertext with seven-day retention.
+See `LOCAL-DATABASE.md` and `SERVER-DATABASE.md` for fields, classifications, and
+boundaries.
 
-Each implemented table must document every field, relationship, index, unique and
-check constraint, retention rule, data classification, and encryption boundary.
-This directory will also contain ER diagrams and chronological migration history.
+## Migration history
 
-Schema names and fields are deliberately unspecified until resource, sync, key,
-and authorization models are approved.
+| Revision | Store | Change | Upgrade/downgrade tested |
+| --- | --- | --- | --- |
+| `0001` | PostgreSQL | Create `schema_metadata`; insert schema version 1 | Yes |
+
+Alembic runs `0001` automatically when the backend container starts. The
+integration suite verifies head upgrade, full downgrade, and re-upgrade against
+PostgreSQL. Local content migrations begin only after the content model and key
+management design are approved.

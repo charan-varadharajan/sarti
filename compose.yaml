@@ -1,0 +1,36 @@
+name: sarti
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${SARTI_POSTGRES_DB:?Set SARTI_POSTGRES_DB in .env}
+      POSTGRES_USER: ${SARTI_POSTGRES_USER:?Set SARTI_POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${SARTI_POSTGRES_PASSWORD:?Set SARTI_POSTGRES_PASSWORD in .env}
+    ports:
+      - "${SARTI_POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - sarti-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: backend
+    restart: unless-stopped
+    environment:
+      SARTI_ENVIRONMENT: ${SARTI_ENVIRONMENT:-development}
+      SARTI_LOG_LEVEL: ${SARTI_LOG_LEVEL:-INFO}
+      SARTI_DATABASE_URL: ${SARTI_DATABASE_URL:?Set SARTI_DATABASE_URL in .env}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  sarti-postgres:

@@ -1,7 +1,7 @@
 # System architecture
 
-Status: Stage 1 baseline. Component contracts and data formats remain to be
-designed and accepted before implementation.
+Status: Stage 1 foundation. The bootstrap components are implemented; protocols
+and product schemas explicitly identified below remain unresolved.
 
 ## System context
 
@@ -123,3 +123,18 @@ Domain code must not depend on UI, transport, persistence, native AI, or provide
 implementations. Adapters implement interfaces owned by application/domain
 layers. Backend modules expose services rather than importing one another's
 repositories.
+
+## Supporting designs
+
+- [System and component context](SYSTEM-CONTEXT.md)
+- [Data flows](DATA-FLOWS.md)
+- [Device identity](DEVICE-IDENTITY.md)
+- [Key management](KEY-MANAGEMENT.md)
+- [Tenant isolation](TENANT-ISOLATION.md)
+- [Offline synchronization](OFFLINE-SYNC.md)
+- [API conventions](../api/CONVENTIONS.md)
+- [Local database](../database/LOCAL-DATABASE.md)
+- [Server database](../database/SERVER-DATABASE.md)
+- [Error handling](../engineering/ERROR-HANDLING.md)
+- [Dependency governance](../engineering/DEPENDENCY-GOVERNANCE.md)
+- [Threat model](../security/THREAT-MODEL.md)

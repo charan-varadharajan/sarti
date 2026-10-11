@@ -2,6 +2,12 @@
 
 Status: initial threat model; cryptographic protocol design is pending.
 
+Stage 1 implements sanitized structured logging, UUID-only correlation IDs,
+generic external errors, typed tenant-scope infrastructure, dependency/static/
+secret checks, SQLCipher engine verification, and PostgreSQL readiness. These are
+foundation controls; identity, authorization endpoints, E2EE, key management,
+sync, email, backup, and deletion are not implemented.
+
 ## Protected assets
 
 - Family profiles, calendar content, pickup assignments, and suggestions

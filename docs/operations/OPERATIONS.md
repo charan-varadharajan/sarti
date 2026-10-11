@@ -1,22 +1,56 @@
 # Operations
 
-## Current setup
+## Pinned Stage 1 toolchain
 
-Stage 1 contains documentation only. Python 3.13.1 and Docker 29.6.1 were observed
-on the initial workstation. Flutter was not installed. These observations are not
-project version commitments.
+- Flutter 3.47.7 / Dart 3.13.5
+- Python 3.13 (validated locally with 3.13.1)
+- PostgreSQL 17 container
+- Docker 29.6.1 / Compose
+- Xcode 27.0 and CocoaPods 1.17.0 for iOS
 
-## Configuration and secrets
+## Local setup
 
-Commit an example environment file with names and safe placeholders only when
-configuration exists. Runtime secrets must come from an approved secret source,
-must never be committed or logged, and must be rotated when exposure is suspected.
+```sh
+cp .env.example .env
+make setup
+docker compose up --build --wait
+curl --fail http://localhost:8000/v1/health/live
+curl --fail http://localhost:8000/v1/health/ready
+```
 
-## Future runbooks
+`.env` is ignored. Its values are local development placeholders and must be
+changed for any shared environment. Runtime settings use the `SARTI_` prefix.
 
-Before runnable components are accepted, document pinned toolchain versions,
-bootstrap, local services, migrations, builds, tests, troubleshooting, backup and
-recovery, release, rollback, deletion, retention jobs, and incident response.
+## Checks
 
-Production hosting, monitoring vendors, email delivery, push credentials, and
-backup destinations are undecided and require review before configuration.
+```sh
+make backend-check
+make backend-test
+cd backend && SARTI_DATABASE_URL=postgresql+psycopg://USER:PASSWORD@localhost:5433/DB ../.venv/bin/pytest --cov
+cd backend && ../.venv/bin/pip-audit -r requirements-runtime.lock
+make mobile-check
+cd mobile && flutter build apk --debug
+cd mobile && flutter build ios --debug --no-codesign
+```
+
+Generate OpenAPI with `cd backend && PYTHONPATH=src
+SARTI_DATABASE_URL=postgresql+psycopg://unused ../.venv/bin/python
+scripts_generate_openapi.py` and commit the result.
+
+## Troubleshooting
+
+- Start Docker Desktop if the daemon socket is unavailable.
+- Sarti maps PostgreSQL to host port 5433 because 5432 is commonly occupied;
+  override `SARTI_POSTGRES_PORT` if needed.
+- Run `flutter doctor -v` for platform tools. Android builds need an accepted SDK
+  license plus SDK/NDK components. iOS plugin builds need CocoaPods.
+- The observed Flutter SDK runs through Rosetta on this Apple Silicon host; both
+  Android and iOS Stage 1 builds succeeded, but native Apple Silicon Flutter is
+  preferable when the existing Homebrew layout is corrected.
+
+## Secrets, backup, release, and recovery
+
+Do not commit `.env`, tokens, keys, or credentials. Production secret storage,
+hosting, backup/recovery operations, releases, rollback, and incident response
+remain unresolved because no production environment or private data exists.
+Those runbooks must be approved before their corresponding capability ships.

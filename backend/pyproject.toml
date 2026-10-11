@@ -1,0 +1,33 @@
+[tool.pytest.ini_options]
+addopts = "--strict-config --strict-markers -ra"
+pythonpath = ["src"]
+testpaths = ["tests"]
+markers = [
+  "integration: requires a reachable PostgreSQL database",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "C4", "SIM", "UP", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "S105"]
+"alembic/**/*.py" = ["E501"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+mypy_path = "src"
+packages = ["sarti_backend"]
+
+[tool.coverage.run]
+branch = true
+source = ["sarti_backend"]
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true
+skip_covered = true
