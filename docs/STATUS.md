@@ -2,7 +2,7 @@
 
 - Current stage: Stage 1 — architecture and engineering foundation
 - Updated: 2026-10-11
-- Stage state: local acceptance gates passed; GitHub-hosted CI pending first push
+- Stage state: complete; local and GitHub-hosted acceptance gates passed
 
 ## Delivered
 
@@ -38,10 +38,10 @@
 | Android debug build | Passed; APK produced |
 | iOS unsigned debug build | Passed; Runner.app produced |
 | Gitleaks 8.30.1 working-tree scan | Passed; no leaks |
+| GitHub Actions CI | Passed; [run 7](https://github.com/charan-varadharajan/sarti/actions/runs/38133905678) on commit `3f92044` |
 
 ## Not executed or not applicable
 
-- GitHub-hosted workflow: pending the first push of this Stage 1 implementation.
 - Real-device/simulator behavior: not executed; no usable simulator runtime or
   physical test device was selected.
 - Passkey, biometric, E2EE, sync, email, push, backup/recovery, local schema
@@ -81,6 +81,5 @@ provider, and deletion deadlines block their corresponding implementation.
 
 ## Recommended next stage
 
-After GitHub CI passes and Stage 1 receives explicit approval, Stage 2 should
-design and implement the smallest onboarding/identity increment. Do not begin
-Stage 2 automatically.
+After Stage 1 receives explicit approval, Stage 2 should design and implement
+the smallest onboarding/identity increment. Do not begin Stage 2 automatically.
