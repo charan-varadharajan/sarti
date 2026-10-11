@@ -75,7 +75,8 @@ jobs:
         working-directory: mobile
 
   mobile-ios:
-    runs-on: macos-15
+    # passkeys diagnostics use an iOS 26.1 SDK API while retaining iOS 13 runtime support.
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v6
       - uses: subosito/flutter-action@v2
