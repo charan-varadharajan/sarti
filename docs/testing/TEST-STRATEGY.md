@@ -36,7 +36,7 @@ are not applicable with a reason in its completion report.
 - Logs, URLs, crash data, and push payloads contain no sensitive content.
 - Backup restore detects corruption and requires valid recovery material.
 
-## Stage 1 automated gates
+## Automated gates through Stage 2
 
 - Python: Ruff format/lint, strict Mypy, Bandit, pip-audit, Pytest with branch
   coverage, API/OpenAPI contract, PostgreSQL migration, and tenant/error tests.
@@ -46,7 +46,14 @@ are not applicable with a reason in its completion report.
   request dependency review at high severity.
 - Contract drift: generated FastAPI OpenAPI must equal `backend/openapi.json`.
 
-The Stage 1 tenant test exercises reusable fail-closed infrastructure; there are
-no protected resource endpoints yet. Sync, AI, email, passkey, authorization,
-backup, local migration, device, export/deletion, and end-to-end tests are not
-applicable because those behaviors are deliberately unimplemented.
+Stage 2 adds a real PostgreSQL API journey covering passkey ceremony boundaries,
+device replacement, two-family isolation, invitation acceptance/approval,
+permission-scoped sealed grants, duplicate/replayed/malformed envelopes, expiry,
+revocation, and epoch rotation. Dart tests cover encrypted offline writes,
+XChaCha20-Poly1305 relay simulation, duplicate prevention, concurrent-edit
+preservation/resolution, recurrence across DST, progressive onboarding, child
+assignment, and reminder scheduling invocation.
+
+Mocks establish application behavior only. Real passkey ceremonies, Keychain and
+Keystore biometric policies, notification delivery, process-kill persistence,
+and multi-device networking need physical-device/provider validation.

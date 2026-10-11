@@ -20,7 +20,8 @@ class ResourceCrypto {
 
   final Sodium sodium;
 
-  SecureKey newResourceKey() => sodium.crypto.aeadXChaCha20Poly1305IETF.keygen();
+  SecureKey newResourceKey() =>
+      sodium.crypto.aeadXChaCha20Poly1305IETF.keygen();
 
   EncryptedResourcePayload encrypt({
     required Uint8List plaintext,
@@ -29,7 +30,9 @@ class ResourceCrypto {
   }) {
     final aead = sodium.crypto.aeadXChaCha20Poly1305IETF;
     final nonce = sodium.randombytes.buf(aead.nonceBytes);
-    final additionalData = Uint8List.fromList(utf8.encode(jsonEncode(metadata)));
+    final additionalData = Uint8List.fromList(
+      utf8.encode(jsonEncode(metadata)),
+    );
     final ciphertext = aead.encrypt(
       message: plaintext,
       nonce: nonce,
@@ -43,10 +46,8 @@ class ResourceCrypto {
     );
   }
 
-  Uint8List decrypt(EncryptedResourcePayload payload, SecureKey key) => sodium
-      .crypto
-      .aeadXChaCha20Poly1305IETF
-      .decrypt(
+  Uint8List decrypt(EncryptedResourcePayload payload, SecureKey key) =>
+      sodium.crypto.aeadXChaCha20Poly1305IETF.decrypt(
         cipherText: payload.ciphertext,
         nonce: payload.nonce,
         key: key,

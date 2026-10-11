@@ -1,6 +1,130 @@
 {
   "components": {
     "schemas": {
+      "CeremonyCompletion": {
+        "additionalProperties": false,
+        "properties": {
+          "challenge_id": {
+            "format": "uuid",
+            "title": "Challenge Id",
+            "type": "string"
+          },
+          "credential": {
+            "additionalProperties": true,
+            "title": "Credential",
+            "type": "object"
+          },
+          "device_keys": {
+            "$ref": "#/components/schemas/DeviceKeys"
+          }
+        },
+        "required": [
+          "challenge_id",
+          "credential",
+          "device_keys"
+        ],
+        "title": "CeremonyCompletion",
+        "type": "object"
+      },
+      "CeremonyOptions": {
+        "additionalProperties": false,
+        "properties": {
+          "challenge_id": {
+            "format": "uuid",
+            "title": "Challenge Id",
+            "type": "string"
+          },
+          "public_key": {
+            "additionalProperties": true,
+            "title": "Public Key",
+            "type": "object"
+          }
+        },
+        "required": [
+          "challenge_id",
+          "public_key"
+        ],
+        "title": "CeremonyOptions",
+        "type": "object"
+      },
+      "DeviceKeys": {
+        "additionalProperties": false,
+        "properties": {
+          "encryption_public_key": {
+            "maxLength": 44,
+            "minLength": 43,
+            "title": "Encryption Public Key",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "maxLength": 44,
+            "minLength": 43,
+            "title": "Signing Public Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "encryption_public_key",
+          "signing_public_key"
+        ],
+        "title": "DeviceKeys",
+        "type": "object"
+      },
+      "FamilyResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "resources": {
+            "items": {
+              "$ref": "#/components/schemas/ResourceResponse"
+            },
+            "title": "Resources",
+            "type": "array"
+          },
+          "role": {
+            "enum": [
+              "owner",
+              "guardian"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "active",
+              "revoked"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "role",
+          "status",
+          "resources"
+        ],
+        "title": "FamilyResponse",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
       "HealthResponse": {
         "additionalProperties": false,
         "properties": {
@@ -19,6 +143,566 @@
         ],
         "title": "HealthResponse",
         "type": "object"
+      },
+      "InvitationAccept": {
+        "additionalProperties": false,
+        "properties": {
+          "token": {
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "title": "InvitationAccept",
+        "type": "object"
+      },
+      "InvitationAccepted": {
+        "additionalProperties": false,
+        "properties": {
+          "family_id": {
+            "format": "uuid",
+            "title": "Family Id",
+            "type": "string"
+          },
+          "invitation_id": {
+            "format": "uuid",
+            "title": "Invitation Id",
+            "type": "string"
+          },
+          "status": {
+            "const": "pending",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "invitation_id",
+          "family_id",
+          "status"
+        ],
+        "title": "InvitationAccepted",
+        "type": "object"
+      },
+      "InvitationApproval": {
+        "additionalProperties": false,
+        "properties": {
+          "permissions": {
+            "items": {
+              "$ref": "#/components/schemas/PermissionAssignment"
+            },
+            "title": "Permissions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "permissions"
+        ],
+        "title": "InvitationApproval",
+        "type": "object"
+      },
+      "InvitationResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "token",
+          "expires_at"
+        ],
+        "title": "InvitationResponse",
+        "type": "object"
+      },
+      "KeyGrantResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "granter_device_id": {
+            "format": "uuid",
+            "title": "Granter Device Id",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "key_epoch": {
+            "title": "Key Epoch",
+            "type": "integer"
+          },
+          "recipient_device_id": {
+            "format": "uuid",
+            "title": "Recipient Device Id",
+            "type": "string"
+          },
+          "resource_id": {
+            "format": "uuid",
+            "title": "Resource Id",
+            "type": "string"
+          },
+          "signature": {
+            "title": "Signature",
+            "type": "string"
+          },
+          "wrapped_key": {
+            "title": "Wrapped Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "resource_id",
+          "key_epoch",
+          "recipient_device_id",
+          "granter_device_id",
+          "wrapped_key",
+          "signature"
+        ],
+        "title": "KeyGrantResponse",
+        "type": "object"
+      },
+      "KeyGrantUpload": {
+        "additionalProperties": false,
+        "properties": {
+          "family_id": {
+            "format": "uuid",
+            "title": "Family Id",
+            "type": "string"
+          },
+          "key_epoch": {
+            "exclusiveMinimum": 0.0,
+            "title": "Key Epoch",
+            "type": "integer"
+          },
+          "recipient_device_id": {
+            "format": "uuid",
+            "title": "Recipient Device Id",
+            "type": "string"
+          },
+          "resource_id": {
+            "format": "uuid",
+            "title": "Resource Id",
+            "type": "string"
+          },
+          "signature": {
+            "maxLength": 88,
+            "minLength": 86,
+            "title": "Signature",
+            "type": "string"
+          },
+          "wrapped_key": {
+            "maxLength": 684,
+            "minLength": 64,
+            "title": "Wrapped Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "family_id",
+          "resource_id",
+          "key_epoch",
+          "recipient_device_id",
+          "wrapped_key",
+          "signature"
+        ],
+        "title": "KeyGrantUpload",
+        "type": "object"
+      },
+      "MembershipResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "adult_id": {
+            "format": "uuid",
+            "title": "Adult Id",
+            "type": "string"
+          },
+          "family_id": {
+            "format": "uuid",
+            "title": "Family Id",
+            "type": "string"
+          },
+          "new_key_epoch": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New Key Epoch"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "revoked"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "adult_id",
+          "family_id",
+          "status"
+        ],
+        "title": "MembershipResponse",
+        "type": "object"
+      },
+      "OperationReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "duplicate": {
+            "title": "Duplicate",
+            "type": "boolean"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "operation_id": {
+            "format": "uuid",
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "server_sequence": {
+            "title": "Server Sequence",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "operation_id",
+          "server_sequence",
+          "duplicate",
+          "expires_at"
+        ],
+        "title": "OperationReceipt",
+        "type": "object"
+      },
+      "OperationUpload": {
+        "additionalProperties": false,
+        "properties": {
+          "ciphertext": {
+            "maxLength": 1398124,
+            "minLength": 23,
+            "title": "Ciphertext",
+            "type": "string"
+          },
+          "content_digest": {
+            "maxLength": 44,
+            "minLength": 43,
+            "title": "Content Digest",
+            "type": "string"
+          },
+          "device_sequence": {
+            "exclusiveMinimum": 0.0,
+            "title": "Device Sequence",
+            "type": "integer"
+          },
+          "family_id": {
+            "format": "uuid",
+            "title": "Family Id",
+            "type": "string"
+          },
+          "key_epoch": {
+            "exclusiveMinimum": 0.0,
+            "title": "Key Epoch",
+            "type": "integer"
+          },
+          "logical_version": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Logical Version",
+            "type": "object"
+          },
+          "nonce": {
+            "maxLength": 32,
+            "minLength": 32,
+            "title": "Nonce",
+            "type": "string"
+          },
+          "operation_id": {
+            "format": "uuid",
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "resource_id": {
+            "format": "uuid",
+            "title": "Resource Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "operation_id",
+          "family_id",
+          "resource_id",
+          "device_sequence",
+          "key_epoch",
+          "logical_version",
+          "nonce",
+          "ciphertext",
+          "content_digest"
+        ],
+        "title": "OperationUpload",
+        "type": "object"
+      },
+      "PermissionAssignment": {
+        "additionalProperties": false,
+        "properties": {
+          "permission": {
+            "enum": [
+              "read",
+              "write",
+              "admin"
+            ],
+            "title": "Permission",
+            "type": "string"
+          },
+          "resource_id": {
+            "format": "uuid",
+            "title": "Resource Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "resource_id",
+          "permission"
+        ],
+        "title": "PermissionAssignment",
+        "type": "object"
+      },
+      "RelayOperation": {
+        "additionalProperties": false,
+        "properties": {
+          "author_device_id": {
+            "format": "uuid",
+            "title": "Author Device Id",
+            "type": "string"
+          },
+          "ciphertext": {
+            "title": "Ciphertext",
+            "type": "string"
+          },
+          "content_digest": {
+            "title": "Content Digest",
+            "type": "string"
+          },
+          "device_sequence": {
+            "title": "Device Sequence",
+            "type": "integer"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "family_id": {
+            "format": "uuid",
+            "title": "Family Id",
+            "type": "string"
+          },
+          "key_epoch": {
+            "title": "Key Epoch",
+            "type": "integer"
+          },
+          "logical_version": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Logical Version",
+            "type": "object"
+          },
+          "nonce": {
+            "title": "Nonce",
+            "type": "string"
+          },
+          "operation_id": {
+            "format": "uuid",
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "resource_id": {
+            "format": "uuid",
+            "title": "Resource Id",
+            "type": "string"
+          },
+          "server_sequence": {
+            "title": "Server Sequence",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "server_sequence",
+          "operation_id",
+          "family_id",
+          "resource_id",
+          "author_device_id",
+          "device_sequence",
+          "key_epoch",
+          "logical_version",
+          "nonce",
+          "ciphertext",
+          "content_digest",
+          "expires_at"
+        ],
+        "title": "RelayOperation",
+        "type": "object"
+      },
+      "RelayPage": {
+        "additionalProperties": false,
+        "properties": {
+          "next_cursor": {
+            "title": "Next Cursor",
+            "type": "integer"
+          },
+          "operations": {
+            "items": {
+              "$ref": "#/components/schemas/RelayOperation"
+            },
+            "title": "Operations",
+            "type": "array"
+          }
+        },
+        "required": [
+          "operations",
+          "next_cursor"
+        ],
+        "title": "RelayPage",
+        "type": "object"
+      },
+      "ResourceCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "child_profile",
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "ResourceCreate",
+        "type": "object"
+      },
+      "ResourceResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "key_epoch": {
+            "title": "Key Epoch",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "family_profile",
+              "child_profile",
+              "calendar"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "key_epoch"
+        ],
+        "title": "ResourceResponse",
+        "type": "object"
+      },
+      "SessionResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "adult_id": {
+            "format": "uuid",
+            "title": "Adult Id",
+            "type": "string"
+          },
+          "device_id": {
+            "format": "uuid",
+            "title": "Device Id",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "session_token": {
+            "title": "Session Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "adult_id",
+          "device_id",
+          "session_token",
+          "expires_at"
+        ],
+        "title": "SessionResponse",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
       }
     }
   },
@@ -29,6 +713,588 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/v1/auth/authentication/complete": {
+      "post": {
+        "operationId": "authentication_complete_v1_auth_authentication_complete_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CeremonyCompletion"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Authentication Complete",
+        "tags": [
+          "authentication"
+        ]
+      }
+    },
+    "/v1/auth/authentication/options": {
+      "post": {
+        "operationId": "authentication_options_v1_auth_authentication_options_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CeremonyOptions"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Authentication Options",
+        "tags": [
+          "authentication"
+        ]
+      }
+    },
+    "/v1/auth/registration/complete": {
+      "post": {
+        "operationId": "registration_complete_v1_auth_registration_complete_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CeremonyCompletion"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Registration Complete",
+        "tags": [
+          "authentication"
+        ]
+      }
+    },
+    "/v1/auth/registration/options": {
+      "post": {
+        "operationId": "registration_options_v1_auth_registration_options_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CeremonyOptions"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Registration Options",
+        "tags": [
+          "authentication"
+        ]
+      }
+    },
+    "/v1/families": {
+      "get": {
+        "operationId": "list_families_v1_families_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FamilyResponse"
+                  },
+                  "title": "Response List Families V1 Families Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Families",
+        "tags": [
+          "households"
+        ]
+      },
+      "post": {
+        "operationId": "create_family_v1_families_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FamilyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Family",
+        "tags": [
+          "households"
+        ]
+      }
+    },
+    "/v1/families/{family_id}/guardians/{guardian_id}": {
+      "delete": {
+        "operationId": "revoke_guardian_v1_families__family_id__guardians__guardian_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "family_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Family Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "guardian_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Guardian Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MembershipResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Revoke Guardian",
+        "tags": [
+          "households"
+        ]
+      }
+    },
+    "/v1/families/{family_id}/invitations": {
+      "post": {
+        "operationId": "create_invitation_v1_families__family_id__invitations_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "family_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Family Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Invitation",
+        "tags": [
+          "households"
+        ]
+      }
+    },
+    "/v1/families/{family_id}/invitations/{invitation_id}/approve": {
+      "post": {
+        "operationId": "approve_invitation_v1_families__family_id__invitations__invitation_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "family_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Family Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "invitation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Invitation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvitationApproval"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MembershipResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Approve Invitation",
+        "tags": [
+          "households"
+        ]
+      }
+    },
+    "/v1/families/{family_id}/resources": {
+      "post": {
+        "operationId": "create_resource_v1_families__family_id__resources_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "family_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Family Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResourceCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Resource",
+        "tags": [
+          "households"
+        ]
+      }
+    },
+    "/v1/families/{family_id}/sync": {
+      "get": {
+        "operationId": "download_operations_v1_families__family_id__sync_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "family_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Family Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Cursor",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelayPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download Operations",
+        "tags": [
+          "encrypted-sync"
+        ]
+      }
+    },
     "/v1/health/live": {
       "get": {
         "operationId": "health_live",
@@ -78,6 +1344,234 @@
         "summary": "Check whether the API and PostgreSQL are ready",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/v1/invitations/accept": {
+      "post": {
+        "operationId": "accept_invitation_v1_invitations_accept_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvitationAccept"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationAccepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Accept Invitation",
+        "tags": [
+          "households"
+        ]
+      }
+    },
+    "/v1/key-grants": {
+      "get": {
+        "operationId": "list_key_grants_v1_key_grants_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/KeyGrantResponse"
+                  },
+                  "title": "Response List Key Grants V1 Key Grants Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Key Grants",
+        "tags": [
+          "encrypted-sync"
+        ]
+      },
+      "post": {
+        "operationId": "create_key_grant_v1_key_grants_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeyGrantUpload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KeyGrantResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Key Grant",
+        "tags": [
+          "encrypted-sync"
+        ]
+      }
+    },
+    "/v1/sync/operations": {
+      "post": {
+        "operationId": "upload_operation_v1_sync_operations_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OperationUpload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationReceipt"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Upload Operation",
+        "tags": [
+          "encrypted-sync"
         ]
       }
     }

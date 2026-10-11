@@ -15,9 +15,10 @@ VectorRelation compareVectors(Map<String, int> left, Map<String, int> right) {
   return VectorRelation.equal;
 }
 
-Map<String, int> mergeVectors(Map<String, int> left, Map<String, int> right) => {
-  for (final device in {...left.keys, ...right.keys})
-    device: (left[device] ?? 0) > (right[device] ?? 0)
-        ? left[device] ?? 0
-        : right[device] ?? 0,
-};
+Map<String, int> mergeVectors(Map<String, int> left, Map<String, int> right) =>
+    {
+      for (final device in {...left.keys, ...right.keys})
+        device: (left[device] ?? 0) > (right[device] ?? 0)
+            ? left[device] ?? 0
+            : right[device] ?? 0,
+    };

@@ -4,7 +4,7 @@ Sarti is a privacy-first AI family organizer: **Your family's wise companion.**
 
 This monorepo contains the Flutter iOS/Android app, FastAPI backend, PostgreSQL
 migrations, Docker local environment, tests, CI gates, and architecture/security
-documentation established in Stage 1.
+documentation through Stage 2.
 
 ## Prerequisites
 

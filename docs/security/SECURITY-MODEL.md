@@ -1,12 +1,14 @@
 # Security model
 
-Status: initial threat model; cryptographic protocol design is pending.
+Status: Stage 2 identity, authorization, device-key, encrypted-relay, and local
+calendar controls are implemented under ADR-019 through ADR-022.
 
-Stage 1 implements sanitized structured logging, UUID-only correlation IDs,
-generic external errors, typed tenant-scope infrastructure, dependency/static/
-secret checks, SQLCipher engine verification, and PostgreSQL readiness. These are
-foundation controls; identity, authorization endpoints, E2EE, key management,
-sync, email, backup, and deletion are not implemented.
+The backend implements passkeys, one-active-device enforcement, owner/guardian
+membership, resource permissions, signed sealed key grants, replay defense, and
+a seven-day ciphertext relay. Mobile implements SQLCipher persistence, platform
+secret storage/user-presence gating, resource encryption, local-first outbox,
+version-vector conflicts, and generic local reminder text. Email, AI, backup,
+recovery, push dispatch, and account/family deletion remain unimplemented.
 
 ## Protected assets
 
@@ -43,13 +45,11 @@ available to it. Revocation protects future access and is not remote erasure.
 - Generated changes require explicit approval.
 - Secrets come from runtime configuration and never source control.
 
-## Key lifecycle requirements
+## Key lifecycle
 
-Before cryptographic implementation, a dedicated ADR must specify established
-algorithms/libraries, device identity, resource key creation and distribution,
-authenticated metadata, nonce rules, rotation, member removal, device
-replacement, recovery, backup encryption, deletion, and versioning. No security
-claim may exceed what the implemented protocol and platform storage provide.
+ADR-020 and `KEY-MANAGEMENT.md` specify the implemented device/resource lifecycle.
+Guardian removal increments every resource epoch and prevents future grants.
+Backup derivation and recovery remain unresolved and do not reuse sync keys.
 
 ## Authentication and device authorization
 
@@ -85,6 +85,7 @@ material, notification text, and unbounded exception payloads.
 
 ## Open security decisions
 
-The cryptographic protocol, passkey library, platform key-storage integration,
-email provider, push provider integration, backup format, deletion deadlines, and
-metadata retention schedule require design and review.
+Email/provider boundaries, AI compatibility, remote push, backup/recovery format,
+deletion deadlines, production RP domain/hosting, device-attestation policy, and
+metadata retention beyond the seven-day relay rule require approval or Stage 3/4
+implementation. Physical-device validation is required before release.

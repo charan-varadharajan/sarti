@@ -9,7 +9,7 @@ from uuid import UUID, uuid4
 import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from httpx import ASGITransport, AsyncClient, Response
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import create_engine, text
 
 from sarti_backend.core.config import Settings
@@ -223,11 +223,11 @@ async def _request_flow() -> None:
         assert duplicate.json()["duplicate"] is True
 
         replay = dict(operation, operation_id=str(uuid4()))
-        replayed = await client.post(
-            "/v1/sync/operations", headers=api.headers(owner), json=replay
-        )
+        replayed = await client.post("/v1/sync/operations", headers=api.headers(owner), json=replay)
         assert replayed.status_code == 409
-        malformed = dict(operation, operation_id=str(uuid4()), device_sequence=2, content_digest=b64(b"x" * 32))
+        malformed = dict(
+            operation, operation_id=str(uuid4()), device_sequence=2, content_digest=b64(b"x" * 32)
+        )
         rejected = await client.post(
             "/v1/sync/operations", headers=api.headers(owner), json=malformed
         )
@@ -249,6 +249,29 @@ async def _request_flow() -> None:
             f"/v1/families/{family_id}/sync", headers=api.headers(guardian)
         )
         assert after_revocation.status_code == 404
+        revoked_grant_message = b"".join(
+            (
+                b"SARTI-GRANT-V1\0",
+                UUID(calendar["id"]).bytes,
+                (2).to_bytes(8, "big"),
+                UUID(guardian["device_id"]).bytes,
+                UUID(owner["device_id"]).bytes,
+                hashlib.sha256(wrapped_key).digest(),
+            )
+        )
+        revoked_grant = await client.post(
+            "/v1/key-grants",
+            headers=api.headers(owner),
+            json={
+                "family_id": family_id,
+                "resource_id": calendar["id"],
+                "key_epoch": 2,
+                "recipient_device_id": guardian["device_id"],
+                "wrapped_key": b64(wrapped_key),
+                "signature": b64(owner_signing_key.sign(revoked_grant_message)),
+            },
+        )
+        assert revoked_grant.status_code == 403
         stale_operation = dict(operation, operation_id=str(uuid4()), device_sequence=2)
         stale = await client.post(
             "/v1/sync/operations", headers=api.headers(owner), json=stale_operation
@@ -281,21 +304,27 @@ async def _request_flow() -> None:
 
         auth_options = await client.post("/v1/auth/authentication/options")
         auth_body = auth_options.json()
+        replacement_payload = {
+            "challenge_id": auth_body["challenge_id"],
+            "credential": {
+                "id": b64(b"owner-credential"),
+                "challenge": auth_body["public_key"]["challenge"],
+            },
+            "device_keys": {
+                "encryption_public_key": b64(b"2" * 32),
+                "signing_public_key": b64(b"3" * 32),
+            },
+        }
         replaced = await client.post(
             "/v1/auth/authentication/complete",
-            json={
-                "challenge_id": auth_body["challenge_id"],
-                "credential": {
-                    "id": b64(b"owner-credential"),
-                    "challenge": auth_body["public_key"]["challenge"],
-                },
-                "device_keys": {
-                    "encryption_public_key": b64(b"2" * 32),
-                    "signing_public_key": b64(b"3" * 32),
-                },
-            },
+            json=replacement_payload,
         )
         assert replaced.status_code == 200, replaced.text
+        replayed_auth = await client.post(
+            "/v1/auth/authentication/complete",
+            json=replacement_payload,
+        )
+        assert replayed_auth.status_code == 401
         old_session = await client.get("/v1/families", headers=api.headers(owner))
         assert old_session.status_code == 401
 

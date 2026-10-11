@@ -1,6 +1,6 @@
 # Operations
 
-## Pinned Stage 1 toolchain
+## Pinned toolchain through Stage 2
 
 - Flutter 3.47.7 / Dart 3.13.5
 - Python 3.13 (validated locally with 3.13.1)
@@ -45,12 +45,12 @@ scripts_generate_openapi.py` and commit the result.
 - Run `flutter doctor -v` for platform tools. Android builds need an accepted SDK
   license plus SDK/NDK components. iOS plugin builds need CocoaPods.
 - The observed Flutter SDK runs through Rosetta on this Apple Silicon host; both
-  Android and iOS Stage 1 builds succeeded, but native Apple Silicon Flutter is
+  Android and iOS Stage 2 builds succeeded, but native Apple Silicon Flutter is
   preferable when the existing Homebrew layout is corrected.
 
 ## Secrets, backup, release, and recovery
 
 Do not commit `.env`, tokens, keys, or credentials. Production secret storage,
 hosting, backup/recovery operations, releases, rollback, and incident response
-remain unresolved because no production environment or private data exists.
+remain unresolved because no production environment exists.
 Those runbooks must be approved before their corresponding capability ships.

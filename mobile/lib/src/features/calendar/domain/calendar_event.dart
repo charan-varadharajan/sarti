@@ -133,4 +133,28 @@ class CalendarEvent {
   };
 
   String encode() => jsonEncode(toJson());
+
+  factory CalendarEvent.fromJson(Map<String, Object?> json) => CalendarEvent(
+    id: json['id']! as String,
+    householdId: json['householdId']! as String,
+    calendarResourceId: json['calendarResourceId']! as String,
+    title: json['title']! as String,
+    notes: json['notes'] as String?,
+    localStart: DateTime.parse(json['localStart']! as String),
+    timezone: json['timezone']! as String,
+    durationMinutes: json['durationMinutes']! as int,
+    status: EventStatus.values.byName(json['status']! as String),
+    recurrence: json['recurrence'] == null
+        ? null
+        : RecurrenceRule.fromJson(
+            Map<String, Object?>.from(json['recurrence']! as Map),
+          ),
+    childIds: List<String>.from(json['childIds']! as List<Object?>),
+    pickupGuardianId: json['pickupGuardianId'] as String?,
+    dropoffGuardianId: json['dropoffGuardianId'] as String?,
+    reminderMinutes: List<int>.from(json['reminderMinutes']! as List<Object?>),
+    revision: json['revision']! as int,
+    updatedAt: DateTime.parse(json['updatedAt']! as String),
+    deleted: json['deleted']! as bool,
+  );
 }

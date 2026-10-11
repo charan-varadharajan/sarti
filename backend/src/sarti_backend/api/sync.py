@@ -19,7 +19,10 @@ from sarti_backend.core.errors import (
     TenantAccessDenied,
 )
 from sarti_backend.db.schema import devices, key_grants, memberships, sync_operations
-from sarti_backend.households.authorization import require_active_member, require_resource_permission
+from sarti_backend.households.authorization import (
+    require_active_member,
+    require_resource_permission,
+)
 from sarti_backend.sync.retention import delete_expired_operations
 
 
@@ -246,7 +249,8 @@ def download_operations(
     database: TransactionalDatabase = request.app.state.database
     now = datetime.now(UTC)
     operations: list[RelayOperation] = []
-    with database.connect() as connection:
+    with database.transaction() as connection:
+        delete_expired_operations(connection, now)
         require_active_member(connection, family_id, actor.adult_id)
         rows = connection.execute(
             select(sync_operations)

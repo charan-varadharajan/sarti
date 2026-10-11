@@ -1,11 +1,18 @@
 # Tenant isolation
 
-The family is the tenant boundary. Authentication, active-device validation,
-family membership, role, and resource authorization are separate checks.
+The family is the tenant boundary. A protected request passes four separate
+checks: valid session, active device, active family membership, then role or
+resource permission. UUID possession never grants access. Family owners manage
+children, invitations, approvals, and guardian removal. Guardians receive only
+the resources and read/write/admin levels explicitly approved by the owner.
 
-The backend provides a typed tenant context and a fail-closed family assertion
-that future protected repositories must require. Stage 1 tests prove mismatched
-family IDs are rejected, but there are no protected resource endpoints or family
-tables yet. Each future repository query must include family scope and have a
-negative two-family integration test. PostgreSQL row-level security is unresolved
-and may supplement, but never replace, application authorization.
+Server queries include family and resource scope. Invitation acceptance creates
+a pending membership; it conveys no content access until owner approval.
+Invitation tokens are random, stored only as hashes, expire after 48 hours, are
+one-use, and each family is limited to five open/pending invitations. Removing a
+guardian revokes permissions and advances every family resource key epoch.
+
+The PostgreSQL integration suite creates two unrelated adults/families and proves
+that outsider relay reads are denied even when the requested family has no
+operations. PostgreSQL row-level security remains unresolved; application
+authorization is the implemented control and cannot be bypassed by repositories.

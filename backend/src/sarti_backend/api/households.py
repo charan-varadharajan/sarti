@@ -6,12 +6,12 @@ from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import and_, delete, select, update
+from sqlalchemy import and_, delete, func, select, update
 
 from sarti_backend.core.auth import AuthenticatedDevice, require_device
 from sarti_backend.core.errors import ConflictDetected, PermissionDenied, TenantAccessDenied
 from sarti_backend.db.schema import families, invitations, memberships, permissions, resources
-from sarti_backend.households.authorization import require_active_member, require_owner
+from sarti_backend.households.authorization import require_owner
 
 
 class TransactionalDatabase(Protocol):
@@ -192,11 +192,7 @@ def create_resource(
     database: TransactionalDatabase = request.app.state.database
     resource_id = uuid4()
     with database.transaction() as connection:
-        if require_active_member(connection, family_id, actor.adult_id) not in (
-            "owner",
-            "guardian",
-        ):
-            raise PermissionDenied
+        require_owner(connection, family_id, actor.adult_id)
         connection.execute(
             resources.insert().values(
                 id=resource_id,
@@ -222,6 +218,19 @@ def create_invitation(
     expires_at = datetime.now(UTC) + timedelta(hours=48)
     with database.transaction() as connection:
         require_owner(connection, family_id, actor.adult_id)
+        open_invitations = connection.execute(
+            select(func.count())
+            .select_from(invitations)
+            .where(
+                and_(
+                    invitations.c.family_id == family_id,
+                    invitations.c.status.in_(("open", "pending")),
+                    invitations.c.expires_at > datetime.now(UTC),
+                )
+            )
+        ).scalar_one()
+        if open_invitations >= 5:
+            raise ConflictDetected("Too many active invitations.")
         connection.execute(
             invitations.insert().values(
                 id=invitation_id,

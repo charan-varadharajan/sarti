@@ -5,7 +5,7 @@
 Adults use one authorized active phone each. The mobile app owns private family
 content and calls the Sarti API with operational metadata and ciphertext. The API
 uses PostgreSQL. External email, push, and user-owned backup systems cross trust
-boundaries and are not selected in Stage 1.
+boundaries and remain unselected before Stage 3.
 
 ## Mobile component boundaries
 
@@ -21,9 +21,10 @@ logging, and tenant context. `db` owns connections and migrations. Future domain
 modules will own services and repositories. No route may issue arbitrary SQL or
 accept a caller-provided family identifier without tenant authorization.
 
-## Stage 1 runtime
+## Stage 2 runtime
 
-The Flutter bootstrap demonstrates Riverpod composition and verifies a bundled
-SQLCipher engine. The FastAPI bootstrap provides liveness and database readiness.
-It does not implement identity, private content, synchronization, AI, email,
-push, backup, export, or deletion.
+Flutter owns the SQLCipher calendar, secure device/resource keys, recurrence,
+reminders, encrypted outbox, and conflicts. FastAPI owns WebAuthn verification,
+active-device state, family/resource authorization, sealed grants, and the opaque
+relay. It does not process plaintext family content or implement AI, email,
+backup/recovery, remote push, export, or deletion workflows.

@@ -1,22 +1,19 @@
 # Database documentation
 
-## Stores
-
-- Local: SQLite linked to SQLCipher through the Dart `sqlite3` build hook. Stage 1
-  verifies the engine but introduces no persistent content schema.
-- Server: PostgreSQL 17 for operational metadata. Stage 1 contains only the
-  operational `schema_metadata` table.
-
-See `LOCAL-DATABASE.md` and `SERVER-DATABASE.md` for fields, classifications, and
-boundaries.
+The mobile source of truth is SQLite backed by SQLCipher. PostgreSQL stores only
+identity/authorization metadata, public keys, hashed tokens, signed sealed key
+grants, and relay ciphertext. Field-level designs and classifications are in
+`LOCAL-DATABASE.md` and `SERVER-DATABASE.md`.
 
 ## Migration history
 
-| Revision | Store | Change | Upgrade/downgrade tested |
+| Revision | Store | Change | Verification |
 | --- | --- | --- | --- |
-| `0001` | PostgreSQL | Create `schema_metadata`; insert schema version 1 | Yes |
+| Local v1 | SQLCipher | Households, guardians, children, events, assignments, reminders | Fresh encrypted schema tests |
+| Local v2 | SQLCipher | Outbox, de-duplication, conflicts, resource keys, cursor | Encrypted repository/sync tests |
+| Local v3 | SQLCipher | Stable calendar resource, device sequence, conflict vectors | v2 encrypted-file upgrade preserves private content; wrong key fails |
+| `0001` | PostgreSQL | Schema metadata/version 1 | Upgrade/downgrade/re-upgrade integration |
+| `0002` | PostgreSQL | Identity, devices, families, permissions, invitations, grants, relay; version 2 | Real PostgreSQL migration and API integration |
 
-Alembic runs `0001` automatically when the backend container starts. The
-integration suite verifies head upgrade, full downgrade, and re-upgrade against
-PostgreSQL. Local content migrations begin only after the content model and key
-management design are approved.
+Alembic upgrades run before backend startup. Local migrations use immediate
+transactions and update `user_version` only after success.

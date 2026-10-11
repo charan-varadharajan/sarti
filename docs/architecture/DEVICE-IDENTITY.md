@@ -1,21 +1,17 @@
 # Device identity
 
-## Approved invariants
+Adults register and authenticate with WebAuthn passkeys using required user
+verification and discoverable credentials. The backend uses `webauthn` 3.0.0,
+five-minute one-use challenges, monotonic authenticator counters, hashed opaque
+30-day session tokens, and deployment-configured RP ID/origin.
 
-- Adults authenticate with passkeys.
-- Device biometrics gate local access and do not authenticate to the server.
-- The backend allows one active authorized phone per adult.
-- Replacing a phone blocks the former phone from future server access.
-- Revocation cannot erase content already downloaded.
+Completing a ceremony registers the device X25519 and Ed25519 public keys. Only
+one phone may be active for an adult. A successful authentication from a new
+phone atomically revokes the former device and its sessions. Every protected API
+request binds the token to the adult and active device before family or resource
+authorization runs. Biometrics only unlock local device secrets; they are not a
+server credential.
 
-## Required server checks
-
-Protected requests will bind the authenticated adult to a registered active
-device, then authorize family role and resource scope. Device IDs are opaque and
-unguessability is never used as authorization.
-
-## Unresolved before implementation
-
-Passkey server library and ceremony details, device key attestation, replacement
-confirmation, recovery, biometric policy, platform secure-storage APIs, and
-session/token formats require an approved design and abuse-case tests.
+The Flutter `passkeys` adapter and platform-secure key store are implemented.
+Associated-domain/asset-link deployment and physical iOS/Android ceremonies have
+not been verified because an RP domain and test devices are unavailable.

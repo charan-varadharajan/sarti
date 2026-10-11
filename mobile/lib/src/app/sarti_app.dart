@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sarti_mobile/src/features/foundation/foundation_screen.dart';
+import 'package:sarti_mobile/src/features/calendar/presentation/stage2_bootstrap.dart';
 
 class SartiApp extends StatelessWidget {
   const SartiApp({super.key});
@@ -16,7 +16,7 @@ class SartiApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const FoundationScreen(),
+      home: const Stage2Bootstrap(),
     );
   }
 }

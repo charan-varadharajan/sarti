@@ -1,26 +1,21 @@
 # Threat model
 
-| Threat | Stage 1 control | Required verification |
+| Threat | Implemented Stage 2 control | Verification / residual gap |
 | --- | --- | --- |
-| Family-to-family leakage | Fail-closed typed tenant context | Two-family negative API/repository tests for every resource |
-| Unauthorized guardian | Authentication, active-device, role, resource checks required | Missing/incorrect role and guessed-ID tests |
-| Lost/stolen device | Biometrics locally; backend device revocation | Locked-device and post-revocation access tests on real devices |
-| Compromised credentials | Passkey design plus active-device policy required | Session replay, recovery, replacement, and revocation tests |
-| Key rotation/recovery failure | Protocol explicitly blocked pending ADR | Rotation, removed-member, backup and corrupt-recovery tests |
-| Malicious sync payload | Authenticated ciphertext and strict bounds required | Tamper, size, schema, duplicate, order, rollback, replay tests |
-| Email prompt injection | Email treated as hostile; no automatic mutation | Injection corpus and explicit-confirmation tests |
-| Sensitive logging | Allowlisted JSON operational fields | Capture logs during hostile inputs and scan for canaries |
-| Backup exposure | Device-side encryption and user-held recovery required | Wrong-key, corruption, metadata and provider-exposure tests |
-| Replay attacks | Protocol must authenticate ordering/nonces | Replayed auth and sync message tests |
-| Account/family deletion | User control and deletion orchestration required | Idempotency, partial failure, retention and completion tests |
+| Family-to-family leakage | Session, active-device, membership, resource permission, and family-scoped query checks | Two-family integration test, including an empty relay |
+| Unauthorized guardian | One-use hashed invite, pending membership, owner approval, explicit permission matrix | Duplicate invite, outsider, pending, revoked-recipient tests; invitation delivery channel remains external |
+| Lost/stolen device | Platform user-presence gate, one active phone, replacement revokes old sessions | API replacement test; physical locked-device validation pending |
+| Compromised credential | Required WebAuthn user verification, one-use challenge, hashed expiring session | Auth replay and old-session tests; account recovery is Stage 3 |
+| Key rotation/recovery failure | Removal increments all resource epochs; future grants exclude revoked device | Stale epoch and revoked grant tests; backup/recovery pending |
+| Malicious sync payload | Bounded schemas, exact sequence, UUID/digest/epoch checks, AEAD tag, durable de-duplication | Malformed digest, duplicate, replay, no-key, and conflict tests |
+| Email prompt injection | No email ingestion exists; email is defined as untrusted | Stage 3 parser/injection corpus required |
+| Sensitive logging | Allowlisted fields, generic errors, no body/ciphertext/token logging | Canary log test and Bandit/Gitleaks gates |
+| Backup exposure | No backup exists, so sync keys are not reused for backup | Stage 3 independent encryption, corruption, wrong-key tests required |
+| Replay attacks | One-use WebAuthn challenge, operation UUID, exact device sequence | Authentication and sync replay tests |
+| Account/family deletion | Not implemented | Stage 4 deletion deadlines, idempotency, partial-failure tests required |
 
-## Residual risks
-
-An unlocked compromised authorized device can expose data it already holds.
-Revocation cannot erase downloaded copies. Email is plaintext during its declared
-gateway boundary. Metadata may reveal limited relationships or timing and must be
-classified and minimized before those schemas are introduced.
-
-Stage 1 does not implement passkeys, E2EE, sync, email, backup, export, deletion,
-or product authorization. Its SQLCipher engine check establishes encrypted-store
-capability only and is not evidence that family data or E2EE exists.
+An unlocked compromised authorized device can expose content and keys it already
+holds. Revocation protects only future content and cannot remotely erase copies.
+The server observes bounded relationship/timing metadata and ciphertext sizes.
+Physical OS behavior, production TLS/RP configuration, snapshot recovery after
+seven offline days, email, backup, and deletion remain residual risks.

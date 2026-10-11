@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:sarti_mobile/src/features/calendar/domain/calendar_event.dart';
 import 'package:timezone/timezone.dart' as tz;
 
@@ -25,20 +27,26 @@ List<EventOccurrence> occurrencesBetween(
   );
   final rule = event.recurrence;
   if (rule == null) {
-    return first.toUtc().isBefore(rangeStartUtc) || !first.toUtc().isBefore(rangeEndUtc)
+    return first.toUtc().isBefore(rangeStartUtc) ||
+            !first.toUtc().isBefore(rangeEndUtc)
         ? const []
         : [EventOccurrence(event.id, first)];
   }
 
   final results = <EventOccurrence>[];
   var candidate = first;
+  final firstWeekStart = first.subtract(
+    Duration(days: first.weekday - DateTime.monday),
+  );
   var generated = 0;
   var guard = 0;
   while (candidate.toUtc().isBefore(rangeEndUtc) && guard++ < 10000) {
+    final weekOffset = candidate.difference(firstWeekStart).inDays ~/ 7;
     final allowedWeekday =
         rule.frequency != RecurrenceFrequency.weekly ||
-        rule.weekdays.isEmpty ||
-        rule.weekdays.contains(candidate.weekday);
+        (weekOffset % rule.interval == 0 &&
+            (rule.weekdays.isEmpty ||
+                rule.weekdays.contains(candidate.weekday)));
     if (allowedWeekday) {
       generated++;
       final withinCount = rule.count == null || generated <= rule.count!;
@@ -79,15 +87,31 @@ List<EventOccurrence> occurrencesBetween(
         event.localStart.hour,
         event.localStart.minute,
       ),
-      RecurrenceFrequency.monthly => tz.TZDateTime(
+      RecurrenceFrequency.monthly => _nextMonthly(
         location,
-        candidate.year,
-        candidate.month + rule.interval,
-        event.localStart.day,
-        event.localStart.hour,
-        event.localStart.minute,
+        candidate,
+        event.localStart,
+        rule.interval,
       ),
     };
   }
   return results;
+}
+
+tz.TZDateTime _nextMonthly(
+  tz.Location location,
+  tz.TZDateTime candidate,
+  DateTime original,
+  int interval,
+) {
+  final firstOfTarget = DateTime(candidate.year, candidate.month + interval);
+  final lastDay = DateTime(firstOfTarget.year, firstOfTarget.month + 1, 0).day;
+  return tz.TZDateTime(
+    location,
+    firstOfTarget.year,
+    firstOfTarget.month,
+    math.min(original.day, lastDay),
+    original.hour,
+    original.minute,
+  );
 }

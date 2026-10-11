@@ -1,0 +1,176 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:sarti_mobile/src/core/auth/native_passkey_adapter.dart';
+import 'package:sarti_mobile/src/core/crypto/device_key_store.dart';
+import 'package:sarti_mobile/src/features/sync/sync_engine.dart';
+
+class AuthenticatedSession {
+  const AuthenticatedSession({
+    required this.adultId,
+    required this.deviceId,
+    required this.token,
+    required this.expiresAt,
+  });
+
+  final String adultId;
+  final String deviceId;
+  final String token;
+  final DateTime expiresAt;
+}
+
+class SartiApiException implements Exception {
+  const SartiApiException(this.statusCode);
+  final int statusCode;
+}
+
+class SartiApiClient implements EncryptedRelay {
+  SartiApiClient(this.baseUri, {HttpClient? httpClient, this.sessionToken})
+    : _http = httpClient ?? HttpClient();
+
+  final Uri baseUri;
+  final HttpClient _http;
+  String? sessionToken;
+
+  Future<AuthenticatedSession> registerPasskey(
+    NativePasskeyAdapter passkeys,
+    DeviceKeyMaterial keys,
+  ) async {
+    final options = await _json('POST', '/v1/auth/registration/options');
+    final credential = await passkeys.register(
+      Map<String, dynamic>.from(options['public_key'] as Map),
+    );
+    final session = await _json(
+      'POST',
+      '/v1/auth/registration/complete',
+      body: {
+        'challenge_id': options['challenge_id'],
+        'credential': credential,
+        'device_keys': {
+          'encryption_public_key': _encode(keys.encryptionPublicKey),
+          'signing_public_key': _encode(keys.signingPublicKey),
+        },
+      },
+    );
+    sessionToken = session['session_token'] as String;
+    return AuthenticatedSession(
+      adultId: session['adult_id'] as String,
+      deviceId: session['device_id'] as String,
+      token: sessionToken!,
+      expiresAt: DateTime.parse(session['expires_at'] as String),
+    );
+  }
+
+  Future<AuthenticatedSession> authenticatePasskey(
+    NativePasskeyAdapter passkeys,
+    DeviceKeyMaterial keys,
+  ) async {
+    final options = await _json('POST', '/v1/auth/authentication/options');
+    final credential = await passkeys.authenticate(
+      Map<String, dynamic>.from(options['public_key'] as Map),
+    );
+    final session = await _json(
+      'POST',
+      '/v1/auth/authentication/complete',
+      body: {
+        'challenge_id': options['challenge_id'],
+        'credential': credential,
+        'device_keys': {
+          'encryption_public_key': _encode(keys.encryptionPublicKey),
+          'signing_public_key': _encode(keys.signingPublicKey),
+        },
+      },
+    );
+    sessionToken = session['session_token'] as String;
+    return AuthenticatedSession(
+      adultId: session['adult_id'] as String,
+      deviceId: session['device_id'] as String,
+      token: sessionToken!,
+      expiresAt: DateTime.parse(session['expires_at'] as String),
+    );
+  }
+
+  @override
+  Future<void> upload(RelayEnvelope envelope) async {
+    await _json(
+      'POST',
+      '/v1/sync/operations',
+      authenticated: true,
+      body: {
+        'operation_id': envelope.operationId,
+        'family_id': envelope.familyId,
+        'resource_id': envelope.resourceId,
+        'device_sequence': envelope.deviceSequence,
+        'key_epoch': envelope.keyEpoch,
+        'logical_version': envelope.logicalVersion,
+        'nonce': _encode(envelope.nonce),
+        'ciphertext': _encode(envelope.ciphertext),
+        'content_digest': _encode(envelope.contentDigest),
+      },
+    );
+  }
+
+  @override
+  Future<RelayPage> download(String familyId, int cursor) async {
+    final response = await _json(
+      'GET',
+      '/v1/families/$familyId/sync?cursor=$cursor',
+      authenticated: true,
+    );
+    final operations = (response['operations'] as List<Object?>).map((value) {
+      final item = Map<String, dynamic>.from(value! as Map);
+      return RelayEnvelope(
+        serverSequence: item['server_sequence'] as int,
+        operationId: item['operation_id'] as String,
+        familyId: item['family_id'] as String,
+        resourceId: item['resource_id'] as String,
+        authorDeviceId: item['author_device_id'] as String,
+        deviceSequence: item['device_sequence'] as int,
+        keyEpoch: item['key_epoch'] as int,
+        logicalVersion: Map<String, int>.from(item['logical_version'] as Map),
+        nonce: _decode(item['nonce'] as String),
+        ciphertext: _decode(item['ciphertext'] as String),
+        contentDigest: _decode(item['content_digest'] as String),
+      );
+    }).toList();
+    return RelayPage(operations, response['next_cursor'] as int);
+  }
+
+  Future<Map<String, dynamic>> _json(
+    String method,
+    String path, {
+    Map<String, Object?>? body,
+    bool authenticated = false,
+  }) async {
+    final request = await _http.openUrl(method, baseUri.resolve(path));
+    request.headers.contentType = ContentType.json;
+    if (authenticated) {
+      final token = sessionToken;
+      if (token == null) {
+        throw StateError('An authenticated session is required.');
+      }
+      request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
+    }
+    if (body != null) {
+      request.write(jsonEncode(body));
+    }
+    final response = await request.close();
+    final bytes = await response.fold<List<int>>(
+      <int>[],
+      (all, value) => all..addAll(value),
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw SartiApiException(response.statusCode);
+    }
+    return Map<String, dynamic>.from(jsonDecode(utf8.decode(bytes)) as Map);
+  }
+
+  String _encode(List<int> bytes) =>
+      base64Url.encode(bytes).replaceAll('=', '');
+
+  Uint8List _decode(String value) =>
+      base64Url.decode(base64Url.normalize(value));
+
+  void close() => _http.close(force: true);
+}

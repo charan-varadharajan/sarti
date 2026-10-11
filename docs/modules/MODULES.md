@@ -1,30 +1,26 @@
 # Module catalog
 
-## Implemented mobile foundation
+## Mobile
 
-| Module | Responsibility/interface | State and errors | Tests |
-| --- | --- | --- | --- |
-| `app` | Compose `SartiApp` | Stateless Material bootstrap | Widget smoke test |
-| `foundation` | Riverpod providers and readiness UI | `AsyncValue`; generic fail-closed message | Provider-overridden widget test |
-| `core/database` | Verify loaded engine via `PRAGMA cipher_version` | Throws when SQLCipher is absent/invalid | Real native-engine test |
+| Module | Responsibility | Principal tests |
+| --- | --- | --- |
+| `core/auth` | Native passkey adapter | Backend contract; physical platform pending |
+| `core/crypto` | Device keys, secure storage, XChaCha20-Poly1305 resource content | Encrypted sync simulation |
+| `core/database` | SQLCipher verification, schema v1-v3, transactional migrations | Native engine and repository tests |
+| `features/calendar/domain` | Event, recurrence, IANA timezone/DST behavior | Recurrence unit tests |
+| `features/calendar/data` | Family/child/event repository, outbox, durable conflicts, reminders | Repository/sync tests |
+| `features/calendar/presentation` | Progressive onboarding, Today/Week/Month, edit/assign/cancel/delete/conflict UI | Widget journey |
+| `features/sync` | Version vectors, authenticated encryption, ordered upload/download | Two-device memory-relay test |
 
-The verification module does not persist data or manage production keys.
+## Backend
 
-## Implemented backend foundation
+| Module | Responsibility | Principal tests |
+| --- | --- | --- |
+| `api.auth`, `identity` | WebAuthn options/verification, hashed sessions, device replacement | Stage 2 API integration |
+| `api.households`, `households` | Family ownership, child resources, invitations, memberships, permissions | Isolation/invitation/revocation integration |
+| `api.sync`, `sync` | Encrypted operation relay, replay defense, grants, retention | Security/API integration |
+| `db` | PostgreSQL connectivity and schema metadata | Migration integration |
+| `core` | Configuration, auth dependency, errors, logging | Unit/security tests |
 
-| Module | Responsibility/interface | State and errors | Tests |
-| --- | --- | --- | --- |
-| `api.health` | Liveness and PostgreSQL readiness | Typed response; 503 without details | Unit, contract, Docker smoke |
-| `core.config` | Typed `SARTI_` environment settings | Fails startup on missing DB URL | Static/type checks |
-| `core.errors` | Stable safe API errors | Generic external messages | Error security test |
-| `core.logging` | Allowlisted JSON operational logs | Excludes arbitrary context | Log canary test |
-| `core.tenant` | Fail-closed family-scope assertion | 404-style denial | Two-family unit tests |
-| `db.database` | SQLAlchemy engine and readiness | Sanitized unavailable event | PostgreSQL integration |
-
-## Planned P0 modules
-
-Identity/device registry, family roles, calendar, suggestions/on-device AI,
-encrypted local persistence, E2EE/key lifecycle, sync/conflicts, notifications,
-jobs, email intake, backup/recovery, and export/deletion remain unimplemented.
-Each requires its own interfaces, security assumptions, and test mapping before
-implementation.
+Stage 3 modules for AI proposals, email intake, notification change alerts, and
+backup/recovery are intentionally absent.

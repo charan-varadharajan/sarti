@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:sarti_mobile/src/core/ids.dart';
 import 'package:sodium/sodium.dart';
 
 abstract interface class SecretStore {
@@ -50,11 +51,16 @@ class PlatformSecretStore implements SecretStore {
       _storage.read(key: key, iOptions: _ios, aOptions: _android);
 
   @override
-  Future<void> write(String key, String value) =>
-      _storage.write(key: key, value: value, iOptions: _ios, aOptions: _android);
+  Future<void> write(String key, String value) => _storage.write(
+    key: key,
+    value: value,
+    iOptions: _ios,
+    aOptions: _android,
+  );
 
   @override
-  Future<void> deleteAll() => _storage.deleteAll(iOptions: _ios, aOptions: _android);
+  Future<void> deleteAll() =>
+      _storage.deleteAll(iOptions: _ios, aOptions: _android);
 }
 
 class DeviceKeyMaterial {
@@ -64,6 +70,7 @@ class DeviceKeyMaterial {
     required this.encryptionSecretKey,
     required this.signingPublicKey,
     required this.signingSecretKey,
+    required this.deviceId,
   });
 
   final SecureKey databaseKey;
@@ -71,6 +78,7 @@ class DeviceKeyMaterial {
   final SecureKey encryptionSecretKey;
   final Uint8List signingPublicKey;
   final SecureKey signingSecretKey;
+  final String deviceId;
 
   void dispose() {
     databaseKey.dispose();
@@ -91,6 +99,7 @@ class DeviceKeyStore {
   static const _boxSecret = 'box-secret-v1';
   static const _signPublic = 'sign-public-v1';
   static const _signSecret = 'sign-secret-v1';
+  static const _deviceId = 'device-id-v1';
 
   Future<DeviceKeyMaterial> loadOrCreate() async {
     if (!await unlocker.unlock()) {
@@ -103,16 +112,27 @@ class DeviceKeyStore {
       secrets.read(_boxSecret),
       secrets.read(_signPublic),
       secrets.read(_signSecret),
+      secrets.read(_deviceId),
     ]);
     if (values.any((value) => value == null)) {
       throw StateError('Device key material is incomplete.');
     }
     return DeviceKeyMaterial(
-      databaseKey: SecureKey.fromList(sodium, base64Url.decode(storedDatabaseKey)),
+      databaseKey: SecureKey.fromList(
+        sodium,
+        base64Url.decode(storedDatabaseKey),
+      ),
       encryptionPublicKey: base64Url.decode(values[0]!),
-      encryptionSecretKey: SecureKey.fromList(sodium, base64Url.decode(values[1]!)),
+      encryptionSecretKey: SecureKey.fromList(
+        sodium,
+        base64Url.decode(values[1]!),
+      ),
       signingPublicKey: base64Url.decode(values[2]!),
-      signingSecretKey: SecureKey.fromList(sodium, base64Url.decode(values[3]!)),
+      signingSecretKey: SecureKey.fromList(
+        sodium,
+        base64Url.decode(values[3]!),
+      ),
+      deviceId: values[4]!,
     );
   }
 
@@ -120,18 +140,30 @@ class DeviceKeyStore {
     final databaseKey = sodium.secureRandom(32);
     final encryption = sodium.crypto.box.keyPair();
     final signing = sodium.crypto.sign.keyPair();
+    final deviceId = newId();
     try {
-      await secrets.write(_databaseKey, base64UrlEncode(databaseKey.extractBytes()));
+      await secrets.write(
+        _databaseKey,
+        base64UrlEncode(databaseKey.extractBytes()),
+      );
       await secrets.write(_boxPublic, base64UrlEncode(encryption.publicKey));
-      await secrets.write(_boxSecret, base64UrlEncode(encryption.secretKey.extractBytes()));
+      await secrets.write(
+        _boxSecret,
+        base64UrlEncode(encryption.secretKey.extractBytes()),
+      );
       await secrets.write(_signPublic, base64UrlEncode(signing.publicKey));
-      await secrets.write(_signSecret, base64UrlEncode(signing.secretKey.extractBytes()));
+      await secrets.write(
+        _signSecret,
+        base64UrlEncode(signing.secretKey.extractBytes()),
+      );
+      await secrets.write(_deviceId, deviceId);
       return DeviceKeyMaterial(
         databaseKey: databaseKey,
         encryptionPublicKey: encryption.publicKey,
         encryptionSecretKey: encryption.secretKey,
         signingPublicKey: signing.publicKey,
         signingSecretKey: signing.secretKey,
+        deviceId: deviceId,
       );
     } catch (_) {
       databaseKey.dispose();

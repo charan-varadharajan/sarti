@@ -6,7 +6,7 @@ import 'package:sqlite3/sqlite3.dart';
 class SartiDatabase {
   SartiDatabase._(this.raw);
 
-  static const schemaVersion = 2;
+  static const schemaVersion = 3;
 
   final Database raw;
 
@@ -16,7 +16,9 @@ class SartiDatabase {
     }
     final database = sqlite3.open(path);
     try {
-      final hexKey = key.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
+      final hexKey = key
+          .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
+          .join();
       database.execute('PRAGMA key = "x\'$hexKey\'"');
       final cipher = database.select('PRAGMA cipher_version');
       if (cipher.isEmpty || cipher.first.values.first.toString().isEmpty) {
@@ -145,6 +147,34 @@ class SartiDatabase {
         rethrow;
       }
     }
+    if (raw.userVersion < 3) {
+      raw.execute('BEGIN IMMEDIATE');
+      try {
+        raw.execute('''
+          ALTER TABLE households ADD COLUMN calendar_resource_id TEXT;
+          UPDATE households SET calendar_resource_id = COALESCE(
+            (SELECT resource_id FROM outbox
+             WHERE outbox.family_id = households.id
+               AND outbox.kind = 'family_created'
+             ORDER BY created_at LIMIT 1),
+            id
+          );
+          ALTER TABLE sync_state ADD COLUMN next_device_sequence INTEGER NOT NULL DEFAULT 1
+            CHECK(next_device_sequence > 0);
+          ALTER TABLE conflicts ADD COLUMN local_vector_json TEXT;
+          ALTER TABLE conflicts ADD COLUMN remote_vector_json TEXT;
+          CREATE TABLE event_versions (
+            event_id TEXT PRIMARY KEY REFERENCES events(id) ON DELETE CASCADE,
+            vector_json TEXT NOT NULL
+          ) STRICT;
+        ''');
+        raw.userVersion = 3;
+        raw.execute('COMMIT');
+      } catch (_) {
+        raw.execute('ROLLBACK');
+        rethrow;
+      }
+    }
   }
 
   void transaction(void Function() action) {
@@ -170,7 +200,9 @@ class SartiDatabase {
       'SELECT key_base64 FROM resource_keys WHERE resource_id = ? AND key_epoch = ?',
       [resourceId, epoch],
     );
-    return rows.isEmpty ? null : base64Url.decode(rows.first['key_base64'] as String);
+    return rows.isEmpty
+        ? null
+        : base64Url.decode(rows.first['key_base64'] as String);
   }
 
   void close() => raw.close();

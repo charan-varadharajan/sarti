@@ -1,7 +1,8 @@
 # System architecture
 
-Status: Stage 1 foundation. The bootstrap components are implemented; protocols
-and product schemas explicitly identified below remain unresolved.
+Status: Stage 2 calendar, identity, authorization, and encrypted synchronization
+are implemented under ADR-019 through ADR-022. Stage 3 components shown in the
+context diagram remain future boundaries.
 
 ## System context
 
@@ -76,9 +77,8 @@ recovery from interrupted migrations.
 5. Another authorized device downloads and authenticates the operation, resolves
    conflicts deterministically, and commits it locally.
 
-Exact envelope fields, authenticated metadata, algorithms, key derivation,
-rotation, replay protection, ordering, and conflict semantics are open design
-work and require an ADR before implementation.
+ADR-020 and ADR-021 define the envelope, authenticated metadata, algorithms,
+rotation, replay protection, ordering, and explicit conflict semantics.
 
 ### AI suggestion
 

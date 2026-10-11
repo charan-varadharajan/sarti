@@ -1,23 +1,27 @@
-# Stage 1 dependencies
+# Direct dependencies through Stage 2
 
-Direct versions are pinned in manifests and full resolutions are committed in
-lock files. Versions were verified from PyPI, pub.dev, and actual resolver/build
-results on 2026-10-11.
+Versions are pinned in manifests and full resolutions are committed. Selection
+was verified against official package registries and resolved builds on
+2026-10-11.
 
-| Component | Version | Purpose | License note |
-| --- | --- | --- | --- |
-| Flutter / Dart | 3.47.7 / 3.13.5 | iOS and Android framework | BSD-3-Clause |
-| flutter_riverpod | 3.4.3 | State/dependency composition | MIT |
-| sqlite3 | 3.7.0 | Dart FFI and SQLCipher build hook | MIT; bundled SQLCipher/OpenSSL notices required |
-| FastAPI | 0.143.0 | HTTP API | MIT |
-| Uvicorn | 0.54.0 | ASGI server | BSD-3-Clause |
-| SQLAlchemy | 2.1.3 | PostgreSQL access | MIT |
-| Psycopg / binary | 3.3.6 | PostgreSQL driver | LGPL-3.0; preserve distribution obligations |
-| Alembic | 1.20.0 | PostgreSQL migrations | MIT |
-| Pydantic Settings | 2.15.0 | Typed environment configuration | MIT |
-| PostgreSQL container | 17 | Local operational database | PostgreSQL License |
+| Component | Version | Purpose |
+| --- | --- | --- |
+| Flutter / Dart | 3.47.7 / 3.13.5 | iOS and Android app |
+| flutter_riverpod | 3.4.3 | Composition |
+| sqlite3 | 3.7.0 | SQLCipher FFI/build hook |
+| sodium | 4.1.1+2 | X25519, Ed25519, XChaCha20-Poly1305, secure randomness |
+| flutter_secure_storage | 11.2.0 | Keychain/Keystore secrets |
+| local_auth | 3.0.2 | Device user-presence gate |
+| passkeys | 2.23.1 | Native WebAuthn ceremonies |
+| timezone | 0.11.1 | IANA timezone/DST recurrence |
+| flutter_local_notifications | 22.3.1 | Device-local reminders |
+| path_provider | 2.1.6 | Private database location |
+| crypto | 3.0.7 | SHA-256 envelope digest |
+| FastAPI / Uvicorn | 0.143.0 / 0.54.0 | HTTP API/runtime |
+| SQLAlchemy / Psycopg / Alembic | 2.1.3 / 3.3.6 / 1.20.0 | PostgreSQL/migrations |
+| webauthn | 3.0.0 | Server WebAuthn validation |
+| PostgreSQL | 17 | Server metadata/ciphertext relay |
 
-Development tools are pinned in `backend/requirements-dev.txt` and the resolved
-`requirements.lock`. SQLCipher is a capability for encrypted local storage; its
-presence is not evidence of production key management or E2EE. Before release,
-generate complete third-party notices and validate native binary SBOM/provenance.
+License and dependency-review gates remain in CI. SQLCipher and cryptographic
+libraries provide primitives; protocol tests and device validation are still
+required for claims about end-to-end behavior.

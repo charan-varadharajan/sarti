@@ -1,8 +1,10 @@
 # Sarti mobile
 
-Flutter bootstrap for Sarti on iOS and Android. Riverpod composes application
-dependencies. The Stage 1 startup verifies that the bundled native database is
-SQLCipher before any persistent private schema is introduced.
+Flutter app for Sarti on iOS and Android. Stage 2 includes a SQLCipher local
+calendar, device/resource keys, encrypted synchronization, explicit conflicts,
+recurrence, pickup assignments, and local reminders. A physical device and a
+configured WebAuthn RP domain are required to validate passkeys and platform key
+storage end to end.
 
 ```sh
 flutter pub get
