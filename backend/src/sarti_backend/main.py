@@ -9,11 +9,15 @@ from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from sarti_backend.api.auth import router as auth_router
 from sarti_backend.api.health import router as health_router
+from sarti_backend.api.households import router as households_router
+from sarti_backend.api.sync import router as sync_router
 from sarti_backend.core.config import Settings, get_settings
 from sarti_backend.core.errors import ApiError
 from sarti_backend.core.logging import configure_logging
 from sarti_backend.db.database import Database
+from sarti_backend.identity.webauthn_service import StandardWebAuthnVerifier, WebAuthnVerifier
 
 logger = logging.getLogger("sarti.http")
 
@@ -40,7 +44,11 @@ def _error_response(code: str, message: str, request_id: str, status_code: int) 
     )
 
 
-def create_app(settings: Settings | None = None, database: DatabaseHandle | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None,
+    database: DatabaseHandle | None = None,
+    webauthn: WebAuthnVerifier | None = None,
+) -> FastAPI:
     resolved_settings = settings or get_settings()
     configure_logging(resolved_settings.log_level)
     resolved_database = database or Database(resolved_settings.database_url)
@@ -60,6 +68,10 @@ def create_app(settings: Settings | None = None, database: DatabaseHandle | None
         redoc_url=None,
     )
     app.state.database = resolved_database
+    app.state.webauthn = webauthn or StandardWebAuthnVerifier(
+        resolved_settings.webauthn_rp_id,
+        resolved_settings.webauthn_origin,
+    )
 
     @app.middleware("http")
     async def request_context(request: Request, call_next: Any) -> Any:
@@ -117,6 +129,9 @@ def create_app(settings: Settings | None = None, database: DatabaseHandle | None
         )
 
     app.include_router(health_router)
+    app.include_router(auth_router)
+    app.include_router(households_router)
+    app.include_router(sync_router)
     return app
 
 

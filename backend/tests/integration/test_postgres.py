@@ -19,8 +19,17 @@ def test_migrations_and_database_readiness() -> None:
         version = connection.execute(
             text("SELECT value FROM schema_metadata WHERE key = 'schema_version'")
         ).scalar_one()
-    assert version == "1"
+    assert version == "2"
     assert "schema_metadata" in inspect(engine).get_table_names()
+
+    assert {
+        "adults",
+        "devices",
+        "families",
+        "memberships",
+        "resources",
+        "sync_operations",
+    }.issubset(set(inspect(engine).get_table_names()))
 
     command.downgrade(config, "base")
     assert "schema_metadata" not in inspect(engine).get_table_names()

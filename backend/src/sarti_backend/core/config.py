@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     environment: Literal["development", "test", "production"] = "development"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     database_url: str = Field(min_length=1, repr=False)
+    webauthn_rp_id: str = Field(default="localhost", min_length=1)
+    webauthn_origin: str = Field(default="http://localhost:8000", min_length=1)
 
 
 @lru_cache

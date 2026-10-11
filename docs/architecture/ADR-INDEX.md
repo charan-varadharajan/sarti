@@ -24,6 +24,10 @@ unresolved rather than inferred.
 | [ADR-016](adr/016-private-monitoring.md) | Privacy-preserving monitoring | Accepted |
 | [ADR-017](adr/017-export-deletion.md) | User-controlled export and deletion | Accepted |
 | [ADR-018](adr/018-local-development-hosting.md) | Docker local development; hosting undecided | Accepted |
+| [ADR-019](adr/019-passkey-sessions-and-device-authorization.md) | Passkey sessions and active-device authorization | Accepted |
+| [ADR-020](adr/020-device-and-resource-key-protocol.md) | Device keys and resource-scoped encryption protocol | Accepted |
+| [ADR-021](adr/021-encrypted-operation-sync-and-conflicts.md) | Encrypted operation sync and explicit conflicts | Accepted |
+| [ADR-022](adr/022-calendar-time-permissions-and-reminders.md) | Calendar time semantics, permissions, and reminders | Accepted |
 
 New records use the next three-digit number. Accepted decisions are changed only
 by an explicitly approved superseding ADR.

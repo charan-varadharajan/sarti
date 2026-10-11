@@ -1,6 +1,8 @@
 import logging
+from collections.abc import Iterator
+from contextlib import contextmanager
 
-from sqlalchemy import Engine, create_engine, text
+from sqlalchemy import Connection, Engine, create_engine, text
 
 logger = logging.getLogger("sarti.database")
 
@@ -27,3 +29,11 @@ class Database:
 
     def close(self) -> None:
         self._engine.dispose()
+
+    def connect(self) -> Connection:
+        return self._engine.connect()
+
+    @contextmanager
+    def transaction(self) -> Iterator[Connection]:
+        with self._engine.begin() as connection:
+            yield connection
