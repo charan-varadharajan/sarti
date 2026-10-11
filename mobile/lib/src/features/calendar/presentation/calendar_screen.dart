@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sarti_mobile/src/features/calendar/domain/calendar_event.dart';
 import 'package:sarti_mobile/src/features/calendar/domain/recurrence.dart';
 import 'package:sarti_mobile/src/features/calendar/presentation/calendar_controller.dart';
+import 'package:timezone/timezone.dart' as tz;
 
 class CalendarScreen extends StatelessWidget {
   const CalendarScreen({super.key, required this.controller});
@@ -122,19 +123,20 @@ class CalendarScreen extends StatelessWidget {
   List<({CalendarEvent event, DateTime displayStart})> _visibleEvents(
     List<CalendarEvent> events,
   ) {
-    final now = DateTime.now();
-    final dayStart = DateTime(now.year, now.month, now.day);
+    final location = tz.getLocation(controller.timezone);
+    final now = tz.TZDateTime.now(location);
+    final dayStart = tz.TZDateTime(location, now.year, now.month, now.day);
     final rangeStart = switch (controller.range) {
       CalendarRange.today => dayStart,
       CalendarRange.week => dayStart.subtract(
         Duration(days: dayStart.weekday - DateTime.monday),
       ),
-      CalendarRange.month => DateTime(now.year, now.month),
+      CalendarRange.month => tz.TZDateTime(location, now.year, now.month),
     };
     final rangeEnd = switch (controller.range) {
       CalendarRange.today => rangeStart.add(const Duration(days: 1)),
       CalendarRange.week => rangeStart.add(const Duration(days: 7)),
-      CalendarRange.month => DateTime(now.year, now.month + 1),
+      CalendarRange.month => tz.TZDateTime(location, now.year, now.month + 1),
     };
     final result = <({CalendarEvent event, DateTime displayStart})>[];
     for (final event in events) {
@@ -192,8 +194,10 @@ class CalendarScreen extends StatelessWidget {
   Future<void> _editEvent(BuildContext context, [CalendarEvent? event]) async {
     final family = controller.family!;
     final title = TextEditingController(text: event?.title);
+    final location = tz.getLocation(controller.timezone);
     var start =
-        event?.localStart ?? DateTime.now().add(const Duration(hours: 1));
+        event?.localStart ??
+        tz.TZDateTime.now(location).add(const Duration(hours: 1));
     var recurring = event?.recurrence != null;
     var selectedChildren = {...?event?.childIds};
     var pickup = event?.pickupGuardianId;
