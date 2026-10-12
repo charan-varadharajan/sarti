@@ -88,6 +88,11 @@ in-repository record while Sarti has no external tracker.
   and deleted on family deletion. SQLCipher, API isolation, storage-failure,
   transport, and widget tests pass. Physical replacement-phone validation is
   still required; future resource grants remain tracked separately in BUG-004.
+- Verification update (2026-10-12): `BACKUP-XPLAT-001` passed real native
+  iOS-simulator export to Android-emulator restore of the identical `.srtbk`,
+  including wrong-phrase rejection and full fixture content/relationships.
+  Passkeys, production relay and platform protected storage were excluded; see
+  `../testing/BACKUP-PORTABILITY.md`.
 
 ### BUG-001 — Backup phrase was not BIP-39 conformant
 - Severity: High

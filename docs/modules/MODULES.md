@@ -7,7 +7,7 @@
 | `core/auth` | Native passkey adapter | Backend contract; physical platform pending |
 | `core/crypto` | Device keys, secure storage, XChaCha20-Poly1305 resource content | Encrypted sync simulation |
 | `core/backup` | BIP-39 validation, PBKDF2/XChaCha20-Poly1305 v2 envelope containing SQLCipher key | 15 phrase/envelope tests |
-| `features/backup` | Encrypted consistent snapshot, owner upload/download/delete UI, staged recovery and protected-key activation | 7 SQLCipher/failure tests, 2 widget journeys; binary API transport test |
+| `features/backup` | Encrypted consistent snapshot, owner upload/download/delete UI, staged recovery and protected-key activation | 7 SQLCipher/failure tests, 2 widget journeys; binary API transport test; `BACKUP-XPLAT-001` native portability scenario |
 | `core/database` | SQLCipher verification, schema v1-v5, transactional migrations | Native engine and repository tests |
 | `features/ai` | Deterministic parser, Apple/Android native bridge, strict proposal merge/review, local pseudonymization, versioned opt-in, and gated optional cloud adapter | Parser, native fallback/merge, approval/Undo widget, consent, and cloud-boundary tests |
 | `features/calendar/domain` | Event, recurrence, IANA timezone/DST behavior | Recurrence unit tests |

@@ -80,3 +80,11 @@ Future synchronization after restore still requires fresh resource grants, track
 by BUG-004; BUG-003 child synchronization and BUG-005 optional provider credentials
 also remain open. No work on those defects or Stage 4 was started. The next action
 is to explain/propose the next defect and wait for explicit user approval.
+
+## Follow-up cross-platform verification — 2026-10-12
+
+`BACKUP-XPLAT-001` subsequently passed iOS-simulator native export and Android-
+emulator native restore of the exact same encrypted `.srtbk`. See
+[platforms, digest, assertions and exclusions](BACKUP-PORTABILITY.md). This closes
+the emulator portability coverage gap, while physical-device, authentication,
+protected-storage and production-relay validation remain outstanding.

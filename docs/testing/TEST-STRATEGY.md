@@ -97,3 +97,11 @@ tenant/device isolation, bounded uploads, stale revisions, and deletion purge.
 Direct backup-screen widget fixtures require explicit phrase acknowledgement and
 restore confirmation. Physical passkey-to-recovery and OS interruption/reminder
 behavior remain release checks; these are not established by widget mocks.
+
+`BACKUP-XPLAT-001` executes the backup/restore screen against native SQLCipher
+and libsodium on an iOS simulator and a separate Android emulator. A host runner
+transfers only the newly created `.srtbk`, compares exact bytes/digest, and waits
+for live-app acknowledgements before Flutter removes either test app. Fixture
+credentials and secret-store adapter are synthetic; this test establishes file
+portability, not passkey, production transport or hardware-backed storage.
+See [execution instructions/results](BACKUP-PORTABILITY.md).

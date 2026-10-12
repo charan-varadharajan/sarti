@@ -21,6 +21,9 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
 ## [Unreleased]
 
 ### Added
+- BUG-002 regression: repeatable iOS-to-Android encrypted `.srtbk` portability
+  scenario with native SQLCipher/libsodium, exact-byte transfer, prepared data,
+  and explicit backup/restore UI actions.
 - Repository-maintained changelog, known-defect register, contribution guide,
   draft privacy disclosure, and draft Cloud Run/Neon deployment runbook.
 - Maintained functional scenario catalogue and a disposable Flutter fixture

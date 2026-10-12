@@ -76,6 +76,7 @@ remain acceptance gaps. No Stage 4 work is authorized.
 | Flutter format / analyze | Passed; no issues |
 | Flutter unit/widget tests | 96 passed on 2026-10-12 |
 | Prepared mobile emulator scenario | `CAL-MOB-001` passed on Android API 35 and iPhone 18 Pro / iOS 27.0 on 2026-10-12 |
+| Cross-platform encrypted backup | `BACKUP-XPLAT-001` passed: iPhone 18 Pro / iOS 27.0 simulator exports real `.srtbk`; Android 15 / API 35 emulator restores identical ciphertext; physical devices, auth/relay and protected storage excluded |
 | Android debug / unsigned iOS debug builds | Passed; APK and Runner.app produced |
 | Pip-audit runtime dependency scan | Passed; no known vulnerabilities |
 | Version checker/tests | Passed; 3 tests |
