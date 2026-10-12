@@ -32,6 +32,7 @@ are not applicable with a reason in its completion report.
 - Duplicate, reordered, malformed, replayed, and tampered sync input is safe.
 - AI suggestions cannot mutate state before explicit confirmation.
 - Deterministic fallback works when native AI is absent or fails.
+- Cloud AI defaults off, requires explicit versioned consent, and can be disabled.
 - Email content cannot override parser policy or cause automatic mutations.
 - Logs, URLs, crash data, and push payloads contain no sensitive content.
 - Backup restore detects corruption and requires valid recovery material.

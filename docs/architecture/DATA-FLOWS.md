@@ -32,5 +32,14 @@ The device expands upcoming occurrences in the event IANA timezone and schedules
 local notifications. Provider-visible text is generic; the payload holds an
 opaque local event UUID. No server or push provider participates in Stage 2.
 
-AI suggestions, inbound email, backup/restore, and remote push are Stage 3 flows
-and remain unimplemented.
+## Optional cloud-assisted event parsing
+
+The deterministic parser always runs locally. If the parent has accepted the
+current versioned disclosure, Sarti may construct the optional cloud adapter.
+Before transmission it replaces known child names and locations under ADR-028.
+The returned structured proposal is restored and validated locally. No proposal
+mutates calendar state without explicit approval. With consent absent or revoked,
+the provider is not constructed and local parsing continues.
+
+Inbound email, backup/restore, and remote push are Stage 3 flows whose backend
+components exist but whose complete mobile acceptance flows remain unintegrated.

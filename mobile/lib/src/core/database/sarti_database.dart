@@ -6,7 +6,7 @@ import 'package:sqlite3/sqlite3.dart';
 class SartiDatabase {
   SartiDatabase._(this.raw);
 
-  static const schemaVersion = 4;
+  static const schemaVersion = 5;
 
   final Database raw;
 
@@ -188,6 +188,22 @@ class SartiDatabase {
             WHERE cloud_alias IS NOT NULL;
         ''');
         raw.userVersion = 4;
+        raw.execute('COMMIT');
+      } catch (_) {
+        raw.execute('ROLLBACK');
+        rethrow;
+      }
+    }
+    if (raw.userVersion < 5) {
+      raw.execute('BEGIN IMMEDIATE');
+      try {
+        raw.execute('''
+          CREATE TABLE app_preferences (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+          ) STRICT;
+        ''');
+        raw.userVersion = 5;
         raw.execute('COMMIT');
       } catch (_) {
         raw.execute('ROLLBACK');

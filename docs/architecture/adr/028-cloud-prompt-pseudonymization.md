@@ -52,3 +52,6 @@ parser without enabling it.
 - Known venues no longer cross the boundary verbatim. Unrecognized sensitive
   text remains a documented residual risk until broader local entity detection
   exists.
+- Cloud AI consent is stored under a disclosure-versioned SQLCipher preference,
+  defaults off, and can be revoked. The Gemini adapter is not constructed unless
+  the current consent is enabled and provider configuration is present.

@@ -8,7 +8,7 @@
 
 The original completion claim below is retained as implementation history, but
 it is superseded by this audit. The full local suite passes after targeted build
-and test-infrastructure repairs: 19 backend tests at 87.47% branch coverage, 51
+and test-infrastructure repairs: 19 backend tests at 87.47% branch coverage, 55
 Flutter tests, Ruff, Mypy, Bandit, Flutter analyze, Android and unsigned iOS
 builds, Docker health and migration 0003, pip-audit, OpenAPI drift, and Gitleaks.
 
@@ -35,6 +35,10 @@ locations are replaced locally under ADR-028 before the request. No family IDs,
 real child names, alias mappings, or profile records are sent. Structured JSON output.
 Additive-only merge with the deterministic result. Never throws; returns the
 deterministic result on any failure.
+
+Cloud use now has a user-facing residual-risk disclosure and a versioned,
+reversible consent value stored in SQLCipher. Consent defaults off. A provider
+gate returns no Gemini adapter without both current consent and configuration.
 
 ### Inbound email gateway (ADR-024)
 `POST /v1/email/ingest` — Cloudflare Worker webhook. HMAC constant-time
@@ -145,7 +149,7 @@ OpenAPI regenerated and contract test passing.
 | `mobile/test/backup_service_test.dart` | 11 | Passed |
 | `backend/tests/unit/test_email_push.py` | 9 | Passed |
 | All backend unit tests | 17 | Passed |
-| All mobile tests | 51 | Passed |
+| All mobile tests | 55 | Passed |
 
 Total: 63 tests passing across backend and mobile.
 

@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:sarti_mobile/src/features/ai/cloud_ai_consent.dart';
+import 'package:sarti_mobile/src/features/ai/cloud_ai_consent_dialog.dart';
 import 'package:sarti_mobile/src/features/calendar/domain/calendar_event.dart';
 import 'package:sarti_mobile/src/features/calendar/domain/recurrence.dart';
 import 'package:sarti_mobile/src/features/calendar/presentation/calendar_controller.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 class CalendarScreen extends StatelessWidget {
-  const CalendarScreen({super.key, required this.controller});
+  const CalendarScreen({
+    super.key,
+    required this.controller,
+    this.cloudAiConsent,
+  });
 
   final CalendarController controller;
+  final CloudAiConsentController? cloudAiConsent;
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
@@ -20,6 +27,20 @@ class CalendarScreen extends StatelessWidget {
         appBar: AppBar(
           title: Text(family.name),
           actions: [
+            if (cloudAiConsent != null)
+              ListenableBuilder(
+                listenable: cloudAiConsent!,
+                builder: (context, _) => IconButton(
+                  tooltip: 'Privacy & AI',
+                  onPressed: () =>
+                      showCloudAiConsentDialog(context, cloudAiConsent!),
+                  icon: Icon(
+                    cloudAiConsent!.enabled
+                        ? Icons.cloud_done_outlined
+                        : Icons.cloud_off_outlined,
+                  ),
+                ),
+              ),
             if (family.openConflicts > 0)
               IconButton(
                 tooltip: 'Resolve conflicts',

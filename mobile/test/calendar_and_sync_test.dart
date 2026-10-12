@@ -77,7 +77,13 @@ void main() {
     old.close();
 
     final migrated = SartiDatabase.open(path, key);
-    expect(migrated.raw.userVersion, 4);
+    expect(migrated.raw.userVersion, 5);
+    expect(
+      migrated.raw.select(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'app_preferences'",
+      ),
+      hasLength(1),
+    );
     expect(
       migrated.raw.select('SELECT title FROM private_events').single['title'],
       'Private swimming lesson',
