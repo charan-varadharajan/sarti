@@ -15,6 +15,8 @@ was verified against official package registries and resolved builds on
 | passkeys | 2.23.1 | Native WebAuthn ceremonies |
 | timezone | 0.11.1 | IANA timezone/DST recurrence |
 | flutter_local_notifications | 22.3.1 | Device-local reminders |
+| firebase_core | 4.15.0 | Firebase mobile initialization boundary |
+| firebase_messaging | 16.7.0 | Opaque FCM token and wake-up transport |
 | path_provider | 2.1.6 | Private database location |
 | crypto | 3.0.7 | SHA-256 envelope digest |
 | google_generative_ai | 0.4.7 | Approved optional Gemini assist behind local pseudonymization and explicit opt-in |
@@ -34,3 +36,8 @@ required for claims about end-to-end behavior.
 The ML Kit Prompt API is beta and has no SLA or backward-compatibility promise.
 Its pinned version, current terms, supported-device list, and physical-device
 behavior must be reviewed on every upgrade and before a release.
+
+Firebase mobile configuration, APNs credentials, and the backend service account
+are deployment inputs rather than source dependencies. Provider token lifecycle
+and Firebase's announced registration-token migration guidance must be reviewed
+before each mobile release.

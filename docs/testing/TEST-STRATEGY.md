@@ -37,6 +37,9 @@ are not applicable with a reason in its completion report.
 - Cloud AI defaults off, requires explicit versioned consent, and can be disabled.
 - Email content cannot override parser policy or cause automatic mutations.
 - Logs, URLs, crash data, and push payloads contain no sensitive content.
+- Push clients reject payloads containing fields beyond the exact opaque
+  `{"type":"sync_available"}` shape, register token rotation, coalesce duplicate
+  wake-ups, and catch up on foreground transition.
 - Backup restore detects corruption and requires valid recovery material.
 
 ## Automated gates through Stage 2
@@ -66,3 +69,8 @@ sentence, reviews a proposal, confirms it, verifies the child assignment, and
 undoes the event. Native iOS and Android compilation are build gates. A release
 still requires successful inference and offline/failure behavior on eligible
 physical devices; mocked channels and simulators cannot establish those facts.
+
+Push coordinator tests establish application behavior only. A release requires
+two physical devices to verify FCM/APNs token registration, delayed/coalesced
+delivery, revoked-device behavior, process suspension, and encrypted convergence
+with production-equivalent provider configuration.

@@ -50,5 +50,16 @@ is parsed as untrusted JSON and can fill only unresolved deterministic fields.
 Unavailable or invalid results fall back locally. The editable proposal requires
 an explicit save action and offers Undo after persistence.
 
-Inbound email, backup/restore, and remote push are Stage 3 flows whose backend
-components exist but whose complete mobile acceptance flows remain unintegrated.
+## Opaque push-assisted synchronization
+
+After authentication, the device registers its current FCM token and token
+rotations. A sending device uploads encrypted operations, then may request a
+wake-up for the family. The backend authorizes the request and sends only
+`{"type":"sync_available"}` to other active registered devices. A recipient
+validates that exact shape, coalesces bursts, and requests the ordinary encrypted
+sync path. Foreground transition also requests catch-up. Firebase configuration
+and authenticated mobile sync bootstrap remain to be connected and tested on
+physical devices.
+
+Inbound email and backup/restore are Stage 3 flows whose complete mobile
+acceptance paths remain unintegrated.

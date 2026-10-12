@@ -17,10 +17,13 @@ Stage 3 remains incomplete because:
 - the server persists email sender, subject, and body as plaintext and has no
   authorized-device encrypted delivery path or retention cleanup job;
 - the shipping mobile app now exposes native/local natural-language proposal,
-  edit, confirmation, and Undo, but does not expose email suggestion, push
-  registration, or backup/restore flows;
-- quiet hours and the documented Firebase Messaging client integration are not
-  implemented;
+  edit, confirmation, and Undo, but does not expose email suggestion or
+  backup/restore flows;
+- the Firebase Messaging client now registers current/refreshed tokens, accepts
+  only the exact opaque wake-up, coalesces bursts, and requests foreground
+  catch-up; the shipping bootstrap still lacks the authenticated network sync
+  lifecycle needed to instantiate it;
+- application-level quiet hours are not implemented;
 - the recovery phrase uses a 256-word subset without the BIP-39 checksum and is
   therefore not a BIP-39 mnemonic; and
 - real provider and physical-device acceptance tests remain unexecuted.
@@ -62,6 +65,9 @@ backup/recovery validation, provider review, and an explicit production decision
   rate limit, content-digest deduplication, 7-day TTL; ADR-024
 - FCM push: `POST /v1/push/register` stores token, `POST /v1/push/wake-up` sends
   opaque `{"type":"sync_available"}` to family devices; ADR-026
+- Flutter push coordinator: bounded Firebase initialization, token rotation
+  registration, strict opaque-payload validation, sync coalescing, and
+  foreground catch-up; six unit tests
 - PBKDF2-HMAC-SHA256 (200 k iterations) + XChaCha20-Poly1305 backup with 12-word
   BIP-39 recovery phrase; 11 unit tests; ADR-025
 - Migration `0003` (`fcm_token` on devices, `email_token_digest` on families,
@@ -78,7 +84,7 @@ backup/recovery validation, provider review, and an explicit production decision
 | OpenAPI drift | Passed after regeneration |
 | Docker Compose health | Backend and PostgreSQL healthy |
 | Flutter format/analyze | Passed; no issues |
-| Flutter unit/widget tests | 61 passed (including native fallback/merge, prompt encoding, and proposal confirmation/Undo) |
+| Flutter unit/widget tests | 67 passed (including 6 push coordinator tests) |
 | Android debug build | Passed; APK produced |
 | iOS unsigned debug build | Passed; Runner.app produced |
 | Gitleaks working-tree/history scan | Passed; no leaks found |
@@ -93,8 +99,9 @@ backup/recovery validation, provider review, and an explicit production decision
   not establish provider or OS compatibility.
 - Snapshot recovery for a device offline beyond seven days requires a full backup
   restore via the 12-word recovery phrase (ADR-025).
-- FCM delivery and Cloudflare Worker integration require production credentials
-  and have not been exercised end-to-end.
+- FCM delivery requires Firebase app configuration, APNs credentials/capability,
+  backend service-account configuration, and an authenticated mobile sync
+  bootstrap; it has not been exercised end-to-end on two physical devices.
 - Gemini cloud assist requires a production API key; the adapter is wired but
   not exercised against the live API.
 - Apple Foundation Models and Android Gemini Nano bridges compile and their

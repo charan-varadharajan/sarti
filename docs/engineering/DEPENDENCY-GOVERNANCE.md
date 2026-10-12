@@ -17,11 +17,23 @@ notifications, and SHA-256 support. The backend adds the maintained Python
 `webauthn` verifier. Exact resolved versions live in the backend requirement
 locks and `mobile/pubspec.lock`.
 
-Stage 3 adds `firebase-admin` for opaque push wake-ups and
+Stage 3 adds `firebase-admin`, `firebase_core`, and `firebase_messaging` for
+opaque push wake-ups and
 `google_generative_ai` for an optional locally pseudonymized cloud adapter. The
 product owner explicitly approved this exception and reaffirmed it on
 2026-10-11. Its disclosure and opt-in gate is implemented; production provider
 data handling and credentials remain unverified.
+
+Firebase's mobile SDK currently exposes registration tokens used by the accepted
+ADR-026/backend contract. Firebase has announced a future move toward Firebase
+Installation IDs for some token-management workflows. Treat that as an upgrade
+watch item; do not change the wire contract without an approved ADR update and
+provider/device regression testing.
+
+The Android debug build currently warns that `firebase_core` still applies the
+Kotlin Gradle plugin and must eventually support Flutter's built-in Kotlin
+migration. The pinned version builds successfully today; recheck this warning on
+every Firebase/Flutter upgrade before it becomes an enforced build error.
 
 ADR-029 adds Android ML Kit GenAI Prompt API `1.0.0-beta4` and
 `kotlinx-coroutines-android` `1.10.2`; iOS uses the OS-provided Foundation Models

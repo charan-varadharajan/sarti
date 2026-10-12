@@ -24,6 +24,15 @@ ADR-029: Apple Foundation Models and Android ML Kit native bridges, deterministi
 fallback, editable review, explicit confirmation, and Undo all compile and pass
 automated tests. Physical-device inference remains a release gap.
 
+The opaque push client has since been implemented under ADR-026. It registers
+initial and refreshed FCM tokens through the authenticated API, accepts only the
+exact one-key `{"type":"sync_available"}` payload, coalesces duplicate hints,
+and requests catch-up when the app returns to the foreground. Flutter analysis,
+67 mobile tests, Android debug build, and unsigned iOS debug build pass. This is
+not an end-to-end delivery claim: Firebase/APNs configuration and the shipping
+authenticated `SartiApiClient`/`SyncEngine` bootstrap are still missing, and no
+two-device physical test has run.
+
 ---
 
 ## Features delivered
@@ -69,6 +78,11 @@ stored with 7-day TTL. Raw email never persisted.
 `firebase_admin`. No family content in FCM payload. Returns `dispatched: 0`
 gracefully when `fcm_credentials_file` is not configured.
 
+Flutter now provides `PushSyncCoordinator` and a Firebase transport boundary.
+Provider initialization fails closed when local builds have no Firebase
+configuration; no token or provider exception text is exposed through its
+bounded failure reporting.
+
 ### Backup and recovery (ADR-025)
 `BackupService` with `generateRecoveryPhrase()` (12-word BIP-39),
 `deriveKey()` (PBKDF2-HMAC-SHA256, 200 k iterations, 32-byte salt),
@@ -84,6 +98,10 @@ type errors.
 | File | Change |
 | --- | --- |
 | `mobile/pubspec.yaml` | Added `google_generative_ai: 0.4.7` |
+| `mobile/pubspec.yaml` | Added pinned `firebase_core` and `firebase_messaging` |
+| `mobile/lib/src/features/push/push_sync_coordinator.dart` | New — token lifecycle and opaque wake-up coordinator |
+| `mobile/test/push_sync_coordinator_test.dart` | New — 6 push coordinator tests |
+| `mobile/lib/src/core/network/sarti_api.dart` | Added authenticated push registration and wake-up methods |
 | `mobile/lib/src/features/ai/event_parser.dart` | New — deterministic parser |
 | `mobile/lib/src/features/ai/gemini_ai_provider.dart` | New — Gemini adapter |
 | `mobile/lib/src/core/backup/backup_service.dart` | New — backup/recovery service |
@@ -163,9 +181,11 @@ OpenAPI regenerated and contract test passing.
 | `mobile/test/backup_service_test.dart` | 11 | Passed |
 | `backend/tests/unit/test_email_push.py` | 9 | Passed |
 | All backend unit tests | 17 | Passed |
-| All mobile tests | 61 | Passed |
+| All mobile tests | 67 | Passed |
 
-Total: 63 tests passing across backend and mobile.
+Latest mobile rerun: 67 tests passing. The earlier backend result remains 19
+tests passing at 87.47% branch coverage; backend behavior did not change in this
+remediation.
 
 ---
 

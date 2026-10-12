@@ -9,14 +9,15 @@ membership, resource permissions, signed sealed key grants, replay defense, and
 a seven-day ciphertext relay. Mobile implements SQLCipher persistence, platform
 secret storage/user-presence gating, resource encryption, local-first outbox,
 version-vector conflicts, and generic local reminder text. Stage 3 adds parser,
-email-ingest, push-dispatch, and backup modules, but they are not release-ready:
+email-ingest, push-dispatch/client, and backup modules, but they are not release-ready:
 the approved pseudonymized cloud assist has a versioned local disclosure and
 opt-in but provider configuration remains unverified. The native proposal flow
 is integrated: it runs the deterministic parser first, runtime-gates Apple or
 Android on-device inference, treats output as untrusted, fills unresolved fields
 only, and requires confirmation. Email content is persisted as server plaintext,
-other mobile acceptance flows are not integrated, and provider/physical-device
-validation is outstanding.
+the push client accepts only the exact opaque payload and coalesces sync hints,
+but authenticated bootstrap and provider/physical-device validation are
+outstanding. Other mobile acceptance flows are not integrated.
 Account/family deletion remains unimplemented.
 
 ## Protected assets
@@ -50,6 +51,8 @@ available to it. Revocation protects future access and is not remote erasure.
 - Ciphertext is authenticated; corrupted or replayed operations fail safely.
 - Key material is never logged and is not included in backups without encryption.
 - Push payloads and URLs do not contain sensitive data.
+- Remote push is only an untrusted hint; authorization, replay defense, content
+  authentication, and decryption remain in the normal sync protocol.
 - AI output and inbound email are untrusted input.
 - Generated changes require explicit approval.
 - Native AI failure or unavailability falls back locally and never silently

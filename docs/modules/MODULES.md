@@ -13,6 +13,7 @@
 | `features/calendar/data` | Family/child/event repository, outbox, durable conflicts, reminders | Repository/sync tests |
 | `features/calendar/presentation` | Progressive onboarding, Today/Week/Month, edit/assign/cancel/delete/conflict UI | Widget journey |
 | `features/sync` | Version vectors, authenticated encryption, ordered upload/download | Two-device memory-relay test |
+| `features/push` | FCM token lifecycle and strict opaque wake-up coalescing into encrypted sync | 6 coordinator unit tests; provider/device delivery pending |
 
 ## Backend
 

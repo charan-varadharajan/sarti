@@ -54,3 +54,24 @@ Do not commit `.env`, tokens, keys, or credentials. Production secret storage,
 hosting, backup/recovery operations, releases, rollback, and incident response
 remain unresolved because no production environment exists.
 Those runbooks must be approved before their corresponding capability ships.
+
+## Firebase push configuration
+
+Local builds compile without Firebase credentials and the mobile transport
+reports unavailable. For a provider/device test environment:
+
+1. Register the Android and iOS application identifiers in the approved Firebase
+   project and generate platform configuration with FlutterFire tooling.
+2. Keep generated non-secret app configuration environment-specific. Never
+   commit an APNs key or Firebase service-account JSON.
+3. Enable the iOS Push Notifications signing capability, retain Background Modes
+   remote notifications, and upload the APNs authentication key to Firebase.
+4. Mount the backend service-account secret as a file and set
+   `SARTI_FCM_CREDENTIALS_FILE` to that path.
+5. Complete authenticated mobile network bootstrap, construct
+   `PushSyncCoordinator` with `SartiApiClient.registerPushToken` and the encrypted
+   sync engine, and forward app foreground lifecycle events.
+6. Run the two-device cases in `docs/testing/TEST-STRATEGY.md` before release.
+
+Silent push delivery is opportunistic. Correctness depends on local writes and
+foreground encrypted catch-up, never on guaranteed background execution.

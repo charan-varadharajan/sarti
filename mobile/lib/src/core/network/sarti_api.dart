@@ -91,6 +91,25 @@ class SartiApiClient implements EncryptedRelay {
     );
   }
 
+  Future<void> registerPushToken(String token) async {
+    await _json(
+      'POST',
+      '/v1/push/register',
+      authenticated: true,
+      body: {'fcm_token': token},
+    );
+  }
+
+  Future<int> sendSyncWakeUp(String familyId) async {
+    final response = await _json(
+      'POST',
+      '/v1/push/wake-up',
+      authenticated: true,
+      body: {'family_id': familyId},
+    );
+    return response['dispatched'] as int;
+  }
+
   @override
   Future<void> upload(RelayEnvelope envelope) async {
     await _json(

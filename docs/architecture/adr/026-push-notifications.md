@@ -25,26 +25,49 @@ Notification content follows OS-native sensitivity rules:
 
 ## Remote push (opaque wake-up only)
 
-Firebase Cloud Messaging (FCM) delivers a silent data-only push to wake the
-app for sync. The FCM payload contains only:
+Firebase Cloud Messaging (FCM) delivers a silent data-only push as a hint that
+encrypted synchronization may be available. The FCM payload contains only:
 
 ```json
 {"type": "sync_available"}
 ```
 
-No event titles, child names, family identifiers, guardian names, or any
-family content appear in the FCM payload. APNs/FCM infrastructure never
-receives family data.
+No event titles, child names, family identifiers, guardian names, or family
+content appear in the FCM payload. The provider still processes a device
+registration token and delivery metadata; it does not receive calendar content.
+
+The client accepts only that exact one-key payload, coalesces bursts, and asks
+the existing encrypted sync engine to catch up. A foreground transition also
+requests catch-up because mobile operating systems may delay or coalesce silent
+delivery. The client does not decrypt or open SQLCipher from an unauthenticated
+background isolate.
 
 ## New dependency
 
-`firebase_messaging` added to `pubspec.yaml` (pinned). Backend adds
-`firebase-admin` to `requirements.txt` for server-side FCM dispatch.
+`firebase_core 4.15.0` and `firebase_messaging 16.7.0` are pinned in
+`pubspec.yaml`. Backend uses pinned `firebase-admin 6.9.0` for server-side FCM
+dispatch.
+
+## Client lifecycle
+
+After an authenticated mobile session exists, the client obtains the current
+FCM token, registers it through `POST /v1/push/register`, and repeats
+registration when Firebase rotates the token. Foreground and notification-open
+streams accept only the exact opaque wake-up. The coordinator is implemented
+and unit tested, but the shipping bootstrap does not yet create an authenticated
+`SartiApiClient`/`SyncEngine`; that integration remains a release blocker.
+
+No remote-notification permission prompt is added for this data-only transport.
+Visible reminder permissions remain part of the existing local-reminder flow.
 
 ## Backend config
 
 `SARTI_FCM_CREDENTIALS_FILE` — path to Firebase service account JSON.
 Absent in development; push is skipped gracefully if not configured.
+
+The mobile deployment additionally needs Firebase project configuration for
+each app, APNs credentials uploaded to Firebase, and iOS Push Notifications
+signing capability. Configuration and provider credentials are not committed.
 
 ## Quiet hours
 
