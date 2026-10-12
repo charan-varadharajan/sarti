@@ -23,6 +23,23 @@ in-repository record while Sarti has no external tracker.
 
 ## Open defects
 
+### BUG-012 — iOS simulator integration tests are absent from CI
+- Severity: Medium
+- Component: `.github/workflows/ci.yml`, `mobile/integration_test/`
+- Discovered: 2026-10-12
+- Blocking: Automated native iOS regression coverage; a green CI build alone
+  does not establish simulator journey acceptance.
+- Summary: The iOS job compiles the app but never boots a simulator or executes
+  integration tests. Flutter unit/widget tests run on Linux in the Android job.
+- Root cause: Simulator integration execution and result reporting were not
+  added to the workflow.
+- Workaround: Run the prepared native scenarios locally when required; report
+  those results separately from CI builds.
+- Required action: Add prepared-fixture iOS simulator integration tests on PRs
+  and main pushes, with readable results and failure artifacts. Preserve the
+  explicit instruction not to run Android-to-iOS backup scenario
+  `BACKUP-XPLAT-002` until separately authorized. Pending; no CI change yet.
+
 ### BUG-010 — Device replacement revokes access without advancing resource-key epochs
 - Severity: High
 - Component: `backend/src/sarti_backend/api/auth.py`, device/resource lifecycle

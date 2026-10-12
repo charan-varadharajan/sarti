@@ -21,6 +21,9 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
 ## [Unreleased]
 
 ### Added
+- Record BUG-012: pending native iOS simulator integration coverage in CI;
+  current iOS job builds only. Document user-owned test execution and direct
+  main pushes for the current remediation workflow.
 - BUG-002 regression: add `BACKUP-XPLAT-002` for Android-to-iOS `.srtbk`
   recovery using the shared directional runner; execution deferred by user.
 - BUG-002 regression: repeatable iOS-to-Android encrypted `.srtbk` portability

@@ -20,6 +20,20 @@ Read `AGENTS.md` and all documents it links before making any change.
 
 ## Before opening a PR / merging
 
+### Current maintainer workflow (approved 2026-10-12)
+
+Use direct commits/pushes to `main` for authorized remediation; a separate
+branch is not required for each fix. CI runs after each main push. A failed
+run does not revert the commit automatically.
+
+The maintainer owns test execution and pass/fail review to conserve assistant
+usage. Assistants add/update tests and provide commands, but do not run tests
+or inspect their logs unless explicitly asked or authorized to investigate a
+reported failure. Report unexecuted tests as not run and do not claim CI passed
+without evidence. The maintainer supplies failing logs or requests investigation.
+Required quality gates still apply; implementation completion and verified
+acceptance must be reported separately.
+
 Run all gates locally and confirm they pass:
 
 ```sh
