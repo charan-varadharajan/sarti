@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:crypto/crypto.dart';
 import 'package:sodium/sodium.dart';
+import 'package:sqlite3/sqlite3.dart';
 
 /// Thrown when a backup operation fails (wrong key, corruption, bad format).
 class BackupException implements Exception {
@@ -14,13 +15,20 @@ class BackupException implements Exception {
   String toString() => 'BackupException: $message';
 }
 
+class BackupRestore {
+  BackupRestore(this.databaseKey);
+  final Uint8List databaseKey;
+}
+
 /// Backup file format (ADR-025):
 ///
 /// [4]  magic   0x53415254 ("SART")
-/// [1]  version 0x01
+/// [1]  version 0x02
 /// [16] salt    (PBKDF2 input, random per backup)
 /// [24] nonce   (XChaCha20-Poly1305, random per backup)
 /// [N]  ciphertext + 16-byte Poly1305 tag (appended by libsodium)
+///
+/// Version 2 ciphertext plaintext is `[32-byte SQLCipher key][database bytes]`.
 ///
 /// Key derivation: PBKDF2-HMAC-SHA256(phrase, salt, 200000 iterations, 32 bytes).
 /// Note: Argon2id is preferable but requires sodium_sumo which is not available
@@ -76,8 +84,16 @@ class BackupService {
     required String databasePath,
     required String outputPath,
     required String recoveryPhrase,
+    required Uint8List databaseKey,
     required Sodium sodium,
   }) {
+    if (databaseKey.length != 32) {
+      throw ArgumentError.value(
+        databaseKey.length,
+        'databaseKey.length',
+        'must be 32',
+      );
+    }
     final plaintext = File(databasePath).readAsBytesSync();
     final salt = Uint8List.fromList(sodium.randombytes.buf(16));
     final key = deriveKey(recoveryPhrase, salt: salt);
@@ -89,13 +105,13 @@ class BackupService {
         ),
       );
       final ciphertext = sodium.crypto.aeadXChaCha20Poly1305IETF.encrypt(
-        message: plaintext,
+        message: Uint8List.fromList([...databaseKey, ...plaintext]),
         nonce: nonce,
         key: secureKey,
       );
       final out = File(outputPath).openSync(mode: FileMode.writeOnly);
       try {
-        out.writeFromSync([0x53, 0x41, 0x52, 0x54, 0x01]);
+        out.writeFromSync([0x53, 0x41, 0x52, 0x54, 0x02]);
         out.writeFromSync(salt);
         out.writeFromSync(nonce);
         out.writeFromSync(ciphertext);
@@ -110,7 +126,7 @@ class BackupService {
   /// Decrypts a backup file at [backupPath] and writes the plaintext database
   /// to [outputPath]. Throws [BackupException] on any failure.
   /// [sodium] must be an already-initialised [Sodium] instance.
-  static void restoreBackup({
+  static BackupRestore restoreBackup({
     required String backupPath,
     required String outputPath,
     required String recoveryPhrase,
@@ -126,7 +142,12 @@ class BackupService {
         bytes[3] != 0x54) {
       throw const BackupException('Not a valid Sarti backup file.');
     }
-    if (bytes[4] != 0x01) {
+    if (bytes[4] == 0x01) {
+      throw const BackupException(
+        'Legacy backup cannot recover its database key.',
+      );
+    }
+    if (bytes[4] != 0x02) {
       throw const BackupException('Unsupported backup version.');
     }
     final salt = Uint8List.fromList(bytes.sublist(5, 21));
@@ -148,7 +169,31 @@ class BackupService {
           'backup file may be corrupted.',
         );
       }
-      File(outputPath).writeAsBytesSync(plaintext);
+      if (plaintext.length <= 32) {
+        throw const BackupException(
+          'Backup payload is incomplete or corrupted.',
+        );
+      }
+      final databaseKey = Uint8List.fromList(plaintext.sublist(0, 32));
+      final temporary = File('$outputPath.restore-tmp');
+      try {
+        temporary.writeAsBytesSync(plaintext.sublist(32), flush: true);
+        final database = sqlite3.open(temporary.path);
+        try {
+          final hex = databaseKey
+              .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
+              .join();
+          database.execute('PRAGMA key = "x\'$hex\'"');
+          database.select('SELECT count(*) FROM sqlite_master');
+        } finally {
+          database.close();
+        }
+        temporary.renameSync(outputPath);
+        return BackupRestore(databaseKey);
+      } catch (_) {
+        if (temporary.existsSync()) temporary.deleteSync();
+        throw const BackupException('Recovered database could not be opened.');
+      }
     } finally {
       secureKey.dispose();
     }

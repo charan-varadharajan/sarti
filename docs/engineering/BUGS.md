@@ -23,11 +23,13 @@ in-repository record while Sarti has no external tracker.
 
 ## Open defects
 
-### BUG-002 — Backup restore cannot recover SQLCipher key on replacement device
+### BUG-002 — Backup restore could not recover SQLCipher key on replacement device
 - Severity: High
 - Component: `mobile/lib/src/core/backup/backup_service.dart`, ADR-025
 - Discovered: 2026-10-11
-- Blocking: Stage 3 acceptance; backup UI; account recovery claim
+- Fixed: 2026-10-12 — pending commit
+- Fix version: Unreleased
+- Blocking: Resolved in core backup; restore UI secure-storage wiring remains required
 - Summary: ADR-025 encrypts raw SQLCipher database bytes with an independent
   backup key derived from the recovery phrase. A replacement device does not
   possess the SQLCipher database encryption key needed to open the restored file.
@@ -37,10 +39,8 @@ in-repository record while Sarti has no external tracker.
   without accounting for the SQLCipher key being a device secret that is not
   included in the backup payload.
 - Workaround: None. Backup UI is not shipped; no user data is at risk yet.
-- Required action: Superseding ADR must define either (a) a logical export of
-  decrypted family data re-encrypted under the backup key, or (b) a recoverable
-  SQLCipher key envelope included in the backup payload. Both options require
-  security review. Superseding ADR must be approved before any fix.
+- Disposition: Approved ADR-032 adds an authenticated v2 key envelope and
+  verifies the recovered key opens the database before atomic restore.
 
 ### BUG-003 — Child profile creation is local-only; cross-device child labels incomplete
 - Severity: Medium

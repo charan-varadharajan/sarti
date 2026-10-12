@@ -109,6 +109,11 @@ class DeviceKeyStore {
   static const _signSecret = 'sign-secret-v1';
   static const _deviceId = 'device-id-v1';
 
+  Future<void> storeRecoveredDatabaseKey(Uint8List key) async {
+    if (key.length != 32) throw ArgumentError.value(key.length, 'key.length');
+    await secrets.write(_databaseKey, base64UrlEncode(key));
+  }
+
   Future<DeviceKeyMaterial> loadOrCreate() async {
     if (!await unlocker.unlock()) {
       throw StateError('Device authentication was cancelled.');

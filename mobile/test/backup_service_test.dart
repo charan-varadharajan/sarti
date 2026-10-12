@@ -83,6 +83,7 @@ void main() {
         databasePath: dbPath,
         outputPath: backupPath,
         recoveryPhrase: validPhrase,
+        databaseKey: Uint8List(32),
         sodium: sodium,
       );
 
@@ -91,7 +92,7 @@ void main() {
       expect(bytes[1], 0x41);
       expect(bytes[2], 0x52);
       expect(bytes[3], 0x54);
-      expect(bytes[4], 0x01);
+      expect(bytes[4], 0x02);
     });
 
     test('backup file minimum size: header + salt + nonce + tag', () {
@@ -104,6 +105,7 @@ void main() {
         databasePath: dbPath,
         outputPath: backupPath,
         recoveryPhrase: validPhrase,
+        databaseKey: Uint8List(32),
         sodium: sodium,
       );
 
@@ -126,11 +128,12 @@ void main() {
         databasePath: dbPath,
         outputPath: backupPath,
         recoveryPhrase: validPhrase,
+        databaseKey: Uint8List(32),
         sodium: sodium,
       );
 
       final restorePath = '${tempDir.path}/restored.db';
-      BackupService.restoreBackup(
+      final restore = BackupService.restoreBackup(
         backupPath: backupPath,
         outputPath: restorePath,
         recoveryPhrase: validPhrase,
@@ -141,6 +144,7 @@ void main() {
       final rows = restored.raw.select('SELECT display_name FROM households');
       restored.close();
       expect(rows.single['display_name'], 'Test Family');
+      expect(restore.databaseKey, Uint8List(32));
     });
 
     test('restore fails with wrong phrase', () {
@@ -153,6 +157,7 @@ void main() {
         databasePath: dbPath,
         outputPath: backupPath,
         recoveryPhrase: validPhrase,
+        databaseKey: Uint8List(32),
         sodium: sodium,
       );
 
@@ -177,6 +182,7 @@ void main() {
         databasePath: dbPath,
         outputPath: backupPath,
         recoveryPhrase: validPhrase,
+        databaseKey: Uint8List(32),
         sodium: sodium,
       );
       final restorePath = '${tempDir.path}/invalid-phrase.db';
@@ -203,6 +209,7 @@ void main() {
         databasePath: dbPath,
         outputPath: backupPath,
         recoveryPhrase: validPhrase,
+        databaseKey: Uint8List(32),
         sodium: sodium,
       );
 
@@ -235,6 +242,27 @@ void main() {
         throwsA(isA<BackupException>()),
       );
     });
+
+    test(
+      'restore rejects a legacy backup without a recoverable database key',
+      () {
+        final backupPath = '${tempDir.path}/legacy.srtbk';
+        File(backupPath).writeAsBytesSync(List.filled(61, 0));
+        final bytes = File(backupPath).readAsBytesSync();
+        bytes.setRange(0, 5, [0x53, 0x41, 0x52, 0x54, 0x01]);
+        File(backupPath).writeAsBytesSync(bytes);
+
+        expect(
+          () => BackupService.restoreBackup(
+            backupPath: backupPath,
+            outputPath: '${tempDir.path}/bad.db',
+            recoveryPhrase: validPhrase,
+            sodium: sodium,
+          ),
+          throwsA(isA<BackupException>()),
+        );
+      },
+    );
 
     test('backup key is independent from SQLCipher database key', () {
       final salt = Uint8List(16);
