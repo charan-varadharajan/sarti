@@ -54,6 +54,8 @@ class ResourceCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     kind: Literal["child_profile"]
+    resource_id: UUID | None = None
+    share_with_calendar_guardians: bool = False
 
 
 class InvitationResponse(BaseModel):
@@ -235,9 +237,27 @@ def create_resource(
     actor: Authenticated,
 ) -> ResourceResponse:
     database: TransactionalDatabase = request.app.state.database
-    resource_id = uuid4()
+    resource_id = payload.resource_id or uuid4()
     with database.transaction() as connection:
         require_owner(connection, family_id, actor.adult_id)
+        connection.execute(
+            select(families.c.id).where(families.c.id == family_id).with_for_update()
+        )
+        existing = (
+            connection.execute(select(resources).where(resources.c.id == resource_id))
+            .mappings()
+            .one_or_none()
+        )
+        if existing is not None:
+            if (
+                existing["family_id"] != family_id
+                or existing["kind"] != payload.kind
+                or existing["deleted_at"] is not None
+            ):
+                raise ConflictDetected()
+            return ResourceResponse(
+                id=resource_id, kind=payload.kind, key_epoch=existing["key_epoch"]
+            )
         connection.execute(
             resources.insert().values(
                 id=resource_id,
@@ -248,6 +268,31 @@ def create_resource(
                 deleted_at=None,
             )
         )
+        if payload.share_with_calendar_guardians:
+            # Explicit owner choice applies only at initial provisioning. A
+            # retry must never expand access to guardians who joined later.
+            recipients = connection.execute(
+                select(memberships.c.adult_id)
+                .join(permissions, permissions.c.adult_id == memberships.c.adult_id)
+                .join(resources, resources.c.id == permissions.c.resource_id)
+                .where(
+                    and_(
+                        memberships.c.family_id == family_id,
+                        memberships.c.status == "active",
+                        memberships.c.role == "guardian",
+                        resources.c.family_id == family_id,
+                        resources.c.kind == "calendar",
+                        resources.c.deleted_at.is_(None),
+                    )
+                )
+                .distinct()
+            ).scalars()
+            for adult_id in recipients:
+                connection.execute(
+                    permissions.insert().values(
+                        resource_id=resource_id, adult_id=adult_id, permission="read"
+                    )
+                )
     return ResourceResponse(id=resource_id, kind=payload.kind, key_epoch=1)
 
 

@@ -65,7 +65,54 @@ class EncryptedEmailDelivery {
   final DateTime expiresAt;
 }
 
-class SartiApiClient implements EncryptedRelay {
+class ResourceDevice {
+  const ResourceDevice({
+    required this.deviceId,
+    required this.encryptionPublicKey,
+    required this.signingPublicKey,
+    required this.permission,
+    required this.hasCurrentGrant,
+  });
+  final String deviceId;
+  final Uint8List encryptionPublicKey;
+  final Uint8List signingPublicKey;
+  final String permission;
+  final bool hasCurrentGrant;
+}
+
+class ResourceKeyGrant {
+  const ResourceKeyGrant({
+    required this.resourceId,
+    required this.keyEpoch,
+    required this.recipientDeviceId,
+    required this.granterDeviceId,
+    required this.wrappedKey,
+    required this.signature,
+  });
+  final String resourceId;
+  final int keyEpoch;
+  final String recipientDeviceId;
+  final String granterDeviceId;
+  final Uint8List wrappedKey;
+  final Uint8List signature;
+}
+
+abstract interface class ResourceKeyApi {
+  Future<List<RemoteFamily>> listFamilies();
+  Future<RemoteResource> provisionChild(
+    String familyId,
+    String resourceId, {
+    bool shareWithCalendarGuardians = false,
+  });
+  Future<List<ResourceDevice>> resourceDevices(
+    String familyId,
+    String resourceId,
+  );
+  Future<List<ResourceKeyGrant>> keyGrants();
+  Future<void> uploadKeyGrant(String familyId, ResourceKeyGrant grant);
+}
+
+class SartiApiClient implements EncryptedRelay, ResourceKeyApi {
   SartiApiClient(this.baseUri, {HttpClient? httpClient, this.sessionToken})
     : _http = httpClient ?? HttpClient();
 
@@ -152,6 +199,7 @@ class SartiApiClient implements EncryptedRelay {
     ),
   );
 
+  @override
   Future<List<RemoteFamily>> listFamilies() async {
     final response = await _jsonList(
       'GET',
@@ -159,6 +207,84 @@ class SartiApiClient implements EncryptedRelay {
       authenticated: true,
     );
     return response.map(_familyFromJson).toList(growable: false);
+  }
+
+  @override
+  Future<RemoteResource> provisionChild(
+    String familyId,
+    String resourceId, {
+    bool shareWithCalendarGuardians = false,
+  }) async {
+    final value = await _json(
+      'POST',
+      '/v1/families/$familyId/resources',
+      authenticated: true,
+      body: {
+        'resource_id': resourceId,
+        'kind': 'child_profile',
+        'share_with_calendar_guardians': shareWithCalendarGuardians,
+      },
+    );
+    return RemoteResource(
+      id: value['id'] as String,
+      kind: value['kind'] as String,
+      keyEpoch: value['key_epoch'] as int,
+    );
+  }
+
+  @override
+  Future<List<ResourceDevice>> resourceDevices(
+    String familyId,
+    String resourceId,
+  ) async =>
+      (await _jsonList(
+            'GET',
+            '/v1/families/$familyId/resources/$resourceId/devices',
+            authenticated: true,
+          ))
+          .map(
+            (value) => ResourceDevice(
+              deviceId: value['device_id'] as String,
+              encryptionPublicKey: _decode(
+                value['encryption_public_key'] as String,
+              ),
+              signingPublicKey: _decode(value['signing_public_key'] as String),
+              permission: value['permission'] as String,
+              hasCurrentGrant: value['has_current_grant'] as bool,
+            ),
+          )
+          .toList();
+
+  @override
+  Future<List<ResourceKeyGrant>> keyGrants() async =>
+      (await _jsonList('GET', '/v1/key-grants', authenticated: true))
+          .map(
+            (value) => ResourceKeyGrant(
+              resourceId: value['resource_id'] as String,
+              keyEpoch: value['key_epoch'] as int,
+              recipientDeviceId: value['recipient_device_id'] as String,
+              granterDeviceId: value['granter_device_id'] as String,
+              wrappedKey: _decode(value['wrapped_key'] as String),
+              signature: _decode(value['signature'] as String),
+            ),
+          )
+          .toList();
+
+  @override
+  Future<void> uploadKeyGrant(String familyId, ResourceKeyGrant grant) async {
+    await _json(
+      'POST',
+      '/v1/key-grants',
+      authenticated: true,
+      body: {
+        'family_id': familyId,
+        'resource_id': grant.resourceId,
+        'key_epoch': grant.keyEpoch,
+        'recipient_device_id': grant.recipientDeviceId,
+        'wrapped_key': _encode(grant.wrappedKey),
+        'signature': _encode(grant.signature),
+      },
+    );
   }
 
   Future<RemoteBackup?> downloadBackup(String familyId) async {
@@ -265,22 +391,27 @@ class SartiApiClient implements EncryptedRelay {
 
   @override
   Future<void> upload(RelayEnvelope envelope) async {
-    await _json(
-      'POST',
-      '/v1/sync/operations',
-      authenticated: true,
-      body: {
-        'operation_id': envelope.operationId,
-        'family_id': envelope.familyId,
-        'resource_id': envelope.resourceId,
-        'device_sequence': envelope.deviceSequence,
-        'key_epoch': envelope.keyEpoch,
-        'logical_version': envelope.logicalVersion,
-        'nonce': _encode(envelope.nonce),
-        'ciphertext': _encode(envelope.ciphertext),
-        'content_digest': _encode(envelope.contentDigest),
-      },
-    );
+    try {
+      await _json(
+        'POST',
+        '/v1/sync/operations',
+        authenticated: true,
+        body: {
+          'operation_id': envelope.operationId,
+          'family_id': envelope.familyId,
+          'resource_id': envelope.resourceId,
+          'device_sequence': envelope.deviceSequence,
+          'key_epoch': envelope.keyEpoch,
+          'logical_version': envelope.logicalVersion,
+          'nonce': _encode(envelope.nonce),
+          'ciphertext': _encode(envelope.ciphertext),
+          'content_digest': _encode(envelope.contentDigest),
+        },
+      );
+    } on SartiApiException catch (error) {
+      if (error.statusCode == 409) throw RelayConflict();
+      rethrow;
+    }
   }
 
   @override

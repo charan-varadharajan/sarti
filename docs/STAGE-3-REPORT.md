@@ -125,3 +125,16 @@ activation are implemented. See [BUG-002 verification](testing/BUG-002-VERIFICAT
 for changed areas, exact checks, security controls and remaining physical-device
 limitations. Stage 3 remains unaccepted; BUG-003/004/005 are still open. Do not
 start Stage 4 or another defect without explicit approval.
+
+## 2026-10-12 BUG-003 remediation
+
+Encrypted child-profile creation and distribution, explicit sharing with existing
+calendar guardians, signed sealed-key exchange, epoch/retry handling, safe
+profile/event ordering and receiving labels/colours are implemented under
+ADR-020/021/022. SQLCipher schema v6 is tested; PostgreSQL remains at 0005.
+See [BUG-003 verification](testing/BUG-003-VERIFICATION.md) for changed files,
+APIs, migration details, exact tests, security findings and platform limits.
+Stage 3 remains unaccepted: BUG-004/005/011 and newly discovered High-severity
+BUG-010 remain open. Device replacement currently revokes the old phone without
+advancing resource epochs. Obtain explicit approval before the next defect;
+do not begin Stage 4. Android-to-iOS backup execution remains deferred by user.

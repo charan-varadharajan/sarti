@@ -15,6 +15,7 @@ import 'package:sarti_mobile/src/features/calendar/presentation/calendar_control
 import 'package:sarti_mobile/src/features/calendar/presentation/calendar_screen.dart';
 import 'package:sarti_mobile/src/features/email/email_suggestion_inbox.dart';
 import 'package:sarti_mobile/src/features/push/push_sync_coordinator.dart';
+import 'package:sarti_mobile/src/features/sync/resource_key_sync.dart';
 import 'package:sarti_mobile/src/features/sync/authenticated_sync_runtime.dart';
 import 'package:sarti_mobile/src/features/sync/sync_engine.dart';
 import 'package:sodium/sodium.dart';
@@ -192,13 +193,31 @@ class _AuthenticatedCalendarBootstrapState
       fetch: api.listEmailSuggestions,
       dismissRemote: api.dismissEmailSuggestion,
     );
+    final resourceKeys = ResourceKeySync(
+      database: widget.database,
+      repository: controller.repository,
+      sodium: widget.sodium,
+      keys: widget.keys,
+      deviceId: session.deviceId,
+      api: api,
+    );
     runtime = AuthenticatedSyncRuntime(
       readFamily: () => controller.family,
-      provisionFamily: (familyId, calendarId) => api.provisionFamily(
-        familyId: familyId,
-        calendarResourceId: calendarId,
-      ),
-      synchronizeFamily: engine.synchronize,
+      provisionFamily: (familyId, calendarId) async {
+        final registered = await api.listFamilies();
+        final existing = registered
+            .where((f) => f.id == familyId && f.status == 'active')
+            .firstOrNull;
+        return existing ??
+            await api.provisionFamily(
+              familyId: familyId,
+              calendarResourceId: calendarId,
+            );
+      },
+      synchronizeFamily: (familyId) async {
+        await resourceKeys.prepare(familyId);
+        return engine.synchronize(familyId);
+      },
       sendWakeUp: api.sendSyncWakeUp,
       registerPushToken: api.registerPushToken,
       initializePush: FirebasePushTransport.initialize,

@@ -64,8 +64,11 @@ available to it. Revocation protects future access and is not remote erasure.
 
 ## Key lifecycle
 
-ADR-020 and `KEY-MANAGEMENT.md` specify the implemented device/resource lifecycle.
+ADR-020 and `../architecture/KEY-MANAGEMENT.md` specify the implemented device/resource lifecycle.
 Guardian removal increments every resource epoch and prevents future grants.
+Device replacement currently does not advance resource epochs; BUG-010 records
+this High-severity release blocker discovered during BUG-003 review. Do not
+claim replacement-device cryptographic revocation until it is fixed.
 Backup derivation is independent of sync keys. Approved ADR-032 encrypts the
 SQLCipher key inside the v2 snapshot envelope and gates the durable server blob
 to active family owners. Login permits download but never decryption. Local
@@ -111,3 +114,26 @@ physical backup/recovery validation, deletion deadlines, production RP domain,
 device-attestation policy, and metadata retention beyond the seven-day relay
 rule require approval or later implementation. Physical-device validation is
 required before release.
+
+## BUG-003 control coverage
+
+| Control | Automated evidence |
+| --- | --- |
+| Stable child identity, private content excluded from resource requests, explicit sharing, no retry-based permission expansion | `backend/tests/integration/test_child_sync_api.py`; `mobile/test/child_sync_api_client_test.dart` |
+| Cross-family, owner/resource permissions, pending/revoked devices and granters | PostgreSQL child API journey; mobile `CHILD-SEC-001/002` |
+| Signed recipient-bound sealed keys, wrong-device/tamper/stale-epoch rejection, no conflicting-key overwrite | `CHILD-SEC-001/005`; grant API negative cases |
+| Rotation convergence, single established epoch, no future key to revoked recipient | `CHILD-SYNC-004`; serialized PostgreSQL grant tests |
+| Child/calendar resource separation and malformed/cross-family payload rejection | `CHILD-SEC-003/004`; expected local resource catalog |
+| Lost receipt, duplicates, reordered event/profile, offline survival and permission-late replay | `CHILD-SYNC-001/002/005/006`; filtered relay API pages |
+| Encrypted migration preserves child/event/pending data and rejects wrong key | `CHILD-MIG-001` plus native SQLCipher scenario |
+
+Tests use synthetic family content and independent device keys. Controlled
+relay/native simulator tests do not establish physical secure-storage policies,
+production passkeys or provider delivery. Child creation conflicts fail closed;
+there is no child-profile editing protocol or automatic overwrite path.
+
+BUG-011 records a separate availability/integrity compatibility gap: a real
+PostgreSQL JSONB round trip can reorder multi-author vectors in insertion-ordered
+AAD, causing legitimate ciphertext to fail authentication. No authentication
+bypass was observed; the decoder fails closed. Concurrent calendar editing
+against the real backend remains unaccepted pending canonical compatible AAD.

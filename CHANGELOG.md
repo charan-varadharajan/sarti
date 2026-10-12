@@ -32,6 +32,12 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
   harness for prepared data, direct flow entry, emulator execution, and teardown.
 
 ### Corrected
+- BUG-003: complete encrypted child-profile synchronization with stable resource
+  IDs, atomic local writes, explicit read-only sharing for current calendar
+  guardians, signed recipient-scoped sealed keys, verified epoch rotation and
+  receiving-calendar labels/colours. Harden grant uniqueness/current authorization,
+  resource-kind validation and filtered relay paging; persist exact upload retries.
+  SQLCipher v6 and prepared unit/API/security/widget/native regressions included.
 - BUG-002: connect v2 encrypted SQLCipher-key snapshots to an owner-authorized
   upload/download/delete API and reachable backup/recovery UI. Replacement
   installations discover backups after login, require the user-held phrase,
@@ -43,8 +49,8 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
   implementation; removed unsupported privacy/deployment claims and duplicate
   agent instructions.
 - Removed incomplete, untested BUG-003 API groundwork that was accidentally
-  bundled into the administrative commit. BUG-003 remains open for a coherent
-  implementation.
+  bundled into the administrative commit. The complete BUG-003 fix above now
+  supersedes that groundwork.
 - Fixed BUG-006 so a missing device credential shows a bounded setup message and
   retry action instead of an internal `LocalAuthException`.
 - Fixed BUG-007 so a time such as “Tuesday at 5” remains unset and asks the
@@ -55,6 +61,12 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
   interacting with it on compact iPhone layouts.
 
 ### Known open defects
+- BUG-011 (Medium): confirmed that PostgreSQL JSONB can reorder a multi-author
+  version vector and invalidate insertion-ordered sync AAD. Canonical encoding
+  and a real-backend conflict round-trip remain pending as a separate defect.
+- BUG-010 (High): security review found that passkey device replacement revokes
+  the old phone without advancing resource epochs. Recorded as a separate release
+  blocker; implementation remains pending outside the BUG-003 child-sync fix.
 See `docs/engineering/BUGS.md` for the current open defect list.
 The administrative review added BUG-005 for the unwired optional Gemini
 credential/runtime path.

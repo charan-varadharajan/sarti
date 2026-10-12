@@ -8,12 +8,12 @@
 | `core/crypto` | Device keys, secure storage, XChaCha20-Poly1305 resource content | Encrypted sync simulation |
 | `core/backup` | BIP-39 validation, PBKDF2/XChaCha20-Poly1305 v2 envelope containing SQLCipher key | 15 phrase/envelope tests |
 | `features/backup` | Encrypted consistent snapshot, owner upload/download/delete UI, staged recovery and protected-key activation | 7 SQLCipher/failure tests, 2 widget journeys; binary API transport test; `BACKUP-XPLAT-001` native portability scenario; reverse `-002` added, not run |
-| `core/database` | SQLCipher verification, schema v1-v5, transactional migrations | Native engine and repository tests |
+| `core/database` | SQLCipher verification, schema v1-v6, transactional migrations | Native engine and repository tests |
 | `features/ai` | Deterministic parser, Apple/Android native bridge, strict proposal merge/review, local pseudonymization, versioned opt-in, and gated optional cloud adapter | Parser, native fallback/merge, approval/Undo widget, consent, and cloud-boundary tests |
 | `features/calendar/domain` | Event, recurrence, IANA timezone/DST behavior | Recurrence unit tests |
-| `features/calendar/data` | Family/child/event repository, outbox, durable conflicts, reminders | Repository/sync tests |
+| `features/calendar/data` | Atomic family/child/event repository, explicit child sharing intent, safe profile placeholders, outbox, durable event conflicts, reminders | Repository/sync tests |
 | `features/calendar/presentation` | Progressive onboarding, Today/Week/Month, edit/assign/cancel/delete/conflict UI | Widget journey |
-| `features/sync` | Version vectors, authenticated encryption, ordered upload/download | Two-device memory-relay test |
+| `features/sync` | Version vectors, exact-envelope retries, authenticated child/calendar dispatch, signed sealed-key exchange and epoch convergence | Child sync/security/widget/native scenarios; PostgreSQL grant/relay contracts |
 | `features/push` | FCM token lifecycle and strict opaque wake-up coalescing into encrypted sync | 6 coordinator unit tests; provider/device delivery pending |
 | `features/email` | Device-addressed sealed-box decryption, source attribution, local proposal review, and device-scoped dismissal | Ciphertext/tamper unit tests and approval widget flow |
 | `features/sync` authenticated runtime | Session restore, offline family provisioning, serialized encrypted sync, foreground catch-up, push lifecycle, and email refresh | Runtime and session-store unit tests; physical two-device run pending |

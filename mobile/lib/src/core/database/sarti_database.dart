@@ -6,7 +6,7 @@ import 'package:sqlite3/sqlite3.dart';
 class SartiDatabase {
   SartiDatabase._(this.raw, this.path);
 
-  static const schemaVersion = 5;
+  static const schemaVersion = 6;
 
   final Database raw;
   final String path;
@@ -210,6 +210,28 @@ class SartiDatabase {
         raw.execute('ROLLBACK');
         rethrow;
       }
+    }
+    if (raw.userVersion < 6) {
+      transaction(() {
+        raw.execute('''
+          ALTER TABLE outbox ADD COLUMN envelope_json TEXT;
+          ALTER TABLE children ADD COLUMN is_placeholder INTEGER NOT NULL DEFAULT 0
+            CHECK(is_placeholder IN (0, 1));
+          CREATE TABLE resource_catalog (
+            resource_id TEXT PRIMARY KEY,
+            family_id TEXT NOT NULL,
+            kind TEXT NOT NULL,
+            key_epoch INTEGER NOT NULL CHECK(key_epoch > 0)
+          ) STRICT;
+          CREATE TABLE child_sync (
+            child_id TEXT PRIMARY KEY REFERENCES children(id) ON DELETE CASCADE,
+            key_epoch INTEGER NOT NULL CHECK(key_epoch >= 0),
+            share_with_calendar_guardians INTEGER NOT NULL DEFAULT 0
+              CHECK(share_with_calendar_guardians IN (0, 1))
+          ) STRICT;
+        ''');
+        raw.userVersion = 6;
+      });
     }
   }
 

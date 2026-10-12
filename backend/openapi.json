@@ -405,6 +405,7 @@
           },
           "key_epoch": {
             "exclusiveMinimum": 0.0,
+            "maximum": 2147483647.0,
             "title": "Key Epoch",
             "type": "integer"
           },
@@ -425,8 +426,8 @@
             "type": "string"
           },
           "wrapped_key": {
-            "maxLength": 684,
-            "minLength": 64,
+            "maxLength": 108,
+            "minLength": 107,
             "title": "Wrapped Key",
             "type": "string"
           }
@@ -531,6 +532,7 @@
           },
           "device_sequence": {
             "exclusiveMinimum": 0.0,
+            "maximum": 9.223372036854776e+18,
             "title": "Device Sequence",
             "type": "integer"
           },
@@ -541,6 +543,7 @@
           },
           "key_epoch": {
             "exclusiveMinimum": 0.0,
+            "maximum": 2147483647.0,
             "title": "Key Epoch",
             "type": "integer"
           },
@@ -741,12 +744,64 @@
             "const": "child_profile",
             "title": "Kind",
             "type": "string"
+          },
+          "resource_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Id"
+          },
+          "share_with_calendar_guardians": {
+            "default": false,
+            "title": "Share With Calendar Guardians",
+            "type": "boolean"
           }
         },
         "required": [
           "kind"
         ],
         "title": "ResourceCreate",
+        "type": "object"
+      },
+      "ResourceDevice": {
+        "additionalProperties": false,
+        "properties": {
+          "device_id": {
+            "format": "uuid",
+            "title": "Device Id",
+            "type": "string"
+          },
+          "encryption_public_key": {
+            "title": "Encryption Public Key",
+            "type": "string"
+          },
+          "has_current_grant": {
+            "title": "Has Current Grant",
+            "type": "boolean"
+          },
+          "permission": {
+            "title": "Permission",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "title": "Signing Public Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "device_id",
+          "encryption_public_key",
+          "signing_public_key",
+          "permission",
+          "has_current_grant"
+        ],
+        "title": "ResourceDevice",
         "type": "object"
       },
       "ResourceResponse": {
@@ -1749,6 +1804,79 @@
         "summary": "Create Resource",
         "tags": [
           "households"
+        ]
+      }
+    },
+    "/v1/families/{family_id}/resources/{resource_id}/devices": {
+      "get": {
+        "operationId": "list_resource_devices_v1_families__family_id__resources__resource_id__devices_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "family_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Family Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "resource_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Resource Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ResourceDevice"
+                  },
+                  "title": "Response List Resource Devices V1 Families  Family Id  Resources  Resource Id  Devices Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Resource Devices",
+        "tags": [
+          "encrypted-sync"
         ]
       }
     },

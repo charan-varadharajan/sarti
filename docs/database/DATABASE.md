@@ -12,6 +12,9 @@ grants, and relay ciphertext. Field-level designs and classifications are in
 | Local v1 | SQLCipher | Households, guardians, children, events, assignments, reminders | Fresh encrypted schema tests |
 | Local v2 | SQLCipher | Outbox, de-duplication, conflicts, resource keys, cursor | Encrypted repository/sync tests |
 | Local v3 | SQLCipher | Stable calendar resource, device sequence, conflict vectors | v2 encrypted-file upgrade preserves private content; wrong key fails |
+| Local v4 | SQLCipher | Private child cloud aliases and unique family alias index | Encrypted legacy-profile backfill |
+| Local v5 | SQLCipher | Versioned app preferences | Consent defaults and persistence |
+| Local v6 | SQLCipher | Durable retry envelopes, hidden child placeholders, resource catalog, child sync/consent markers; BUG-003 | v5 encrypted-file upgrade preserves profiles, assignments and pending writes; wrong-key rejection |
 | `0001` | PostgreSQL | Schema metadata/version 1 | Upgrade/downgrade/re-upgrade integration |
 | `0002` | PostgreSQL | Identity, devices, families, permissions, invitations, grants, relay; version 2 | Real PostgreSQL migration and API integration |
 | `0003` | PostgreSQL | `fcm_token` nullable column on `devices`; `email_token_digest` nullable column with partial unique index on `families`; `email_suggestions` table with status check constraint and expiry/family indexes; version 3 | Unit tests; Alembic upgrade to head |

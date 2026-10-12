@@ -18,7 +18,14 @@ from sarti_backend.core.errors import (
     PermissionDenied,
     TenantAccessDenied,
 )
-from sarti_backend.db.schema import devices, key_grants, memberships, sync_operations
+from sarti_backend.db.schema import (
+    devices,
+    key_grants,
+    memberships,
+    permissions,
+    resources,
+    sync_operations,
+)
 from sarti_backend.households.authorization import (
     require_active_member,
     require_resource_permission,
@@ -34,7 +41,7 @@ class TransactionalDatabase(Protocol):
 
 def _decode(value: str, expected_size: int | None = None) -> bytes:
     try:
-        result = base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+        result = base64.b64decode(value + "=" * (-len(value) % 4), altchars=b"-_", validate=True)
     except (ValueError, binascii.Error) as error:
         raise InvalidRequest from error
     if expected_size is not None and len(result) != expected_size:
@@ -52,8 +59,8 @@ class OperationUpload(BaseModel):
     operation_id: UUID
     family_id: UUID
     resource_id: UUID
-    device_sequence: int = Field(gt=0)
-    key_epoch: int = Field(gt=0)
+    device_sequence: int = Field(gt=0, le=2**63 - 1)
+    key_epoch: int = Field(gt=0, le=2**31 - 1)
     logical_version: dict[str, int]
     nonce: str = Field(min_length=32, max_length=32)
     ciphertext: str = Field(min_length=23, max_length=1_398_124)
@@ -109,9 +116,9 @@ class KeyGrantUpload(BaseModel):
 
     family_id: UUID
     resource_id: UUID
-    key_epoch: int = Field(gt=0)
+    key_epoch: int = Field(gt=0, le=2**31 - 1)
     recipient_device_id: UUID
-    wrapped_key: str = Field(min_length=64, max_length=684)
+    wrapped_key: str = Field(min_length=107, max_length=108)
     signature: str = Field(min_length=86, max_length=88)
 
 
@@ -165,6 +172,13 @@ def upload_operation(
     now = datetime.now(UTC)
     with database.transaction() as connection:
         delete_expired_operations(connection, now)
+        epoch, _ = require_resource_permission(
+            connection,
+            family_id=payload.family_id,
+            resource_id=payload.resource_id,
+            adult_id=actor.adult_id,
+            required="write",
+        )
         existing = (
             connection.execute(
                 select(sync_operations).where(
@@ -179,6 +193,12 @@ def upload_operation(
                 existing["author_device_id"] == actor.device_id
                 and existing["content_digest"] == digest
                 and existing["device_sequence"] == payload.device_sequence
+                and existing["family_id"] == payload.family_id
+                and existing["resource_id"] == payload.resource_id
+                and existing["key_epoch"] == payload.key_epoch
+                and existing["logical_version"] == payload.logical_version
+                and existing["nonce"] == nonce
+                and existing["ciphertext"] == ciphertext
             ):
                 return OperationReceipt(
                     operation_id=payload.operation_id,
@@ -187,6 +207,8 @@ def upload_operation(
                     expires_at=existing["expires_at"],
                 )
             raise ConflictDetected("The operation identifier was already used.")
+        if payload.key_epoch != epoch:
+            raise ConflictDetected("The operation uses a stale resource key epoch.")
         device = connection.execute(
             select(devices.c.last_sync_sequence)
             .where(and_(devices.c.id == actor.device_id, devices.c.state == "active"))
@@ -249,6 +271,7 @@ def download_operations(
     database: TransactionalDatabase = request.app.state.database
     now = datetime.now(UTC)
     operations: list[RelayOperation] = []
+    next_cursor = cursor
     with database.transaction() as connection:
         delete_expired_operations(connection, now)
         require_active_member(connection, family_id, actor.adult_id)
@@ -265,13 +288,17 @@ def download_operations(
             .limit(limit)
         ).mappings()
         for row in rows:
-            require_resource_permission(
-                connection,
-                family_id=family_id,
-                resource_id=row["resource_id"],
-                adult_id=actor.adult_id,
-                required="read",
-            )
+            next_cursor = row["server_sequence"]
+            try:
+                require_resource_permission(
+                    connection,
+                    family_id=family_id,
+                    resource_id=row["resource_id"],
+                    adult_id=actor.adult_id,
+                    required="read",
+                )
+            except (PermissionDenied, TenantAccessDenied):
+                continue
             operations.append(
                 RelayOperation(
                     server_sequence=row["server_sequence"],
@@ -290,7 +317,7 @@ def download_operations(
             )
     return RelayPage(
         operations=operations,
-        next_cursor=operations[-1].server_sequence if operations else cursor,
+        next_cursor=next_cursor,
     )
 
 
@@ -301,10 +328,13 @@ def create_key_grant(
     database: TransactionalDatabase = request.app.state.database
     wrapped_key = _decode(payload.wrapped_key)
     signature = _decode(payload.signature, 64)
-    if len(wrapped_key) < 48 or len(wrapped_key) > 512:
+    if len(wrapped_key) != 80:
         raise InvalidRequest
     grant_id = uuid4()
     with database.transaction() as connection:
+        connection.execute(
+            select(resources.c.id).where(resources.c.id == payload.resource_id).with_for_update()
+        )
         epoch, _ = require_resource_permission(
             connection,
             family_id=payload.family_id,
@@ -358,6 +388,61 @@ def create_key_grant(
             )
         except (InvalidSignature, ValueError) as error:
             raise PermissionDenied from error
+        existing = (
+            connection.execute(
+                select(key_grants).where(
+                    and_(
+                        key_grants.c.resource_id == payload.resource_id,
+                        key_grants.c.key_epoch == payload.key_epoch,
+                        key_grants.c.recipient_device_id == payload.recipient_device_id,
+                    )
+                )
+            )
+            .mappings()
+            .one_or_none()
+        )
+        if existing is not None:
+            if (
+                existing["granter_device_id"] != actor.device_id
+                or existing["wrapped_key"] != wrapped_key
+                or existing["signature"] != signature
+            ):
+                raise ConflictDetected("A grant for this recipient and epoch already exists.")
+            return KeyGrantResponse(
+                id=existing["id"],
+                resource_id=payload.resource_id,
+                key_epoch=payload.key_epoch,
+                recipient_device_id=payload.recipient_device_id,
+                granter_device_id=actor.device_id,
+                wrapped_key=payload.wrapped_key,
+                signature=payload.signature,
+            )
+        first_granter = connection.execute(
+            select(key_grants.c.granter_device_id)
+            .where(
+                and_(
+                    key_grants.c.resource_id == payload.resource_id,
+                    key_grants.c.key_epoch == payload.key_epoch,
+                )
+            )
+            .order_by(key_grants.c.created_at, key_grants.c.id)
+            .limit(1)
+        ).scalar_one_or_none()
+        if first_granter is not None and first_granter != actor.device_id:
+            received = connection.execute(
+                select(key_grants.c.id)
+                .where(
+                    and_(
+                        key_grants.c.resource_id == payload.resource_id,
+                        key_grants.c.key_epoch == payload.key_epoch,
+                        key_grants.c.recipient_device_id == actor.device_id,
+                        key_grants.c.granter_device_id == first_granter,
+                    )
+                )
+                .limit(1)
+            ).first()
+            if received is None:
+                raise ConflictDetected("Receive the established epoch key before granting it.")
         connection.execute(
             key_grants.insert().values(
                 id=grant_id,
@@ -386,17 +471,127 @@ def list_key_grants(request: Request, actor: Authenticated) -> list[KeyGrantResp
     database: TransactionalDatabase = request.app.state.database
     with database.connect() as connection:
         rows = connection.execute(
-            select(key_grants).where(key_grants.c.recipient_device_id == actor.device_id)
+            select(key_grants, resources.c.family_id, resources.c.key_epoch.label("current_epoch"))
+            .join(resources, resources.c.id == key_grants.c.resource_id)
+            .where(key_grants.c.recipient_device_id == actor.device_id)
         ).mappings()
-        return [
-            KeyGrantResponse(
-                id=row["id"],
-                resource_id=row["resource_id"],
-                key_epoch=row["key_epoch"],
-                recipient_device_id=row["recipient_device_id"],
-                granter_device_id=row["granter_device_id"],
-                wrapped_key=_encode(row["wrapped_key"]),
-                signature=_encode(row["signature"]),
+        result = []
+        for row in rows:
+            if row["key_epoch"] != row["current_epoch"]:
+                continue
+            granter = connection.execute(
+                select(devices.c.adult_id).where(
+                    and_(
+                        devices.c.id == row["granter_device_id"],
+                        devices.c.state == "active",
+                    )
+                )
+            ).scalar_one_or_none()
+            if granter is None:
+                continue
+            try:
+                require_resource_permission(
+                    connection,
+                    family_id=row["family_id"],
+                    resource_id=row["resource_id"],
+                    adult_id=actor.adult_id,
+                    required="read",
+                )
+                require_resource_permission(
+                    connection,
+                    family_id=row["family_id"],
+                    resource_id=row["resource_id"],
+                    adult_id=granter,
+                    required="admin",
+                )
+            except (PermissionDenied, TenantAccessDenied):
+                continue
+            result.append(
+                KeyGrantResponse(
+                    id=row["id"],
+                    resource_id=row["resource_id"],
+                    key_epoch=row["key_epoch"],
+                    recipient_device_id=row["recipient_device_id"],
+                    granter_device_id=row["granter_device_id"],
+                    wrapped_key=_encode(row["wrapped_key"]),
+                    signature=_encode(row["signature"]),
+                )
             )
-            for row in rows
-        ]
+        return result
+
+
+class ResourceDevice(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    device_id: UUID
+    encryption_public_key: str
+    signing_public_key: str
+    permission: str
+    has_current_grant: bool
+
+
+@router.get(
+    "/families/{family_id}/resources/{resource_id}/devices", response_model=list[ResourceDevice]
+)
+def list_resource_devices(
+    family_id: UUID, resource_id: UUID, request: Request, actor: Authenticated
+) -> list[ResourceDevice]:
+    database: TransactionalDatabase = request.app.state.database
+    with database.connect() as connection:
+        epoch, _ = require_resource_permission(
+            connection,
+            family_id=family_id,
+            resource_id=resource_id,
+            adult_id=actor.adult_id,
+            required="read",
+        )
+        rows = connection.execute(
+            select(devices, memberships.c.role)
+            .join(memberships, memberships.c.adult_id == devices.c.adult_id)
+            .where(
+                and_(
+                    memberships.c.family_id == family_id,
+                    memberships.c.status == "active",
+                    devices.c.state == "active",
+                )
+            )
+        ).mappings()
+        result = []
+        for row in rows:
+            permission = (
+                "admin"
+                if row["role"] == "owner"
+                else connection.execute(
+                    select(permissions.c.permission).where(
+                        and_(
+                            permissions.c.resource_id == resource_id,
+                            permissions.c.adult_id == row["adult_id"],
+                        )
+                    )
+                ).scalar_one_or_none()
+            )
+            if permission is None:
+                continue
+            has_grant = (
+                connection.execute(
+                    select(key_grants.c.id)
+                    .where(
+                        and_(
+                            key_grants.c.resource_id == resource_id,
+                            key_grants.c.key_epoch == epoch,
+                            key_grants.c.recipient_device_id == row["id"],
+                        )
+                    )
+                    .limit(1)
+                ).first()
+                is not None
+            )
+            result.append(
+                ResourceDevice(
+                    device_id=row["id"],
+                    encryption_public_key=_encode(row["encryption_public_key"]),
+                    signing_public_key=_encode(row["signing_public_key"]),
+                    permission=permission,
+                    has_current_grant=has_grant,
+                )
+            )
+        return result

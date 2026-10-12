@@ -2,7 +2,7 @@
 
 - Current stage: Stage 3 — AI proposals, email intake, push notifications, and backup/recovery
 - Updated: 2026-10-12
-- Stage state: remediation in progress; BUG-001/002 remediation delivered; provider/device validation and BUG-003/004/005 outstanding
+- Stage state: remediation in progress; BUG-001/002/003 remediation delivered; provider/device validation and BUG-004/005/010/011 outstanding
 - Repository version: `0.1.0+1`; no public release tag
 
 ## Current result
@@ -58,6 +58,10 @@ remain acceptance gaps. No Stage 4 work is authorized.
   staged integrity/family/schema validation, and interruption-safe protected-key
   activation. Migration `0005` stores one bounded opaque snapshot per family.
   Old identity credentials and sync keys are not restored.
+- BUG-003: atomic offline child creation, stable child resources, explicit
+  read-only sharing consent, signed sealed-key delivery, epoch convergence,
+  validated profile sync and receiving-calendar labels/colours. Prepared native
+  child-sync scenarios pass on iOS and Android; SQLCipher schema is now v6.
 - Repository-wide SemVer/build numbering policy, drift checker, bump command,
   tests, CI tag validation, and release documentation under ADR-030.
 - Stable functional-scenario IDs, reusable synthetic Flutter fixtures, direct
@@ -68,16 +72,17 @@ remain acceptance gaps. No Stage 4 work is authorized.
 
 | Check | Result |
 | --- | --- |
-| Backend Pytest unit + PostgreSQL integration | 22 passed; 88.18% branch coverage |
+| Backend Pytest unit + PostgreSQL integration | 23 passed; 89.95% statement/branch coverage |
 | Alembic upgrade to head | Passed; schema version 5 |
 | Ruff / strict Mypy / Bandit | Passed |
 | OpenAPI contract | Passed |
-| Docker current-source smoke | Cached runtime + current source/migrations healthy; clean rebuild blocked by Docker Hub timeout |
+| Docker current-source smoke | Passed using cached runtime + current source/migrations; clean rebuild not rerun after prior Docker Hub timeout |
 | Flutter format / analyze | Passed; no issues |
-| Flutter unit/widget tests | 96 passed on 2026-10-12 |
+| Flutter unit/widget tests | 113 passed on 2026-10-12 |
+| Native child sync | `CHILD-NATIVE-001` passed on Android API 35 and iPhone 18 Pro / iOS 27.0; controlled relay and two logical guardian devices |
 | Prepared mobile emulator scenario | `CAL-MOB-001` passed on Android API 35 and iPhone 18 Pro / iOS 27.0 on 2026-10-12 |
 | Cross-platform encrypted backup | `BACKUP-XPLAT-001` passed: iPhone 18 Pro / iOS 27.0 simulator exports real `.srtbk`; Android 15 / API 35 emulator restores identical ciphertext; physical devices, auth/relay and protected storage excluded |
-| Android debug / unsigned iOS debug builds | Passed; APK and Runner.app produced |
+| Android debug / unsigned iOS simulator debug builds | Passed; APK and Runner.app produced |
 | Pip-audit runtime dependency scan | Passed; no known vulnerabilities |
 | Version checker/tests | Passed; 3 tests |
 
@@ -87,15 +92,19 @@ that addition; the existing -001 result above refers to its prior executed revis
 
 Pinned Gitleaks Docker scan passed with no leaks. OpenAPI was regenerated from
 the app and its contract test passes. Native build results are recorded in the
-BUG-002 verification report; provider/device results are not inferred.
+BUG-002 and BUG-003 verification reports; provider/device results are not inferred.
 
 ## Remaining Stage 2 and Stage 3 work
 
-- Child profile creation is still local-only. The server has a child-resource
-  endpoint, but mobile does not provision that resource, encrypt the profile, or
-  distribute its key. Cross-device child labels therefore remain incomplete.
-- Guardian invitation/approval and resource-key delivery exist in backend and
-  protocol tests but are not connected to a complete shipping mobile journey.
+- BUG-010 (High): passkey device replacement revokes the old phone but does not
+  advance resource-key epochs. Implement/test the accepted ADR-020 transition
+  before release; old keys must not decrypt future content.
+- BUG-011 (Medium): PostgreSQL JSONB can reorder multi-author logical vectors,
+  causing insertion-ordered AAD authentication failure. Real-backend concurrent
+  calendar editing needs canonical/compatible encoding and a round-trip test.
+- BUG-004: new-guardian invitation/approval and subsequent permission management
+  still lack a complete shipping mobile journey. Child/calendar key delivery is
+  now connected for existing authorized guardians; onboarding remains separate.
 - Run the shipping backup journey on physical replacement phones, including
   platform protected storage and interruption/retry. Automated SQLCipher/API/UI
   coverage is complete for BUG-002; fresh future sync grants remain BUG-004.

@@ -48,6 +48,9 @@ abstract interface class EncryptedRelay {
   Future<RelayPage> download(String familyId, int cursor);
 }
 
+/// The relay rejected a conflicting/stale envelope; no content was accepted.
+class RelayConflict implements Exception {}
+
 class SyncReport {
   const SyncReport({
     required this.uploaded,
@@ -96,65 +99,95 @@ class SyncEngine {
                 [familyId],
               ).first['next_device_sequence']
               as int;
-      final keyEpoch = _latestKeyEpoch(row['resource_id'] as String);
-      final metadata = <String, Object>{
-        'protocol': 1,
-        'familyId': familyId,
-        'resourceId': row['resource_id'] as String,
-        'keyEpoch': keyEpoch,
-        'operationId': row['operation_id'] as String,
-        'authorDeviceId': deviceId,
-        'deviceSequence': sequence,
-        'logicalVersion': Map<String, int>.from(
-          jsonDecode(row['vector_json'] as String) as Map,
-        ),
-      };
-      final key = _key(row['resource_id'] as String, keyEpoch);
-      try {
-        final encrypted = crypto.encrypt(
-          plaintext: Uint8List.fromList(
-            utf8.encode(
-              jsonEncode({
-                'kind': row['kind'] as String,
-                'payload': jsonDecode(row['payload_json'] as String),
-              }),
+      late final RelayEnvelope envelope;
+      if (row['envelope_json'] != null) {
+        envelope = _restoreEnvelope(row['envelope_json'] as String);
+        if (envelope.authorDeviceId != deviceId ||
+            envelope.deviceSequence != sequence) {
+          throw StateError(
+            'Pending operation belongs to a different device session.',
+          );
+        }
+      } else {
+        final keyEpoch = _latestKeyEpoch(row['resource_id'] as String);
+        final metadata = <String, Object>{
+          'protocol': 1,
+          'familyId': familyId,
+          'resourceId': row['resource_id'] as String,
+          'keyEpoch': keyEpoch,
+          'operationId': row['operation_id'] as String,
+          'authorDeviceId': deviceId,
+          'deviceSequence': sequence,
+          'logicalVersion': Map<String, int>.from(
+            jsonDecode(row['vector_json'] as String) as Map,
+          ),
+        };
+        final key = _key(row['resource_id'] as String, keyEpoch);
+        try {
+          final encrypted = crypto.encrypt(
+            plaintext: Uint8List.fromList(
+              utf8.encode(
+                jsonEncode({
+                  'kind': row['kind'] as String,
+                  'payload': jsonDecode(row['payload_json'] as String),
+                }),
+              ),
             ),
-          ),
-          key: key,
-          metadata: metadata,
-        );
-        final envelope = RelayEnvelope(
-          serverSequence: 0,
-          operationId: row['operation_id'] as String,
-          familyId: familyId,
-          resourceId: row['resource_id'] as String,
-          authorDeviceId: deviceId,
-          deviceSequence: sequence,
-          keyEpoch: keyEpoch,
-          logicalVersion: Map<String, int>.from(
-            metadata['logicalVersion']! as Map,
-          ),
-          nonce: encrypted.nonce,
-          ciphertext: encrypted.ciphertext,
-          contentDigest: Uint8List.fromList(
-            sha256.convert([...encrypted.nonce, ...encrypted.ciphertext]).bytes,
-          ),
-        );
-        await relay.upload(envelope);
-        database.transaction(() {
-          database.raw.execute(
-            "UPDATE outbox SET state = 'uploaded' WHERE operation_id = ?",
-            [row['operation_id']],
+            key: key,
+            metadata: metadata,
+          );
+          envelope = RelayEnvelope(
+            serverSequence: 0,
+            operationId: row['operation_id'] as String,
+            familyId: familyId,
+            resourceId: row['resource_id'] as String,
+            authorDeviceId: deviceId,
+            deviceSequence: sequence,
+            keyEpoch: keyEpoch,
+            logicalVersion: Map<String, int>.from(
+              metadata['logicalVersion']! as Map,
+            ),
+            nonce: encrypted.nonce,
+            ciphertext: encrypted.ciphertext,
+            contentDigest: Uint8List.fromList(
+              sha256.convert([
+                ...encrypted.nonce,
+                ...encrypted.ciphertext,
+              ]).bytes,
+            ),
           );
           database.raw.execute(
-            'UPDATE sync_state SET next_device_sequence = ? WHERE family_id = ?',
-            [sequence + 1, familyId],
+            'UPDATE outbox SET envelope_json = ? WHERE operation_id = ?',
+            [_storeEnvelope(envelope), envelope.operationId],
           );
-        });
-        uploaded++;
-      } finally {
-        key.dispose();
+        } finally {
+          key.dispose();
+        }
       }
+      try {
+        await relay.upload(envelope);
+      } on RelayConflict {
+        if (envelope.keyEpoch >= _latestKeyEpoch(envelope.resourceId)) rethrow;
+        // An exact old-epoch retry is acknowledged if already accepted. A
+        // rejected stale envelope was not accepted: keep its operation ID and
+        // sequence, then authenticate the same local payload with the new key.
+        database.raw.execute(
+          'UPDATE outbox SET envelope_json = NULL WHERE operation_id = ?',
+          [envelope.operationId],
+        );
+        continue;
+      }
+      database.transaction(() {
+        database.raw.execute(
+          "UPDATE outbox SET state = 'uploaded' WHERE operation_id = ?",
+          [row['operation_id']],
+        );
+        database.raw.execute(
+          'UPDATE sync_state SET next_device_sequence = ? WHERE family_id = ?',
+          [sequence + 1, familyId],
+        );
+      });
+      uploaded++;
     }
 
     final state = database.raw.select(
@@ -165,6 +198,9 @@ class SyncEngine {
     var applied = 0;
     var conflicts = 0;
     for (final envelope in page.operations) {
+      if (envelope.familyId != familyId) {
+        throw StateError('Invalid relay family scope.');
+      }
       if (envelope.authorDeviceId == deviceId) continue;
       _verifyDigest(envelope);
       final metadata = <String, Object>{
@@ -192,10 +228,50 @@ class SyncEngine {
         final decoded = Map<String, Object?>.from(
           jsonDecode(utf8.decode(plaintext)) as Map,
         );
-        if (decoded['kind'] == 'family_created') continue;
+        if (decoded['kind'] == 'child_created') {
+          final resource = database.raw.select(
+            "SELECT 1 FROM resource_catalog WHERE resource_id = ? AND family_id = ? AND kind = 'child_profile'",
+            [envelope.resourceId, familyId],
+          );
+          if (resource.isEmpty) {
+            throw StateError('Invalid child resource kind.');
+          }
+          final result = repository.applyRemoteChild(
+            operationId: envelope.operationId,
+            familyId: familyId,
+            resourceId: envelope.resourceId,
+            keyEpoch: envelope.keyEpoch,
+            payload: Map<String, Object?>.from(decoded['payload']! as Map),
+          );
+          if (result == RemoteApplyResult.applied) applied++;
+          continue;
+        }
+        final calendar = repository.load();
+        if (calendar == null ||
+            calendar.householdId != familyId ||
+            calendar.calendarResourceId != envelope.resourceId) {
+          throw StateError('Invalid calendar resource scope.');
+        }
+        if (decoded['kind'] == 'family_created') {
+          if ((decoded['payload']! as Map)['householdId'] != familyId) {
+            throw StateError('Invalid family payload scope.');
+          }
+          continue;
+        }
+        if (!{
+          'event_upserted',
+          'event_deleted',
+          'conflict_resolved',
+        }.contains(decoded['kind'])) {
+          throw StateError('Unknown sync operation kind.');
+        }
         final event = CalendarEvent.fromJson(
           Map<String, Object?>.from(decoded['payload']! as Map),
         );
+        if (event.householdId != familyId ||
+            event.calendarResourceId != envelope.resourceId) {
+          throw StateError('Invalid event payload scope.');
+        }
         final result = repository.applyRemote(
           operationId: envelope.operationId,
           event: event,
@@ -218,6 +294,36 @@ class SyncEngine {
     );
   }
 
+  String _storeEnvelope(RelayEnvelope e) => jsonEncode({
+    'operationId': e.operationId,
+    'familyId': e.familyId,
+    'resourceId': e.resourceId,
+    'authorDeviceId': e.authorDeviceId,
+    'deviceSequence': e.deviceSequence,
+    'keyEpoch': e.keyEpoch,
+    'logicalVersion': e.logicalVersion,
+    'nonce': base64UrlEncode(e.nonce),
+    'ciphertext': base64UrlEncode(e.ciphertext),
+    'contentDigest': base64UrlEncode(e.contentDigest),
+  });
+
+  RelayEnvelope _restoreEnvelope(String value) {
+    final e = jsonDecode(value) as Map<String, dynamic>;
+    return RelayEnvelope(
+      serverSequence: 0,
+      operationId: e['operationId'] as String,
+      familyId: e['familyId'] as String,
+      resourceId: e['resourceId'] as String,
+      authorDeviceId: e['authorDeviceId'] as String,
+      deviceSequence: e['deviceSequence'] as int,
+      keyEpoch: e['keyEpoch'] as int,
+      logicalVersion: Map<String, int>.from(e['logicalVersion'] as Map),
+      nonce: base64Url.decode(e['nonce'] as String),
+      ciphertext: base64Url.decode(e['ciphertext'] as String),
+      contentDigest: base64Url.decode(e['contentDigest'] as String),
+    );
+  }
+
   int _latestKeyEpoch(String resourceId) {
     final rows = database.raw.select(
       'SELECT max(key_epoch) AS epoch FROM resource_keys WHERE resource_id = ?',
@@ -225,6 +331,13 @@ class SyncEngine {
     );
     final epoch = rows.first['epoch'] as int?;
     if (epoch == null) throw StateError('No resource key is available.');
+    final catalog = database.raw.select(
+      'SELECT key_epoch FROM resource_catalog WHERE resource_id = ?',
+      [resourceId],
+    );
+    if (catalog.isNotEmpty && catalog.single['key_epoch'] != epoch) {
+      throw StateError('The current resource key is unavailable.');
+    }
     return epoch;
   }
 

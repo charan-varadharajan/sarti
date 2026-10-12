@@ -303,27 +303,43 @@ class CalendarScreen extends StatelessWidget {
   Future<void> _addChild(BuildContext context) async {
     final name = TextEditingController();
     final cloudAlias = TextEditingController();
+    var shareProfile = false;
     final accepted = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Add a child'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: name,
-              autofocus: true,
-              decoration: const InputDecoration(labelText: 'Name'),
-            ),
-            TextField(
-              controller: cloudAlias,
-              decoration: const InputDecoration(
-                labelText: 'Private AI alias (optional)',
-                hintText: 'Example: happy-frog-4821',
-                helperText: 'Stored only in encrypted local data',
+        content: StatefulBuilder(
+          builder: (context, setState) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: name,
+                autofocus: true,
+                decoration: const InputDecoration(labelText: 'Name'),
               ),
-            ),
-          ],
+              TextField(
+                controller: cloudAlias,
+                decoration: const InputDecoration(
+                  labelText: 'Private AI alias (optional)',
+                  hintText: 'Example: happy-frog-4821',
+                  helperText: 'Stored and synchronized encrypted',
+                ),
+              ),
+              CheckboxListTile(
+                key: const Key('share-child-profile'),
+                contentPadding: EdgeInsets.zero,
+                title: const Text(
+                  'Share profile with current calendar guardians',
+                ),
+                subtitle: const Text(
+                  'Grants read access when this child first syncs.',
+                ),
+                value: shareProfile,
+                onChanged: (value) =>
+                    setState(() => shareProfile = value ?? false),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -339,7 +355,12 @@ class CalendarScreen extends StatelessWidget {
     );
     if (accepted == true && name.text.trim().isNotEmpty) {
       try {
-        controller.addChild(name.text, 0xFF8E6CEF, cloudAlias: cloudAlias.text);
+        controller.addChild(
+          name.text,
+          0xFF8E6CEF,
+          cloudAlias: cloudAlias.text,
+          shareWithCalendarGuardians: shareProfile,
+        );
       } on ArgumentError catch (error) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

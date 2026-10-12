@@ -1,7 +1,7 @@
 # Offline synchronization
 
 ADR-021 defines the implemented Stage 2 protocol. The SQLCipher database is the
-authoritative store. An event mutation and its outbox row commit together; the UI
+authoritative store. An event or child-profile mutation and its outbox row commit together; the UI
 does not wait for a network response.
 
 ## Envelope and ordering
@@ -13,9 +13,10 @@ authenticates protocol version and all routing/version fields as additional data
 The server validates the active session, membership, resource permission, key
 epoch, size, digest, operation ID, and exact next device sequence.
 
-An exact retry of an accepted operation ID, digest, author, and sequence receives
+The encrypted envelope is persisted inside SQLCipher before upload. An exact
+retry of every accepted envelope field, digest, author, and sequence receives
 the existing receipt. Reuse with different data, gaps, rollbacks, malformed
-fields, stale epochs, and unauthorized resources fail closed. Downloads use a
+fields, new operations with stale epochs, and unauthorized resources fail closed. Downloads use a
 monotonic server cursor and never rely on wall-clock ordering.
 
 ## Conflicts and retention
@@ -37,6 +38,38 @@ is unresolved and is not represented as implemented.
 Failed uploads remain pending. Accepted uploads are marked only after the receipt.
 Duplicate downloads are ignored by operation UUID. Digest failure, missing key
 epoch, or authentication-tag failure stops processing without applying content.
-The current Stage 2 engine provides the protocol and simulation coverage; wiring
-the relay to a real device/network and background scheduling remains a real-device
-integration gap.
+The authenticated bootstrap wires family provisioning, resource-key exchange,
+ordered encrypted uploads, foreground catch-up, and push hints. Provider and
+physical-device networking/background scheduling remain validation gaps.
+
+## Child profiles (BUG-003)
+
+`child_created` payloads contain exactly `id`, `householdId`, `name`, `colorArgb`
+and `cloudAlias`, inside child-resource ciphertext. A stable child UUID is its
+resource UUID. The receiver checks the authenticated family, resource kind,
+payload identity, field types/bounds and alias rules before committing the
+profile and operation ID together. Identical profiles converge; a conflicting
+creation with the same ID fails closed, preserving the existing row and cursor.
+Child-profile editing is not implemented by this creation operation.
+
+Calendar assignments contain opaque child IDs. If the separate profile is not
+readable or has not arrived, a hidden nameless placeholder preserves the foreign
+key; the calendar displays a generic colour without inferring a child's name.
+Later authenticated child delivery replaces the placeholder atomically. Child
+content is never copied into calendar-resource plaintext or server metadata.
+
+The resource directory and grant checks are detailed in
+[child synchronization](CHILD-PROFILE-SYNC.md). Filtered pages may be empty with
+an advanced cursor. Subsequent sync passes continue paging; newly granted keys
+reset the local cursor to replay retained operations. Seven-day relay retention
+still applies: grants cannot recreate expired profiles; the approved encrypted
+snapshot/recovery path is required beyond retention.
+
+If a key rotates while an upload is pending, an exact previously accepted
+old-epoch envelope can still obtain its receipt under current write authorization;
+this stores no new ciphertext. An unaccepted stale envelope is rejected. With
+the new key available, the client then re-authenticates its unchanged local
+payload under the current epoch, retaining operation ID and device sequence.
+`CHILD-SYNC-006` tests both interruption cases. Missing historical keys still fail
+closed; a newly enrolled/recovered device needs a suitable encrypted snapshot
+rather than silently skipping unknown-epoch operations.

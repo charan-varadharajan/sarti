@@ -43,3 +43,13 @@ erDiagram
         timestamp updated_at
     }
 ```
+
+BUG-003 requires no PostgreSQL migration. The existing unique constraint
+`uq_key_grant_recipient_epoch` permits exactly one sealed key per resource,
+epoch and recipient. The API now returns exact retries and rejects conflicting
+grants with 409, rather than violating this constraint. Resource-row locking
+serializes epoch initialization and concurrent grant publication. Child creation
+accepts a stable client UUID; names, colours and aliases remain absent from the
+schema. Optional explicit owner consent inserts read permissions for active
+calendar guardians only at first child provisioning. Retrying creation does not
+expand those permissions to later guardians.

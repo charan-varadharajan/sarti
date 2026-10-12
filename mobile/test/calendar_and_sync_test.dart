@@ -77,7 +77,7 @@ void main() {
     old.close();
 
     final migrated = SartiDatabase.open(path, key);
-    expect(migrated.raw.userVersion, 5);
+    expect(migrated.raw.userVersion, SartiDatabase.schemaVersion);
     expect(
       migrated.raw.select(
         "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'app_preferences'",

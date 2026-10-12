@@ -110,3 +110,14 @@ See [execution instructions/results](BACKUP-PORTABILITY.md).
 iOS restorer). Select `--direction android-to-ios`. It is currently added but
 not executed at the user's request; the shared assertions do not establish
 reverse-direction compatibility until that scenario runs.
+
+BUG-003 adds prepared owner/guardian devices with separate SQLCipher databases
+and real libsodium keys. `CHILD-SYNC-*`, `CHILD-SEC-*`, `CHILD-MIG-001` and
+`CHILD-MOB-*` cover encrypted child creation, grants, offline/retry/rotation,
+resource separation, scope/tamper/revocation and receiving UI labels/colours.
+A loopback HTTP contract test checks metadata-only resource requests and signed
+sealed-key transport. Real PostgreSQL tests exercise explicit sharing consent,
+isolation, filtered paging, grant uniqueness, current authorization and epoch
+initialization. `CHILD-NATIVE-001` repeats the prepared UI journey on each native
+platform with two logical devices and a controlled relay; it does not establish
+physical cross-phone transport. See `BUG-003-VERIFICATION.md` for exact results.

@@ -32,6 +32,7 @@ compatibility.
 | Fixture | Starting state | Intended use |
 | --- | --- | --- |
 | `blankDevice` | Fresh encrypted database; no family | Onboarding and first-family creation only |
+| `authorizedChildSyncPair` | Owner + explicitly authorized guardian, separate SQLCipher DBs/device keypairs, prepared family/calendar, controlled relay | Child profile synchronization and grant/security cases; `child_sync_fixture.dart` |
 | `calendarReady` | Authorized logical device; Test family; Alex guardian; Mia and Jithu with private cloud aliases; empty calendar | Calendar, proposal, assignment, and reminder scenarios |
 
 Fixtures must stay small and composable. Add a fixture only when multiple
@@ -57,6 +58,21 @@ scenario's setup helper.
 | `BACKUP-XPLAT-001` | iOS creates a real `.srtbk`; Android decrypts/restores the identical file; BUG-002 | Prepared synthetic recurring event/child/pickup/reminders → backup screen on iOS; host transfers ciphertext into Android app sandbox → restore screen; temporary databases and transferred files removed | `mobile/integration_test/backup_portability_test.dart`, `scripts/test_backup_ios_android.py`; native SQLCipher/libsodium on both OSs; passkeys/protected storage/production API excluded |
 | `BACKUP-XPLAT-002` | Android creates a real `.srtbk`; iOS decrypts/restores the identical file; BUG-002 | Same prepared fixture and direct backup/restore screens as -001, reversed source/destination; native app sandbox transfer and teardown | `mobile/integration_test/backup_portability_test.dart`, `scripts/test_backup_ios_android.py --direction android-to-ios`; added but deliberately NOT RUN at user request |
 | `BACKUP-API-001` | Full snapshot access respects owner, tenant, device and revision boundaries | Isolated PostgreSQL, synthetic passkey sessions/family → binary API | `backend/tests/integration/test_backup_api.py`; includes deletion purge |
+
+| `CHILD-MOB-001` | Add child offline with explicit sharing intent | Prepared calendar → add-child dialog; dispose database/controller | `mobile/test/child_profile_sync_test.dart` |
+| `CHILD-MOB-002` | Receiving calendar renders decrypted child label/colour | Prepared owner/guardian pair → receiving calendar | `mobile/test/child_profile_sync_test.dart` |
+| `CHILD-NATIVE-001` | Native child creation, encrypted grant/profile delivery and receiving UI | Prepared two logical devices → add-child dialog, then receiving calendar; close databases/dispose keys | `mobile/integration_test/child_profile_sync_test.dart`; native SQLCipher/libsodium, controlled relay; physical authentication/network excluded |
+| `CHILD-SYNC-001` | Offline creation, event-before-profile delivery, de-duplication | `authorizedChildSyncPair` → sync engines | `mobile/test/child_profile_sync_test.dart` |
+| `CHILD-SYNC-002` | Lost receipt retries identical persisted envelope with recreated engine | Prepared outbox → failing relay → reconstructed engine | Same mobile test file |
+| `CHILD-SYNC-003` | Legacy profile queues once without inventing sharing consent | Prepared legacy child + explicit fixture permission → provisioning | Same mobile test file |
+| `CHILD-SYNC-004` | Concurrent rotation converges; revoked device receives no future key | Prepared authorized pair → advanced resource epochs | Same mobile test file; API serialization contract |
+| `CHILD-SYNC-006` | Pending upload survives rotation, whether its receipt was lost or it never reached the server | Prepared profile/outbox → failed relay → new epoch → retry | Same mobile test file; exact-old-receipt versus new-stale-write API checks |
+| `CHILD-SYNC-005` | New key replays profile skipped by earlier cursor | Prepared retained profile + advanced cursor → grant/import | Same mobile test file |
+| `CHILD-SEC-001/002/003/004/005` | Grant signature/recipient/epoch, wrong device, revocation, tamper/scope, resource-kind separation, canonical wire vector | Prepared pair → key importer / authenticated decrypt / repository | Same mobile test file; no mocks for cryptography |
+| `CHILD-UNIT-001` | Invalid local child input leaves no profile/outbox row | Prepared family → repository | Same mobile test file |
+| `CHILD-MIG-001` | v5→v6 encrypted file retains profile, event assignment and pending writes; wrong key rejected | Temporary legacy encrypted fixture → open/migrate → delete | Same mobile test file |
+| `CHILD-API-001` | Resource/key transport contains only authorized metadata and sealed keys | Loopback HTTP fixture → API client; close server | `mobile/test/child_sync_api_client_test.dart` |
+| `CHILD-API-002` | Stable identity/consent, isolation, revocation, grant uniqueness and filtered pagination | Isolated PostgreSQL + prepared passkey boundary fixture → resource/grant/relay endpoints | `backend/tests/integration/test_child_sync_api.py`; real DB/authz/signature verifier, WebAuthn ceremony stub |
 
 Backend authorization, tenant isolation, API abuse cases, migrations, email
 routing, and relay retention remain catalogued as mandatory scenarios in

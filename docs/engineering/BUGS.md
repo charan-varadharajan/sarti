@@ -23,23 +23,44 @@ in-repository record while Sarti has no external tracker.
 
 ## Open defects
 
-### BUG-003 — Child profile creation is local-only; cross-device child labels incomplete
+### BUG-010 — Device replacement revokes access without advancing resource-key epochs
+- Severity: High
+- Component: `backend/src/sarti_backend/api/auth.py`, device/resource lifecycle
+- Discovered: 2026-10-12 during BUG-003 security review
+- Blocking: Release; ADR-020 replacement-device protection for future content
+- Summary: Successful passkey authentication revokes existing devices/sessions
+  and issues a new device ID, but does not increment affected resource epochs.
+  A replaced phone retains old keys; later ciphertext using unchanged epochs
+  remains decryptable if obtained outside the authenticated relay.
+- Evidence: `authentication_complete` updates devices/sessions and creates the
+  new device without updating resources. Existing replacement API tests prove
+  old-session rejection, not cryptographic future-content separation.
+- Workaround: No shipped cryptographic workaround. Keep device replacement out
+  of release acceptance until rekeying is verified. Revocation does not erase
+  earlier copies.
+- Required action: Implement the accepted ADR-020 replacement transition with
+  epoch advancement, remaining-device rekey/grants, interrupted-transition and
+  stale-key tests. Preserve single-active-phone rules and recovery. This is a
+  separate defect, not addressed by the BUG-003 child creation fix.
+
+### BUG-011 — Multi-device version-vector order changes authenticated metadata
 - Severity: Medium
-- Component: `mobile/lib/src/features/calendar/`, backend `api/households.py`
-- Discovered: 2026-10-11
-- Blocking: Stage 2 multi-device acceptance and therefore final Stage 3 acceptance
-- Summary: The server has a child-resource endpoint, but mobile does not
-  provision that resource, encrypt the child profile, or distribute its key.
-  Child labels therefore do not appear on a second authorized device.
-- Root cause: Mobile-side resource provisioning and key distribution for child
-  profiles was not implemented in Stage 2/3.
-- Workaround: Single-device use is unaffected.
-- Latest information: Commit `487c163` accidentally bundled untested
-  client-selected child-resource groundwork with documentation. The follow-up
-  administrative audit removed that partial API change so BUG-003 can be fixed
-  as one coherent, contract-tested implementation. The defect remains open.
-- Required action: Complete and verify the missing Stage 2 child resource sync
-  and key lifecycle before Stage 3 can be accepted.
+- Component: `core/crypto/resource_crypto.dart`, sync AAD encoding, PostgreSQL relay
+- Discovered: 2026-10-12 during BUG-003 security review
+- Blocking: Real-backend concurrent calendar editing acceptance
+- Summary: AAD uses insertion-ordered JSON, including the logical version map.
+  PostgreSQL JSONB reorders that map. A legitimately relayed operation with
+  multiple author entries can therefore fail AEAD authentication on download.
+- Evidence: A synthetic real-PostgreSQL JSONB round trip changed vector order;
+  PyNaCl/libsodium rejected ciphertext when AAD was rebuilt with the returned
+  map. The Dart encryption/decryption paths use the same insertion-order rule.
+  Existing memory-relay conflict tests preserve map order and miss this boundary.
+- Workaround: Single-writer calendar operation vectors avoid this ordering case;
+  do not treat concurrent editing as accepted against the real backend.
+- Required action: Specify canonical AAD and legacy/version compatibility,
+  obtain any necessary protocol/ADR approval, add a real HTTP/PostgreSQL mobile
+  ciphertext round-trip regression, and preserve conflict alternatives. This is
+  separate from immutable single-author child creation and is not fixed here.
 
 ### BUG-004 — Guardian invitation/approval not connected to shipping mobile journey
 - Severity: Medium
@@ -74,6 +95,26 @@ in-repository record while Sarti has no external tracker.
 ---
 
 ## Resolved defects
+
+### BUG-003 — Child profile creation was local-only; cross-device labels incomplete
+- Severity: Medium
+- Component: calendar repository/UI, authenticated sync/key exchange, resource/grant API
+- Discovered: 2026-10-11
+- Fixed: 2026-10-12
+- Fix version: Unreleased
+- Disposition: Stable per-child resources, atomic encrypted local outbox,
+  explicit owner sharing intent, signed recipient-bound sealed-key exchange,
+  validated encrypted profile application, exact upload retries and safe
+  calendar/profile ordering are implemented. Existing calendar guardians get
+  read access only through explicit creation consent. Epoch rotation converges
+  without silently replacing keys; revoked devices receive no future grants.
+  SQLCipher v6 preserves profiles, assignments and queued writes.
+- Verification: Unit/widget/transport/crypto, real PostgreSQL authorization and
+  migration tests, and native iOS/Android prepared child-sync scenarios pass.
+  See `../testing/BUG-003-VERIFICATION.md` for exact results and limits.
+- Remaining boundaries: New-guardian onboarding is BUG-004; replacement-device
+  epoch advancement is BUG-010. Physical-phone passkeys/protected storage and
+  production transport remain acceptance checks. No Stage 4 authorization.
 
 ### BUG-002 — Backup restore could not recover SQLCipher key on replacement device
 - Severity: High

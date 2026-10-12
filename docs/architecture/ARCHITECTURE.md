@@ -152,3 +152,10 @@ the backend. See `docs/api/BACKUP-RECOVERY.md` for the API and activation protoc
 - [Threat model](../security/THREAT-MODEL.md)
 - [AI architecture](../ai/AI-ARCHITECTURE.md)
 - [Native AI compatibility](../ai/DEVICE-COMPATIBILITY.md)
+
+Child-profile synchronization implements ADR-020/021/022 through an atomic local
+outbox, stable per-child resource IDs, explicit owner sharing consent, an
+authorized public-key directory, signed sealed-box key exchange, and resource-kind
+validation before decrypted application. See
+[child profile components and flow](CHILD-PROFILE-SYNC.md). Private names, colours
+and aliases remain inside SQLCipher and child-resource ciphertext.

@@ -28,7 +28,11 @@ only WebAuthn output and 32-byte device public keys. Protected endpoints require
   `calendar_resource_id` together so an offline-first family can be provisioned
   idempotently after connectivity returns.
 - `POST /v1/families/{family_id}/resources` creates child-profile resources;
-  owner only.
+  owner only. Optional `resource_id` preserves the offline child UUID and makes
+  retries idempotent; a family/kind/deletion collision returns 409. Optional
+  `share_with_calendar_guardians` defaults to false. Explicit true grants read
+  access to active calendar guardians at first provisioning only; retries never
+  add later guardians. No profile content is accepted here.
 - `POST /v1/families/{family_id}/invitations` creates a one-use 48-hour token.
 - `POST /v1/invitations/accept` creates a pending membership.
 - `POST .../invitations/{invitation_id}/approve` activates the guardian with an
@@ -41,11 +45,25 @@ content and are absent from these requests.
 ## Encrypted relay and grants
 
 - `POST /v1/sync/operations` accepts one bounded encrypted operation. An exact
-  retry is idempotent; sequence gaps/replays and digest/epoch mismatches are 409.
+  retry is idempotent; sequence gaps/replays and digest mismatches are 409. New
+  stale-epoch writes are rejected. An exact already-accepted old-epoch retry may
+  obtain its receipt under current write authorization; no new data is stored.
 - `GET /v1/families/{family_id}/sync?cursor=N&limit=100` returns authorized,
-  unexpired ciphertext and the next opaque cursor.
+  unexpired ciphertext and the next opaque cursor. Unauthorized resource rows
+  are filtered while the cursor advances over scanned rows, so an unreadable
+  child cannot block the readable calendar. A newly accepted key resets the
+  local download cursor for bounded replay; operation IDs deduplicate it.
 - `POST/GET /v1/key-grants` writes or retrieves signed sealed resource keys for
-  the current active device.
+  the current active device. Wrapped 32-byte keys must be 80-byte sealed boxes.
+  Exact retries return the same grant; a different grant for an existing
+  recipient/epoch returns 409. The first granter establishes an epoch under a
+  resource lock; another admin must receive that established key before extending
+  it to another device. GET rechecks recipient permission, current epoch, and
+  active/admin granter authorization.
+- `GET /v1/families/{family_id}/resources/{resource_id}/devices` requires read
+  access and returns only active authorized resource devices: opaque device ID,
+  encryption/signing public keys, effective permission, and whether a current
+  grant exists. It exposes no names, email addresses or private keys.
 
 The complete field constraints and response schemas are in `backend/openapi.json`.
 The encryption/AAD construction is specified in `docs/architecture/OFFLINE-SYNC.md`.

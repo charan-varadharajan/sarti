@@ -79,7 +79,7 @@ class CalendarRepository {
     final householdId = household['id'] as String;
     final children = database.raw
         .select(
-          'SELECT * FROM children WHERE household_id = ? ORDER BY display_name',
+          'SELECT * FROM children WHERE household_id = ? AND is_placeholder = 0 ORDER BY display_name',
           [householdId],
         )
         .map(
@@ -166,10 +166,20 @@ class CalendarRepository {
     return load()!;
   }
 
-  ChildProfile addChild(String name, int colorArgb, {String? cloudAlias}) {
+  ChildProfile addChild(
+    String name,
+    int colorArgb, {
+    String? cloudAlias,
+    bool shareWithCalendarGuardians = false,
+  }) {
     final family = load() ?? (throw StateError('Create a family first.'));
     final childName = name.trim();
-    if (childName.isEmpty) throw ArgumentError.value(name, 'name');
+    if (childName.isEmpty ||
+        childName.length > 120 ||
+        colorArgb < 0 ||
+        colorArgb > 0xffffffff) {
+      throw ArgumentError('Invalid child profile.');
+    }
     var alias = CloudAlias.validate(
       cloudAlias?.trim().isNotEmpty == true
           ? cloudAlias!
@@ -195,11 +205,113 @@ class CalendarRepository {
       colorArgb: colorArgb,
       cloudAlias: alias,
     );
-    database.raw.execute(
-      'INSERT INTO children(id, household_id, display_name, color_argb, cloud_alias) VALUES (?, ?, ?, ?, ?)',
-      [child.id, family.householdId, child.name, colorArgb, child.cloudAlias],
-    );
+    database.transaction(() {
+      database.raw.execute(
+        'INSERT INTO children(id, household_id, display_name, color_argb, cloud_alias) VALUES (?, ?, ?, ?, ?)',
+        [child.id, family.householdId, child.name, colorArgb, child.cloudAlias],
+      );
+      queueChildProfile(child.id);
+      database.raw.execute(
+        'INSERT INTO child_sync(child_id, key_epoch, share_with_calendar_guardians) VALUES (?, 0, ?)',
+        [child.id, shareWithCalendarGuardians ? 1 : 0],
+      );
+    });
     return child;
+  }
+
+  /// Called inside the caller's transaction for atomic profile/outbox writes.
+  void queueChildProfile(String childId) {
+    final row = database.raw.select(
+      'SELECT * FROM children WHERE id = ? AND is_placeholder = 0',
+      [childId],
+    ).single;
+    database.raw.execute(
+      'INSERT INTO outbox(operation_id, family_id, resource_id, kind, payload_json, vector_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [
+        newId(),
+        row['household_id'],
+        childId,
+        'child_created',
+        jsonEncode({
+          'id': childId,
+          'householdId': row['household_id'],
+          'name': row['display_name'],
+          'colorArgb': row['color_argb'],
+          'cloudAlias': row['cloud_alias'],
+        }),
+        jsonEncode({deviceId: 1}),
+        DateTime.now().toUtc().toIso8601String(),
+      ],
+    );
+  }
+
+  RemoteApplyResult applyRemoteChild({
+    required String operationId,
+    required String familyId,
+    required String resourceId,
+    required int keyEpoch,
+    required Map<String, Object?> payload,
+  }) {
+    if (payload.length != 5 ||
+        payload['id'] != resourceId ||
+        payload['householdId'] != familyId ||
+        !isResourceId(resourceId) ||
+        payload['name'] is! String ||
+        (payload['name']! as String).trim().isEmpty ||
+        (payload['name']! as String).length > 120 ||
+        payload['colorArgb'] is! int ||
+        (payload['colorArgb']! as int) < 0 ||
+        (payload['colorArgb']! as int) > 0xffffffff ||
+        payload['cloudAlias'] is! String ||
+        database.raw.select('SELECT 1 FROM households WHERE id = ?', [
+          familyId,
+        ]).isEmpty) {
+      throw StateError('Invalid child profile scope or format.');
+    }
+    final alias = CloudAlias.validate(
+      payload['cloudAlias']! as String,
+      childName: payload['name']! as String,
+    );
+    final existing = database.raw.select(
+      'SELECT * FROM children WHERE id = ?',
+      [resourceId],
+    );
+    if (existing.isNotEmpty) {
+      final row = existing.single;
+      if (row['household_id'] != familyId ||
+          (row['is_placeholder'] == 0 &&
+              (row['display_name'] != payload['name'] ||
+                  row['color_argb'] != payload['colorArgb'] ||
+                  row['cloud_alias'] != alias))) {
+        // Child editing is not a supported operation. Preserve the existing
+        // profile and cursor; never silently replace conflicting content.
+        throw StateError('Child profile conflicts with existing data.');
+      }
+    }
+    if (database.raw.select(
+      'SELECT 1 FROM applied_operations WHERE operation_id = ?',
+      [operationId],
+    ).isNotEmpty) {
+      return RemoteApplyResult.duplicate;
+    }
+    database.transaction(() {
+      database.raw.execute(
+        '''INSERT INTO children(id, household_id, display_name,
+          color_argb, cloud_alias, is_placeholder) VALUES (?, ?, ?, ?, ?, 0)
+          ON CONFLICT(id) DO UPDATE SET display_name=excluded.display_name,
+          color_argb=excluded.color_argb, cloud_alias=excluded.cloud_alias, is_placeholder=0''',
+        [resourceId, familyId, payload['name'], payload['colorArgb'], alias],
+      );
+      database.raw.execute(
+        'INSERT INTO child_sync(child_id, key_epoch) VALUES (?, ?) ON CONFLICT(child_id) DO UPDATE SET key_epoch=excluded.key_epoch',
+        [resourceId, keyEpoch],
+      );
+      database.raw.execute('INSERT INTO applied_operations VALUES (?, ?)', [
+        operationId,
+        DateTime.now().toUtc().toIso8601String(),
+      ]);
+    });
+    return RemoteApplyResult.applied;
   }
 
   void saveEvent(CalendarEvent event) {
@@ -426,6 +538,29 @@ class CalendarRepository {
   }
 
   void _saveEventRows(CalendarEvent event, {Map<String, int>? vector}) {
+    final existingEvent = database.raw.select(
+      'SELECT household_id FROM events WHERE id = ?',
+      [event.id],
+    );
+    if (existingEvent.isNotEmpty &&
+        existingEvent.single['household_id'] != event.householdId) {
+      throw StateError('Invalid event scope.');
+    }
+    for (final childId in event.childIds) {
+      if (!isResourceId(childId)) throw StateError('Invalid child reference.');
+      final rows = database.raw.select(
+        'SELECT household_id FROM children WHERE id = ?',
+        [childId],
+      );
+      if (rows.isNotEmpty && rows.single['household_id'] != event.householdId) {
+        throw StateError('Invalid child reference scope.');
+      }
+      database.raw.execute(
+        '''INSERT OR IGNORE INTO children(id, household_id,
+          display_name, color_argb, cloud_alias, is_placeholder) VALUES (?, ?, '', 0, ?, 1)''',
+        [childId, event.householdId, 'pending-$childId'],
+      );
+    }
     database.raw.execute(
       'INSERT OR REPLACE INTO events VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [

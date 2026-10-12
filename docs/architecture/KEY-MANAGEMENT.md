@@ -22,3 +22,22 @@ key nor the SQLCipher key. Recovery stages an integrity-checked database and
 protected key journal, activates on startup after user presence, and retains the
 new device identity. Old resource keys and sync bookkeeping are removed; fresh
 grants are required for future synchronization. See `../api/BACKUP-RECOVERY.md`.
+
+BUG-003 wires the mobile grant protocol into authenticated synchronization.
+Before provisioning a new child, the owner persists a random independent key
+inside SQLCipher. The owner self-grants first, then wraps the same key separately
+for each active authorized recipient and signs the existing `SARTI-GRANT-V1`
+canonical fields. The authenticated session device ID is used, rather than the
+installation-local UUID. Recipients verify resource/epoch/recipient scope,
+active administrator identity, signature and sealed-box decryption. A different
+key for an already-held epoch is rejected without replacing it.
+
+For an advanced epoch, an active admin holding the previous key may propose a
+fresh random key through a signed self-grant. The server resource lock and first
+granter check serialize contenders; a loser waits for the established grant.
+The key is committed locally only after acceptance; a lost response is recovered
+by opening the self-grant on the next pass. Current-epoch keys are then granted
+only to active resource-authorized devices. No missing existing key is fabricated
+at the same epoch. Old keys remain available for retained historical ciphertext;
+revocation cannot retract earlier copies. Local destruction follows the existing
+database/device-reset lifecycle; the server never receives plaintext keys.

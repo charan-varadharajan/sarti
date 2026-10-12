@@ -32,8 +32,18 @@ class CalendarController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void addChild(String name, int colorArgb, {String? cloudAlias}) {
-    repository.addChild(name, colorArgb, cloudAlias: cloudAlias);
+  void addChild(
+    String name,
+    int colorArgb, {
+    String? cloudAlias,
+    bool shareWithCalendarGuardians = false,
+  }) {
+    repository.addChild(
+      name,
+      colorArgb,
+      cloudAlias: cloudAlias,
+      shareWithCalendarGuardians: shareWithCalendarGuardians,
+    );
     refresh();
     onLocalMutation?.call();
   }
