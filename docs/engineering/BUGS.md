@@ -115,7 +115,7 @@ in-repository record while Sarti has no external tracker.
 - Severity: Low
 - Component: `mobile/integration_test/calendar_add_event_scenario_test.dart`
 - Discovered: 2026-10-12 during iPhone 18 Pro simulator execution
-- Fixed: 2026-10-12 — pending commit
+- Fixed: 2026-10-12 — commit `3723ec0`
 - Fix version: Unreleased
 - Disposition: The scenario now scrolls the child selector into view before
   interaction, making the shared test work across Android and iPhone layouts.
