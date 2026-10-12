@@ -50,10 +50,15 @@ class _ScenarioSecrets implements SecretStore {
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   const phase = String.fromEnvironment('BACKUP_PHASE');
-  testWidgets('BACKUP-XPLAT-001 BUG-002 $phase real device backup', (
-    tester,
-  ) async {
+  const direction = String.fromEnvironment(
+    'BACKUP_DIRECTION',
+    defaultValue: 'ios-to-android',
+  );
+  final reverse = direction == 'android-to-ios';
+  final scenario = reverse ? 'BACKUP-XPLAT-002' : 'BACKUP-XPLAT-001';
+  testWidgets('$scenario BUG-002 $phase real device backup', (tester) async {
     expect(phase, anyOf('export', 'restore'));
+    expect(direction, anyOf('ios-to-android', 'android-to-ios'));
     tz_data.initializeTimeZones();
     final sodium = await SodiumInit.init();
     final support = await getApplicationSupportDirectory();
@@ -64,6 +69,7 @@ void main() {
     final copied = File('${transfer.path}.copied');
     final ready = File('${support.path}/backup-portability-ready');
     if (copied.existsSync()) copied.deleteSync();
+    if (ready.existsSync()) ready.deleteSync();
     final key = Uint8List.fromList(sodium.randombytes.buf(32));
     SartiDatabase? database = SartiDatabase.open(
       '${directory.path}/calendar.db',
@@ -84,11 +90,11 @@ void main() {
         .values
         .single;
     if (phase == 'export') {
-      expect(Platform.isIOS, isTrue);
+      expect(reverse ? Platform.isAndroid : Platform.isIOS, isTrue);
       if (transfer.existsSync()) transfer.deleteSync();
       final repository = CalendarRepository(
         database,
-        deviceId: 'source-iphone',
+        deviceId: 'source-${Platform.operatingSystem}',
       );
       final family = repository.createFamily(
         name: 'Portability test family',
@@ -170,16 +176,20 @@ void main() {
         isNot(contains('Synthetic swimming')),
       );
       binding.reportData = {
+        'scenario': scenario,
+        'direction': direction,
         'phase': phase,
         'platform': Platform.operatingSystem,
         'sha256': sha256.convert(bytes).toString(),
         'bytes': bytes.length,
         'sqlcipher': cipherVersion,
       };
+      // Signal only after the complete encrypted file and UI assertions exist.
+      ready.writeAsStringSync('export', flush: true);
       // flutter test removes the app after completion: wait for the host to copy.
       await _waitFor(copied);
     } else {
-      expect(Platform.isAndroid, isTrue);
+      expect(reverse ? Platform.isIOS : Platform.isAndroid, isTrue);
       if (transfer.existsSync()) transfer.deleteSync();
       ready.writeAsStringSync('restore', flush: true);
       await _waitFor(copied);
@@ -190,7 +200,10 @@ void main() {
       expect(sha256.convert(bytes).toString(), digest);
       final secrets = _ScenarioSecrets();
       await secrets.write('database-key-v1', base64UrlEncode(key));
-      await secrets.write('sign-secret-v1', 'replacement-android-identity');
+      await secrets.write(
+        'sign-secret-v1',
+        'replacement-${Platform.operatingSystem}-identity',
+      );
       var restored = false;
       await tester.pumpWidget(
         MaterialApp(
@@ -243,7 +256,7 @@ void main() {
       expect(restored, isTrue);
       final family = CalendarRepository(
         database!,
-        deviceId: 'replacement-android',
+        deviceId: 'replacement-${Platform.operatingSystem}',
       ).load()!;
       expect(family.name, 'Portability test family');
       expect(family.children.single.name, 'Synthetic child');
@@ -270,10 +283,12 @@ void main() {
       expect(database!.raw.select('SELECT * FROM outbox'), isEmpty);
       expect(
         await secrets.read('sign-secret-v1'),
-        'replacement-android-identity',
+        'replacement-${Platform.operatingSystem}-identity',
       );
       expect(await secrets.read('backup-recovery-pending-v1'), isNull);
       binding.reportData = {
+        'scenario': scenario,
+        'direction': direction,
         'phase': phase,
         'platform': Platform.operatingSystem,
         'sha256': digest,

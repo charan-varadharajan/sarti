@@ -105,3 +105,8 @@ for live-app acknowledgements before Flutter removes either test app. Fixture
 credentials and secret-store adapter are synthetic; this test establishes file
 portability, not passkey, production transport or hardware-backed storage.
 See [execution instructions/results](BACKUP-PORTABILITY.md).
+
+`BACKUP-XPLAT-002` reverses the same prepared native journey (Android exporter,
+iOS restorer). Select `--direction android-to-ios`. It is currently added but
+not executed at the user's request; the shared assertions do not establish
+reverse-direction compatibility until that scenario runs.

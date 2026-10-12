@@ -21,6 +21,8 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
 ## [Unreleased]
 
 ### Added
+- BUG-002 regression: add `BACKUP-XPLAT-002` for Android-to-iOS `.srtbk`
+  recovery using the shared directional runner; execution deferred by user.
 - BUG-002 regression: repeatable iOS-to-Android encrypted `.srtbk` portability
   scenario with native SQLCipher/libsodium, exact-byte transfer, prepared data,
   and explicit backup/restore UI actions.

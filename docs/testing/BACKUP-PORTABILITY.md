@@ -1,4 +1,4 @@
-# BACKUP-XPLAT-001 — iOS to Android encrypted backup
+# Cross-platform encrypted backup scenarios
 
 ## Repeatable execution
 
@@ -13,7 +13,24 @@ python3 scripts/test_backup_ios_android.py \
   --adb "$HOME/Library/Android/sdk/platform-tools/adb"
 ```
 
-The integration test has two native executions, connected by the host runner:
+The default direction is `ios-to-android` (`BACKUP-XPLAT-001`). To run the
+reverse scenario later, explicitly select `android-to-ios` (`BACKUP-XPLAT-002`):
+
+```sh
+python3 scripts/test_backup_ios_android.py \
+  --direction android-to-ios \
+  --ios-device A351256A-6255-4285-A1AE-5624594A08FD \
+  --android-device emulator-5554 \
+  --adb "$HOME/Library/Android/sdk/platform-tools/adb"
+```
+
+**BACKUP-XPLAT-002 is added but NOT RUN, as requested by the user.** It uses the
+same prepared fixture, exact-byte/digest verification, wrong-phrase rejection,
+restored content and key/identity assertions, with Android exporting and iOS
+restoring. Export readiness is signalled only after the file and UI assertions
+finish. Neither direction was rerun after generalizing the shared runner.
+
+The original iOS-to-Android flow has two native executions, connected by the host runner:
 
 1. Prepare an encrypted iOS SQLCipher database with a synthetic child, guardian,
    weekly event, pickup assignment, notes, colour and reminder offsets.
@@ -44,11 +61,13 @@ on the tested iOS simulator and Android emulator. The secret-store journal is an
 in-memory test adapter. Passkey login, device replacement authorization, network
 relay/TLS, physical Keychain/Keystore, OS interruption and notification delivery
 are separate tests. Reminder settings are checked; delivered reminders are not.
-The opposite Android-to-iOS direction is not covered by this scenario.
+The opposite Android-to-iOS direction now has a separate scenario; its runtime
+compatibility is unverified until explicitly run.
 
 ## Latest execution
 
-Executed successfully on 2026-10-12:
+Historical `BACKUP-XPLAT-001` execution passed on 2026-10-12 (commit `e9e504f`,
+before the unexecuted shared-runner generalization):
 
 | Boundary | Actual result |
 | --- | --- |

@@ -81,6 +81,10 @@ remain acceptance gaps. No Stage 4 work is authorized.
 | Pip-audit runtime dependency scan | Passed; no known vulnerabilities |
 | Version checker/tests | Passed; 3 tests |
 
+`BACKUP-XPLAT-002` (Android-to-iOS) is added but deliberately not run at the
+user's request. The shared directional runner has static validation only since
+that addition; the existing -001 result above refers to its prior executed revision.
+
 Pinned Gitleaks Docker scan passed with no leaks. OpenAPI was regenerated from
 the app and its contract test passes. Native build results are recorded in the
 BUG-002 verification report; provider/device results are not inferred.
