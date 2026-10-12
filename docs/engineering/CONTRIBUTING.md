@@ -6,8 +6,9 @@ Read `AGENTS.md` and all documents it links before making any change.
 ## Branch and commit rules
 
 - All work lands on `main` via reviewed commits (trunk-based development).
-- Branch names are optional for local work; use `fix/`, `feat/`, or `docs/`
-  prefixes when pushing a branch for review.
+- Branch names are optional for local work. Codex-created branches use the
+  environment-required `codex/` prefix; other branches use the team's configured
+  naming convention.
 - Commit messages use the conventional format:
   `type(scope): short description` where type is one of
   `feat`, `fix`, `docs`, `test`, `build`, `ci`, `refactor`, `chore`.
@@ -81,14 +82,15 @@ These rules apply to Amazon Q, Gemini Code Assist, Codex, Copilot, and any
 other AI coding assistant used in this repository.
 
 - Read `AGENTS.md` and all mandatory documents before proposing changes.
-- Propose only — do not apply changes without explicit user approval.
+- Apply changes within the user's authorized task scope. Ask only when a stop
+  condition applies or an action is destructive, irreversible, or out of scope.
 - Do not hallucinate ADR decisions. If an ADR exists, cite it exactly.
 - Do not add cloud inference, silent fallbacks, or deferred-scope features
   without a new approved ADR.
 - Do not remove or weaken security invariants (auth, authz, E2EE boundary,
   no plaintext family content on server, opaque FCM payload).
-- If another AI tool says it "did something elsewhere", the human must confirm
-  and the result must be reviewed against core principles before continuing.
+- If another AI tool says it completed work, inspect the repository result and
+  review it against core principles before relying on the claim.
 - Every AI-assisted change must pass the same gates as human changes.
 - Stop and ask if a stop condition in `ENGINEERING-STANDARDS.md` is triggered.
 

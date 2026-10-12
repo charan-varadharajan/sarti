@@ -20,8 +20,22 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
 
 ## [Unreleased]
 
+### Added
+- Repository-maintained changelog, known-defect register, contribution guide,
+  draft privacy disclosure, and draft Cloud Run/Neon deployment runbook.
+
+### Corrected
+- Reviewed the new process documents against the accepted ADRs and current
+  implementation; removed unsupported privacy/deployment claims and duplicate
+  agent instructions.
+- Removed incomplete, untested BUG-003 API groundwork that was accidentally
+  bundled into the administrative commit. BUG-003 remains open for a coherent
+  implementation.
+
 ### Known open defects
 See `docs/engineering/BUGS.md` for the current open defect list.
+The administrative review added BUG-005 for the unwired optional Gemini
+credential/runtime path.
 
 ---
 

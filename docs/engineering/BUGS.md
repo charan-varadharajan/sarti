@@ -37,11 +37,11 @@ in-repository record while Sarti has no external tracker.
   computation.
 - Workaround: None. Backup UI is not shipped; no user data is at risk yet.
 - Required action: Superseding ADR for ADR-025 must be approved before fix.
-  Fix must use a conformant BIP-39 library or implement the full spec with tests
-  against the official test vectors.
+  Fix must use a maintained, reviewed BIP-39 implementation and official test
+  vectors. Sarti must not implement mnemonic cryptography itself.
 
 ### BUG-002 — Backup restore cannot recover SQLCipher key on replacement device
-- Severity: Critical
+- Severity: High
 - Component: `mobile/lib/src/core/backup/backup_service.dart`, ADR-025
 - Discovered: 2026-10-11
 - Blocking: Stage 3 acceptance; backup UI; account recovery claim
@@ -63,27 +63,49 @@ in-repository record while Sarti has no external tracker.
 - Severity: Medium
 - Component: `mobile/lib/src/features/calendar/`, backend `api/households.py`
 - Discovered: 2026-10-11
-- Blocking: Full multi-device child profile sync; not blocking Stage 3 acceptance
+- Blocking: Stage 2 multi-device acceptance and therefore final Stage 3 acceptance
 - Summary: The server has a child-resource endpoint, but mobile does not
   provision that resource, encrypt the child profile, or distribute its key.
   Child labels therefore do not appear on a second authorized device.
 - Root cause: Mobile-side resource provisioning and key distribution for child
   profiles was not implemented in Stage 2/3.
 - Workaround: Single-device use is unaffected.
-- Required action: Implement mobile child-resource provisioning and key
-  distribution in Stage 4.
+- Latest information: Commit `487c163` accidentally bundled untested
+  client-selected child-resource groundwork with documentation. The follow-up
+  administrative audit removed that partial API change so BUG-003 can be fixed
+  as one coherent, contract-tested implementation. The defect remains open.
+- Required action: Complete and verify the missing Stage 2 child resource sync
+  and key lifecycle before Stage 3 can be accepted.
 
 ### BUG-004 — Guardian invitation/approval not connected to shipping mobile journey
 - Severity: Medium
 - Component: `mobile/lib/src/features/`, backend `api/households.py`
 - Discovered: 2026-10-11
-- Blocking: Multi-guardian families; not blocking Stage 3 acceptance
+- Blocking: Stage 2 multi-guardian acceptance and therefore final Stage 3 acceptance
 - Summary: Guardian invitation and approval exist in backend and protocol tests
   but are not connected to a complete shipping mobile UI journey. A second
   guardian cannot be added through the app.
 - Root cause: Mobile UI for invitation flow was not implemented in Stage 2/3.
 - Workaround: Single-guardian families are unaffected.
-- Required action: Implement mobile invitation/approval UI in Stage 4.
+- Required action: Complete and verify the Stage 2 mobile invitation, approval,
+  resource-permission, and key-grant journey before Stage 3 can be accepted.
+
+### BUG-005 — Optional Gemini adapter is not connected to a safe shipping credential path
+- Severity: Medium
+- Component: `mobile/lib/src/features/ai/`, backend configuration, ADR-023
+- Discovered: 2026-10-11
+- Blocking: Optional Gemini provider acceptance; local/native parsing is unaffected
+- Summary: The mobile Gemini adapter and consent gate exist, but the shipping
+  bootstrap constructs only the native provider. `SARTI_GEMINI_API_KEY` exists
+  only in backend settings and is unused there; it cannot configure the mobile
+  adapter. Embedding an unrestricted provider key in the app would expose it.
+- Root cause: Provider credential delivery and runtime construction were not
+  designed end to end.
+- Workaround: Cloud assist remains unavailable; deterministic and native
+  on-device parsing continue without a cloud fallback.
+- Required action: Approve a provider credential architecture that preserves
+  ADR-028 pseudonymization and explicit consent without exposing a reusable key,
+  then implement and perform a live provider test.
 
 ---
 

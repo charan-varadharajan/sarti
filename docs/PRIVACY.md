@@ -1,6 +1,6 @@
 # Privacy and data-handling disclosure
 
-**STATUS: DRAFT — Stage 4 required deliverable. All sections marked TODO must
+**STATUS: DRAFT — pre-release deliverable. All sections marked TODO must
 be completed and reviewed by the product owner before any public release or
 App Store / Play Store submission. Do not publish this file as-is.**
 
@@ -14,9 +14,10 @@ in-app privacy notice.
 ## 1. What Sarti is
 
 Sarti is a family organizer. It stores calendar events, child profiles, pickup
-assignments, and reminders. All family content is end-to-end encrypted: it is
-encrypted on the user's device before leaving it and can only be decrypted by
-authorized devices in the same family.
+assignments, and reminders. Content sent through Sarti synchronization is
+encrypted on an authorized device before leaving it. The current child-profile
+and guardian mobile sharing gaps are tracked as BUG-003 and BUG-004, so this
+draft must not claim complete end-to-end behavior until those paths pass.
 
 ---
 
@@ -29,7 +30,7 @@ authorized devices in the same family.
 | Guardian profiles | SQLCipher local database | Yes |
 | Pickup assignments | SQLCipher local database | Yes |
 | Reminders | SQLCipher local database | Yes |
-| Device private keys | Platform secure storage (Keychain / Keystore) | Yes — hardware-backed where available |
+| Device private keys | Platform secure storage (Keychain / Keystore) | Protected by the configured OS secure-storage policy; hardware backing is not yet verified |
 | Session token | Platform secure storage | Yes |
 | AI cloud consent preference | SQLCipher local database | Yes |
 | Child cloud aliases (if cloud AI enabled) | SQLCipher local database | Yes |
@@ -52,8 +53,9 @@ Sarti servers store **no plaintext family content**. The server stores only:
 | Hashed email routing token | Email ingress routing | Until family deleted |
 
 The server cannot read calendar events, child names, event titles, or any
-family content. Encrypted ciphertext is relayed and expires; it is not
-permanently stored.
+family content. Sync operations and email suggestion ciphertext expire after
+seven days. Sealed resource-key grants and authorization metadata persist until
+their resource, device, family, or account lifecycle removes them.
 
 ---
 
@@ -107,11 +109,10 @@ TODO — implement per ADR-017. User can:
 Deletion deadlines: TODO — define maximum server-side deletion SLA.
 
 ### Backup and recovery
-- User generates a 12-word recovery phrase (BIP-39).
-- The phrase is the only way to restore an encrypted backup to a new device.
-- Sarti never transmits or stores the recovery phrase.
-- **Note:** Backup restore to a replacement device has open defects BUG-001
-  and BUG-002. Backup UI is not shipped until those are resolved.
+- A prototype encrypted envelope exists, but its phrase is not BIP-39 and a
+  replacement device cannot recover the SQLCipher key (BUG-001 and BUG-002).
+- Backup UI is not shipped. No recovery promise can be made until a superseding
+  ADR is approved, implemented, and independently verified.
 
 ---
 
@@ -123,9 +124,9 @@ When optional cloud AI is enabled, child names are replaced with random
 aliases before leaving the device.
 
 TODO — confirm COPPA / GDPR-K applicability and add required disclosures.
-The ML Kit GenAI Prompt API terms currently restrict use in apps directed at
-or likely accessed by people under 18. Sarti's P0 UI is for adult guardians
-only. Any child-facing client requires a new provider and legal review.
+Sarti's P0 UI is for adult guardians only. Verify the then-current Apple,
+Google, Firebase, Gemini, and ML Kit terms with legal counsel before release;
+this draft does not establish provider eligibility for child-related data.
 
 ---
 
@@ -152,7 +153,7 @@ TODO — add privacy contact email / DPO contact before public release.
 
 ---
 
-## Stage 4 completion checklist for this file
+## Pre-release completion checklist for this file
 
 - [ ] All TODO items above completed
 - [ ] Legal review of children's privacy section (COPPA / GDPR-K)

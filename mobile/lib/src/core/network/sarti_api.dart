@@ -161,23 +161,6 @@ class SartiApiClient implements EncryptedRelay {
     return response.map(_familyFromJson).toList(growable: false);
   }
 
-  Future<RemoteResource> provisionChildResource({
-    required String familyId,
-    required String childId,
-  }) async {
-    final value = await _json(
-      'POST',
-      '/v1/families/$familyId/resources',
-      authenticated: true,
-      body: {'kind': 'child_profile', 'resource_id': childId},
-    );
-    return RemoteResource(
-      id: value['id'] as String,
-      kind: value['kind'] as String,
-      keyEpoch: value['key_epoch'] as int,
-    );
-  }
-
   Future<int> sendSyncWakeUp(String familyId) async {
     final response = await _json(
       'POST',

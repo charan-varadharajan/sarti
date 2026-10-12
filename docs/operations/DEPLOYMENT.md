@@ -1,6 +1,6 @@
 # Deployment and rollback
 
-**STATUS: DRAFT — Stage 4 required deliverable. All TODO sections must be
+**STATUS: DRAFT — pre-release deliverable. All TODO sections must be
 completed before any production deployment. ADR-027 selects Google Cloud Run
 and Neon Free for beta. Production hosting requires a separate approved ADR.**
 
@@ -22,14 +22,13 @@ and Neon Free for beta. Production hosting requires a separate approved ADR.**
 All secrets are injected at runtime via Google Cloud Secret Manager.
 **Never commit secrets, credentials, or `.env` files.**
 
-| Secret name (Secret Manager) | Maps to env var | Description |
+| Setting/secret | Maps to env var | Description |
 |---|---|---|
 | `sarti-database-url` | `SARTI_DATABASE_URL` | Neon PostgreSQL connection string |
-| `sarti-webauthn-rp-id` | `SARTI_WEBAUTHN_RP_ID` | Production domain (e.g. `api.sarti.app`) |
-| `sarti-webauthn-origin` | `SARTI_WEBAUTHN_ORIGIN` | Production origin (e.g. `https://api.sarti.app`) |
+| Deployment setting | `SARTI_WEBAUTHN_RP_ID` | RP domain; configuration, not a secret |
+| Deployment setting | `SARTI_WEBAUTHN_ORIGIN` | HTTPS origin; configuration, not a secret |
 | `sarti-email-worker-secret` | `SARTI_EMAIL_WORKER_SECRET` | Cloudflare Worker shared secret |
-| `sarti-gemini-api-key` | `SARTI_GEMINI_API_KEY` | Optional Gemini API key |
-| `sarti-fcm-credentials` | `SARTI_FCM_CREDENTIALS_FILE` | Path to mounted FCM service account JSON |
+| `sarti-fcm-credentials` | `SARTI_FCM_CREDENTIALS_FILE` | Secret must be mounted as a file; env value is that file path |
 
 TODO — add any additional secrets identified during production hardening.
 
@@ -85,18 +84,28 @@ gcloud run deploy sarti-backend \
   --region REGION \
   --project PROJECT \
   --platform managed \
-  --no-allow-unauthenticated \
+  --allow-unauthenticated \
+  --port 8000 \
   --min-instances 0 \
   --max-instances TODO \
   --set-secrets \
     SARTI_DATABASE_URL=sarti-database-url:latest,\
-    SARTI_WEBAUTHN_RP_ID=sarti-webauthn-rp-id:latest,\
-    SARTI_WEBAUTHN_ORIGIN=sarti-webauthn-origin:latest,\
-    SARTI_EMAIL_WORKER_SECRET=sarti-email-worker-secret:latest,\
-    SARTI_GEMINI_API_KEY=sarti-gemini-api-key:latest
+    SARTI_EMAIL_WORKER_SECRET=sarti-email-worker-secret:latest
 ```
 
-TODO — confirm `--no-allow-unauthenticated` vs IAP vs custom auth approach.
+Set `SARTI_WEBAUTHN_RP_ID`, `SARTI_WEBAUTHN_ORIGIN`, and
+`SARTI_ENVIRONMENT=production` as ordinary runtime environment variables.
+Cloud Run ingress must accept the public mobile and Cloudflare clients; FastAPI
+enforces passkey-session or worker-secret authentication on protected routes.
+Google IAM authenticated-only ingress would make the current mobile client and
+email worker unable to call the API. Restricting ingress later requires an
+approved compatible edge-authentication design.
+
+TODO — add the Secret Manager volume mount for FCM credentials and set
+`SARTI_FCM_CREDENTIALS_FILE` to its container path.
+The backend's current `SARTI_GEMINI_API_KEY` setting is unused and does not
+configure the mobile Gemini adapter; do not provision it as a deployment secret.
+BUG-005 tracks the missing approved credential/runtime path.
 TODO — set `--max-instances` based on cost review.
 
 ---
@@ -191,7 +200,7 @@ TODO — complete before production launch.
 
 ---
 
-## Stage 4 completion checklist for this file
+## Pre-release completion checklist for this file
 
 - [ ] All TODO items above completed
 - [ ] GCP project, region, Artifact Registry repo confirmed
