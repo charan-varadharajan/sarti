@@ -24,6 +24,15 @@ timezone data already in the project.
 ambiguous input. The following rules are binding and may not be relaxed without
 a superseding ADR:
 
+The product owner explicitly approved this raw-text-only exception to the
+general on-device AI rule and reaffirmed that approval on 2026-10-11. A first
+name and schedule fragment are not assumed to identify a person by themselves.
+However, because the adapter accepts free-form input, Sarti cannot guarantee
+that a user will not type a surname, school, address, or other identifying
+detail. Before enabling this adapter, the app must disclose that the entered
+text will be sent to the configured cloud provider and obtain explicit opt-in.
+Sarti must not add account, profile, or database context to that request.
+
 1. **Raw text only.** The prompt sent to the cloud model is the verbatim user
    input string and a fixed system instruction. No family IDs, resource IDs,
    adult IDs, child profile data, guardian names linked to accounts, session

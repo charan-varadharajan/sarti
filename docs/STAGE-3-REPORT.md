@@ -12,11 +12,12 @@ and test-infrastructure repairs: 19 backend tests at 87.47% branch coverage, 46
 Flutter tests, Ruff, Mypy, Bandit, Flutter analyze, Android and unsigned iOS
 builds, Docker health and migration 0003, pip-audit, OpenAPI drift, and Gitleaks.
 
-Stage 3 acceptance is blocked by the cloud AI privacy violation, plaintext email
-persistence, missing encrypted email delivery and approval flow, missing mobile
-integration for Stage 3 features, missing application quiet hours, inaccurate
-BIP-39 claims, and unexecuted provider/physical-device tests. The detailed,
-current list is maintained in `docs/STATUS.md`.
+Stage 3 acceptance is blocked by missing disclosure and opt-in for the approved
+raw-text-only cloud assist, plaintext email persistence, missing encrypted email
+delivery and approval flow, missing mobile integration for Stage 3 features,
+missing application quiet hours, inaccurate BIP-39 claims, and unexecuted
+provider/physical-device tests. The detailed, current list is maintained in
+`docs/STATUS.md`.
 
 ---
 

@@ -11,8 +11,8 @@ resolved Firebase dependency locks, backend formatting/lint findings, a calendar
 timezone round-trip regression, and two documented Gitleaks false positives.
 Stage 3 remains incomplete because:
 
-- the Gemini adapter sends natural-language family input to cloud inference,
-  contrary to the on-device-only contract;
+- the approved raw-text-only Gemini exception still lacks a user-facing
+  disclosure, explicit opt-in, and verified provider data-handling configuration;
 - the server persists email sender, subject, and body as plaintext and has no
   authorized-device encrypted delivery path or retention cleanup job;
 - the shipping mobile app still boots the Stage 2 calendar and does not expose
