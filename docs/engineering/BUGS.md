@@ -115,7 +115,7 @@ in-repository record while Sarti has no external tracker.
 - Severity: High
 - Component: `mobile/lib/src/core/crypto/device_key_store.dart`
 - Discovered: 2026-10-12 during Android API 35 emulator smoke test
-- Fixed: 2026-10-12 — pending commit
+- Fixed: 2026-10-12 — commit `4d2a96d`
 - Fix version: Unreleased
 - Disposition: Android still enforces device credentials for its hardware-backed
   protected storage key and Sarti still performs its explicit local unlock, but
@@ -126,7 +126,7 @@ in-repository record while Sarti has no external tracker.
 - Severity: High
 - Component: `mobile/lib/src/features/ai/`
 - Discovered: 2026-10-12 during Android API 35 emulator smoke test
-- Fixed: 2026-10-12 — pending commit
+- Fixed: 2026-10-12 — commit `4d2a96d`
 - Fix version: Unreleased
 - Disposition: Clock times from 1 through 12 without AM or PM now remain unset,
   the review UI requires the parent to choose the intended time, and model
