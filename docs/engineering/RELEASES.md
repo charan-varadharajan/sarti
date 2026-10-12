@@ -13,10 +13,20 @@ python3 scripts/version.py bump major
 python3 scripts/version.py bump build
 ```
 
-After a public-version bump, run repository quality gates and commit the version
-changes with the release work. A public release uses an annotated tag matching
-`v$(cat VERSION)`. Never reuse a mobile build number, move an existing release
-tag, or publish from a dirty working tree.
+After a public-version bump:
+
+1. Update `CHANGELOG.md` — promote the `[Unreleased]` section to the new
+   version with today's date. Add a summary of what changed.
+2. Update `docs/engineering/BUGS.md` — confirm all fixed defects are moved to
+   the Resolved section with the new version number.
+3. Run all repository quality gates (`make backend-check backend-test
+   mobile-check version-check`).
+4. Commit all version surfaces and documentation together.
+5. For a public release, create an annotated tag: `git tag -a "v$(cat VERSION)"
+   -m "Release $(cat VERSION)"`.
+
+Never reuse a mobile build number, move an existing release tag, or publish
+from a dirty working tree.
 
 The first production release is `1.0.0`. Until then, stage milestones increment
 minor and compatible remediation increments patch. CI validates the canonical

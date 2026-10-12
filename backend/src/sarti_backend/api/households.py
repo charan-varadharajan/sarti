@@ -54,6 +54,7 @@ class ResourceCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     kind: Literal["child_profile"]
+    resource_id: UUID | None = None
 
 
 class InvitationResponse(BaseModel):
@@ -235,9 +236,22 @@ def create_resource(
     actor: Authenticated,
 ) -> ResourceResponse:
     database: TransactionalDatabase = request.app.state.database
-    resource_id = uuid4()
+    resource_id = payload.resource_id or uuid4()
     with database.transaction() as connection:
         require_owner(connection, family_id, actor.adult_id)
+        existing = connection.execute(
+            select(resources.c.family_id, resources.c.kind, resources.c.key_epoch).where(
+                resources.c.id == resource_id
+            )
+        ).one_or_none()
+        if existing is not None:
+            if existing.family_id != family_id or existing.kind != payload.kind:
+                raise ConflictDetected("The offline resource identifier is unavailable.")
+            return ResourceResponse(
+                id=resource_id,
+                kind=payload.kind,
+                key_epoch=existing.key_epoch,
+            )
         connection.execute(
             resources.insert().values(
                 id=resource_id,

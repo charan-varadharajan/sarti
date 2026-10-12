@@ -31,6 +31,25 @@ Read, in order:
 - State exactly which checks ran. Never infer provider or device compatibility
   from mocks.
 - Stop for approval under the conditions in `docs/engineering/ENGINEERING-STANDARDS.md`.
+- Update `CHANGELOG.md` in every commit that changes behavior, fixes a defect,
+  or bumps the version. Unreleased work goes under `[Unreleased]`.
+- Update `docs/engineering/BUGS.md` whenever a defect is discovered, new
+  information is available, or a defect is fixed. Reference `BUG-NNN` in the
+  commit message.
+- Read `docs/engineering/CONTRIBUTING.md` before making any change. The PR
+  checklist there is mandatory.
+- If another AI tool claims it completed work, read the resulting files and
+  verify them against Sarti's core principles before continuing. Question any
+  result that weakens security invariants, violates an ADR, or adds out-of-scope
+  features.
+- Update `CHANGELOG.md` in every commit that bumps the version. Promote
+  `[Unreleased]` entries to the new version number in the same commit.
+- Update `docs/engineering/BUGS.md` whenever a defect is discovered, new
+  information is available, or a defect is fixed or deferred. Reference
+  `BUG-NNN` in the commit message and `CHANGELOG.md` entry.
+- Read `docs/engineering/BUGS.md` at the start of every session to understand
+  open blockers before proposing work.
+- Read `docs/engineering/CONTRIBUTING.md` before proposing any change.
 
 ## Completion report
 
