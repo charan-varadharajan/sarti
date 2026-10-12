@@ -104,7 +104,9 @@ open decisions.
 
 ## Deployment
 
-Docker is the local development standard. Production hosting is intentionally
+Docker is the local development standard. ADR-027 selects Cloud Run and Neon
+Free for development and the initial private beta. Production hosting is
+intentionally
 undecided. Deployment selection requires a separate ADR covering regions,
 subprocessors, cost, availability, key custody, backup, monitoring, and deletion.
 

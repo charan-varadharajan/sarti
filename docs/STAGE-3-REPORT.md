@@ -216,7 +216,7 @@ Suggested scope (requires explicit approval before any implementation):
 - Mobile endpoint to poll or receive `email_suggestions` and surface them as
   event proposals in the calendar UI
 - User-controlled data export (ADR-017) and account/family deletion
-- Production hosting decision (ADR-018 unresolved)
+- Production hosting decision; ADR-027 covers development/private beta only
 - Associated domains / asset links for the production RP domain
 - Privacy-preserving monitoring baseline (ADR-016)
 - PostgreSQL-backed job runner for suggestion TTL expiry (ADR-013)

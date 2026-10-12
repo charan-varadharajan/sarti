@@ -24,6 +24,12 @@ Stage 3 remains incomplete because:
   therefore not a BIP-39 mnemonic; and
 - real provider and physical-device acceptance tests remain unexecuted.
 
+## Approved beta hosting
+
+ADR-027 selects Google Cloud Run plus Neon Free for development and the initial
+private beta. Production hosting remains unresolved pending Stage 3 remediation,
+backup/recovery validation, provider review, and an explicit production decision.
+
 ## Delivered
 
 ### Stage 2

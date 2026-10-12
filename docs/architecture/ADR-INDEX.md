@@ -32,6 +32,7 @@ unresolved rather than inferred.
 | [ADR-024](adr/024-inbound-email-gateway.md) | Inbound email gateway | Accepted |
 | [ADR-025](adr/025-backup-and-recovery.md) | User-owned encrypted backup and recovery | Accepted |
 | [ADR-026](adr/026-push-notifications.md) | Push notifications | Accepted |
+| [ADR-027](adr/027-beta-hosting-cloud-run-neon.md) | Cloud Run and Neon Free for beta hosting | Accepted |
 
 New records use the next three-digit number. Accepted decisions are changed only
 by an explicitly approved superseding ADR.
