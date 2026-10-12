@@ -23,25 +23,6 @@ in-repository record while Sarti has no external tracker.
 
 ## Open defects
 
-### BUG-002 — Backup restore could not recover SQLCipher key on replacement device
-- Severity: High
-- Component: `mobile/lib/src/core/backup/backup_service.dart`, ADR-025
-- Discovered: 2026-10-11
-- Fixed: 2026-10-12 — pending commit
-- Fix version: Unreleased
-- Blocking: Resolved in core backup; restore UI secure-storage wiring remains required
-- Summary: ADR-025 encrypts raw SQLCipher database bytes with an independent
-  backup key derived from the recovery phrase. A replacement device does not
-  possess the SQLCipher database encryption key needed to open the restored file.
-  The ADR explicitly excludes device secrets and does not define a recoverable
-  key envelope or a logical (decrypted) export path.
-- Root cause: Architecture assumption failure — the backup format was designed
-  without accounting for the SQLCipher key being a device secret that is not
-  included in the backup payload.
-- Workaround: None. Backup UI is not shipped; no user data is at risk yet.
-- Disposition: Approved ADR-032 adds an authenticated v2 key envelope and
-  verifies the recovered key opens the database before atomic restore.
-
 ### BUG-003 — Child profile creation is local-only; cross-device child labels incomplete
 - Severity: Medium
 - Component: `mobile/lib/src/features/calendar/`, backend `api/households.py`
@@ -94,6 +75,20 @@ in-repository record while Sarti has no external tracker.
 
 ## Resolved defects
 
+### BUG-002 — Backup restore could not recover SQLCipher key on replacement device
+- Severity: High
+- Component: backup service, recovery UI/bootstrap, authenticated backup API
+- Discovered: 2026-10-11
+- Fixed: 2026-10-12 — fixing commit references BUG-002 (recorded below after commit)
+- Fix version: Unreleased
+- Disposition: Approved ADR-032 carries the SQLCipher key inside the independent
+  recovery envelope. Explicit owner upload, automatic discovery after login,
+  phrase confirmation, validated staged restore, and protected-key activation
+  replace manual file transfer. Server storage is opaque, bounded, revisioned,
+  and deleted on family deletion. SQLCipher, API isolation, storage-failure,
+  transport, and widget tests pass. Physical replacement-phone validation is
+  still required; future resource grants remain tracked separately in BUG-004.
+
 ### BUG-001 — Backup phrase was not BIP-39 conformant
 - Severity: High
 - Component: `mobile/lib/src/core/backup/backup_service.dart`
@@ -104,7 +99,7 @@ in-repository record while Sarti has no external tracker.
   `bip39_mnemonic` 4.1.0. New phrases use 128-bit libsodium entropy, standard
   BIP-39 English checksum validation, and official-vector coverage. Invalid
   recovery input fails before backup-key derivation or writing a restored file.
-  BUG-002 remains open and blocks a recovery claim.
+  The separate key-envelope defect is addressed by BUG-002 and ADR-032.
 
 ### BUG-009 — Prepared add-event scenario missed an off-screen child selector on iPhone
 - Severity: Low

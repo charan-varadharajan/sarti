@@ -16,12 +16,14 @@ class CalendarScreen extends StatelessWidget {
     this.cloudAiConsent,
     this.nativeAi,
     this.emailInbox,
+    this.onBackup,
   });
 
   final CalendarController controller;
   final CloudAiConsentController? cloudAiConsent;
   final NativeEventAiProvider? nativeAi;
   final EmailSuggestionInbox? emailInbox;
+  final VoidCallback? onBackup;
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
@@ -34,6 +36,12 @@ class CalendarScreen extends StatelessWidget {
         appBar: AppBar(
           title: Text(family.name),
           actions: [
+            if (onBackup != null)
+              IconButton(
+                tooltip: 'Encrypted backup',
+                onPressed: onBackup,
+                icon: const Icon(Icons.backup_outlined),
+              ),
             if (emailInbox != null)
               ListenableBuilder(
                 listenable: emailInbox!,

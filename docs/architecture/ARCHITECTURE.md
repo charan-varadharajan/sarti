@@ -18,7 +18,8 @@ flowchart LR
   Gateway --> API
   API --> Push[Push provider]
   Push -->|opaque wake-up only| App
-  App --> Backup[User-owned encrypted backup]
+  App -->|phrase-encrypted snapshot| API
+  PG --> Backup[One durable opaque family backup]
 ```
 
 ## Trust boundaries
@@ -130,6 +131,12 @@ layers. Backend modules expose services rather than importing one another's
 repositories.
 
 ## Supporting designs
+
+ADR-032 adds a durable, owner-authorized encrypted backup snapshot to PostgreSQL.
+The app explicitly uploads a v2 SQLCipher snapshot/key envelope; an empty new
+installation downloads it after passkey login and asks for the recovery phrase.
+This blob is separate from expiring sync operations and is never decrypted by
+the backend. See `docs/api/BACKUP-RECOVERY.md` for the API and activation protocol.
 
 - [System and component context](SYSTEM-CONTEXT.md)
 - [Data flows](DATA-FLOWS.md)

@@ -89,3 +89,15 @@ reports unavailable. For a provider/device test environment:
 
 Silent push delivery is opportunistic. Correctness depends on local writes and
 foreground encrypted catch-up, never on guaranteed background execution.
+
+## Encrypted replacement-phone recovery (ADR-032)
+
+Migration `0005` adds the bounded durable snapshot table and deletion trigger;
+normal container startup runs Alembic before serving traffic. No new provider,
+credential, or decryption secret is configured. Owners explicitly upload from
+**Encrypted backup**; replacement devices authenticate and discover the snapshot,
+then decrypt locally with their user-held phrase. Support cannot recover a lost
+phrase. Protocol, retention, integrity checks and retry behavior are documented
+in `../api/BACKUP-RECOVERY.md`. Monitor size/availability metadata only; never log
+binary bodies, recovery phrases, or key journals. Backup-provider retention and
+physical replacement-device acceptance remain release validation requirements.

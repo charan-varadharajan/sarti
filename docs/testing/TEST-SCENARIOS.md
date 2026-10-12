@@ -50,7 +50,11 @@ scenario's setup helper.
 | `EMAIL-MOB-001` | A sealed, attributed email remains a proposal until approval | Prepared encrypted delivery → email inbox | `mobile/test/natural_language_event_flow_test.dart` |
 | `SYNC-MOB-001` | Offline changes survive restart and duplicates do not duplicate events | Prepared device databases → sync engine | `mobile/test/calendar_and_sync_test.dart` |
 | `SYNC-MOB-002` | Concurrent edits create an explicit conflict without silent loss | Diverged device databases → conflict resolver | `mobile/test/calendar_and_sync_test.dart` |
-| `BACKUP-MOB-001` | Corrupt or incorrectly keyed backup data fails safely | Synthetic encrypted backup → restore service | `mobile/test/backup_service_test.dart`; blocked from acceptance by BUG-001/002 |
+| `BACKUP-MOB-001` | Corrupt or incorrectly keyed backup data fails safely | Synthetic encrypted backup → restore service | `mobile/test/backup_service_test.dart` |
+| `BACKUP-MOB-002` | Replacement installation restores with recovered SQLCipher key; BUG-002 | Prepared encrypted family + empty independent installation → stage/activate; tear down temp directories | `mobile/test/backup_recovery_test.dart`; real SQLCipher; protected-storage failure injection |
+| `BACKUP-MOB-003` | Explicit phrase acknowledgement before upload | Direct prepared backup screen, synthetic phrase → upload; dispose widget | `mobile/test/backup_screen_test.dart` |
+| `BACKUP-MOB-004` | Explicit phrase-validated restore | Direct screen with prepared downloaded backup → restore; dispose widget | `mobile/test/backup_screen_test.dart`; invalid input cannot invoke restore |
+| `BACKUP-API-001` | Full snapshot access respects owner, tenant, device and revision boundaries | Isolated PostgreSQL, synthetic passkey sessions/family → binary API | `backend/tests/integration/test_backup_api.py`; includes deletion purge |
 
 Backend authorization, tenant isolation, API abuse cases, migrations, email
 routing, and relay retention remain catalogued as mandatory scenarios in

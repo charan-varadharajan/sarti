@@ -5,11 +5,10 @@
 
 ## Implementation conformance audit
 
-ADR-031 supersedes this record's recovery-phrase rules and brings phrase
-generation and validation into BIP-39 conformance. The raw SQLCipher payload
-still does not define how a replacement device recovers the independent
-SQLCipher database key. Backup recovery is therefore not an accepted feature
-until BUG-002 is resolved through a separately approved ADR.
+ADR-032 now supersedes this historical record's backup payload, restore workflow,
+and destinations with the approved v2 key envelope and Sarti ciphertext relay.
+ADR-031 supersedes phrase generation/validation. The original decisions below
+are retained as history, not the current recovery specification.
 
 ## Decision
 

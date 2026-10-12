@@ -20,5 +20,26 @@ columns and adds `email_suggestion_deliveries`, which contains a recipient devic
 ID, libsodium sealed-box ciphertext, delivery state, and timestamps. The server
 cannot decrypt these per-device payloads.
 
-The migration suite upgrades a real PostgreSQL database, asserts schema version 4
+The migration suite upgrades a real PostgreSQL database, asserts schema version 5
 and required tables, and exercises the constraints through the full API flow.
+
+Migration `0005` adds `family_backups` (family UUID primary/foreign key, positive
+revision, bounded v2 ciphertext, update timestamp). Family deletion cascades;
+soft deletion triggers immediate snapshot removal. Retention is until replacement
+or deletion, independently of seven-day synchronization retention. See
+`../api/BACKUP-RECOVERY.md` for the opaque binary contract.
+
+```mermaid
+erDiagram
+    families ||--o| family_backups : owns
+    families {
+        uuid id PK
+        timestamp deleted_at
+    }
+    family_backups {
+        uuid family_id PK,FK
+        bigint revision
+        bytea ciphertext
+        timestamp updated_at
+    }
+```

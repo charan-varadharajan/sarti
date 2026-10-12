@@ -20,7 +20,7 @@ unresolved rather than inferred.
 | [ADR-012](adr/012-authorization.md) | Role and resource authorization | Accepted |
 | [ADR-013](adr/013-postgres-jobs.md) | PostgreSQL-backed jobs | Accepted |
 | [ADR-014](adr/014-riverpod.md) | Riverpod state management | Accepted |
-| [ADR-015](adr/015-backup-recovery.md) | User-owned encrypted backup and recovery | Accepted; format unresolved |
+| [ADR-015](adr/015-backup-recovery.md) | User-owned encrypted backup and recovery | Accepted; specified by ADR-025/031/032 |
 | [ADR-016](adr/016-private-monitoring.md) | Privacy-preserving monitoring | Accepted |
 | [ADR-017](adr/017-export-deletion.md) | User-controlled export and deletion | Accepted |
 | [ADR-018](adr/018-local-development-hosting.md) | Docker local development; hosting undecided | Accepted |
@@ -30,13 +30,14 @@ unresolved rather than inferred.
 | [ADR-022](adr/022-calendar-time-permissions-and-reminders.md) | Calendar time semantics, permissions, and reminders | Accepted |
 | [ADR-023](adr/023-natural-language-event-parsing.md) | Natural-language event parsing and AI assist | Accepted |
 | [ADR-024](adr/024-inbound-email-gateway.md) | Inbound email gateway | Accepted |
-| [ADR-025](adr/025-backup-and-recovery.md) | User-owned encrypted backup and recovery | Accepted |
+| [ADR-025](adr/025-backup-and-recovery.md) | User-owned encrypted backup and recovery | Accepted; phrase/payload/restore superseded by ADR-031/032 |
 | [ADR-026](adr/026-push-notifications.md) | Push notifications | Accepted |
 | [ADR-027](adr/027-beta-hosting-cloud-run-neon.md) | Cloud Run and Neon Free for beta hosting | Accepted |
 | [ADR-028](adr/028-cloud-prompt-pseudonymization.md) | Local pseudonymization before optional cloud AI | Accepted; supersedes ADR-023 rules 1-2 |
 | [ADR-029](adr/029-native-on-device-ai-bridges.md) | Apple Foundation Models and Android ML Kit on-device AI bridges | Accepted |
 | [ADR-030](adr/030-release-versioning.md) | Repository-wide SemVer and mobile build numbering | Accepted |
 | [ADR-031](adr/031-bip39-recovery-phrase-conformance.md) | BIP-39 recovery-phrase conformance | Accepted; supersedes ADR-025 phrase rules |
+| [ADR-032](adr/032-portable-encrypted-backup-relay.md) | Portable encrypted snapshot and owner-authorized recovery relay | Accepted; supersedes ADR-025 payload, restore and destinations |
 
 New records use the next three-digit number. Accepted decisions are changed only
 by an explicitly approved superseding ADR.

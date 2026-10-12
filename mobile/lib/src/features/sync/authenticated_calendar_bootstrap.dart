@@ -18,6 +18,9 @@ import 'package:sarti_mobile/src/features/push/push_sync_coordinator.dart';
 import 'package:sarti_mobile/src/features/sync/authenticated_sync_runtime.dart';
 import 'package:sarti_mobile/src/features/sync/sync_engine.dart';
 import 'package:sodium/sodium.dart';
+import 'package:sarti_mobile/src/core/backup/backup_service.dart';
+import 'package:sarti_mobile/src/features/backup/backup_recovery.dart';
+import 'package:sarti_mobile/src/features/backup/backup_screen.dart';
 
 class AuthenticatedCalendarBootstrap extends StatefulWidget {
   const AuthenticatedCalendarBootstrap({
@@ -28,6 +31,7 @@ class AuthenticatedCalendarBootstrap extends StatefulWidget {
     required this.secrets,
     required this.reminders,
     required this.timezone,
+    this.onRecovered,
     this.apiBaseUrl = const String.fromEnvironment('SARTI_API_BASE_URL'),
   });
 
@@ -37,6 +41,7 @@ class AuthenticatedCalendarBootstrap extends StatefulWidget {
   final SecretStore secrets;
   final ReminderScheduler reminders;
   final String timezone;
+  final VoidCallback? onRecovered;
   final String apiBaseUrl;
 
   @override
@@ -215,6 +220,83 @@ class _AuthenticatedCalendarBootstrapState
       _message = null;
     });
     unawaited(runtime.start().catchError((Object _) => _showSyncIssue()));
+    if (controller.family == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_openBackup(discover: true));
+      });
+    }
+  }
+
+  Future<void> _openBackup({bool discover = false}) async {
+    final api = _api;
+    if (api == null || api.sessionToken == null) return;
+    try {
+      final families = (await api.listFamilies())
+          .where((f) => f.role == 'owner' && f.status == 'active')
+          .toList();
+      final local = _controller?.family;
+      if (local != null) families.removeWhere((f) => f.id != local.householdId);
+      if (families.isEmpty || !mounted) return;
+      // P0 has one local family; discover only backups this owner can access.
+      for (final family in families) {
+        var backup = await api.downloadBackup(family.id);
+        if (discover && backup == null) continue;
+        if (!mounted) return;
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (context) => BackupScreen(
+              hasBackup: backup != null,
+              canCreate: local != null,
+              updatedAt: backup?.updatedAt,
+              generatePhrase: () =>
+                  BackupService.generateRecoveryPhrase(sodium: widget.sodium),
+              create: (phrase) async {
+                final key = widget.keys.databaseKey.extractBytes();
+                try {
+                  final bytes = await BackupRecovery.snapshot(
+                    database: widget.database,
+                    key: key,
+                    phrase: phrase,
+                    sodium: widget.sodium,
+                    familyId: family.id,
+                  );
+                  await api.uploadBackup(
+                    family.id,
+                    bytes,
+                    backup?.revision ?? 0,
+                  );
+                  backup = await api.downloadBackup(family.id);
+                } finally {
+                  key.fillRange(0, key.length, 0);
+                }
+              },
+              remove: () async {
+                await api.deleteBackup(family.id);
+                backup = null;
+              },
+              restore: (phrase) async {
+                await BackupRecovery.stage(
+                  blob: backup!.bytes,
+                  phrase: phrase,
+                  familyId: family.id,
+                  current: widget.database,
+                  sodium: widget.sodium,
+                  secrets: widget.secrets,
+                );
+                await _runtime?.dispose();
+                _runtime = null;
+                if (!mounted) return;
+                Navigator.of(this.context).pop();
+                widget.onRecovered?.call();
+              },
+            ),
+          ),
+        );
+        return;
+      }
+    } catch (_) {
+      _showSyncIssue();
+    }
   }
 
   void _showSyncIssue() {
@@ -270,7 +352,19 @@ class _AuthenticatedCalendarBootstrapState
               CloudAiConsentStore(widget.database),
             ),
             emailInbox: _emailInbox,
+            onBackup: _api?.sessionToken == null
+                ? null
+                : () => unawaited(_openBackup()),
           ),
+          if (controller.family == null && _api?.sessionToken != null)
+            Positioned(
+              top: MediaQuery.paddingOf(context).top,
+              right: 16,
+              child: TextButton(
+                onPressed: () => unawaited(_openBackup(discover: true)),
+                child: const Text('Restore encrypted backup'),
+              ),
+            ),
           if (_message case final message?)
             Positioned(
               left: 16,

@@ -2,8 +2,8 @@
 
 Status: Stage 2 identity, authorization, device-key, encrypted-relay, and local
 calendar controls are implemented under ADR-019 through ADR-022. Stage 3 privacy
-remediation is implemented except for the approved recovery-design conflict and
-provider/physical-device validation recorded in `docs/STATUS.md`.
+remediation includes the approved ADR-031/032 recovery fixes. Open product
+defects and provider/physical-device validation remain in `docs/STATUS.md`.
 
 The backend implements passkeys, one-active-device enforcement, owner/guardian
 membership, resource permissions, signed sealed key grants, replay defense, and
@@ -66,10 +66,11 @@ available to it. Revocation protects future access and is not remote erasure.
 
 ADR-020 and `KEY-MANAGEMENT.md` specify the implemented device/resource lifecycle.
 Guardian removal increments every resource epoch and prevents future grants.
-Backup derivation is independent of sync keys. Replacement-device recovery is
-blocked because ADR-025 encrypts raw SQLCipher file bytes without including a
-recoverable SQLCipher key; changing that accepted payload format requires an
-approved superseding ADR.
+Backup derivation is independent of sync keys. Approved ADR-032 encrypts the
+SQLCipher key inside the v2 snapshot envelope and gates the durable server blob
+to active family owners. Login permits download but never decryption. Local
+restore verifies family/schema/integrity, preserves new device identity, clears
+old sync credentials/state, and activates via a protected retryable journal.
 
 ## Authentication and device authorization
 
@@ -106,7 +107,7 @@ material, notification text, and unbounded exception payloads.
 ## Open security decisions
 
 Provider production configuration, AI compatibility on physical devices, the
-backup/recovery format conflict, deletion deadlines, production RP domain,
+physical backup/recovery validation, deletion deadlines, production RP domain,
 device-attestation policy, and metadata retention beyond the seven-day relay
 rule require approval or later implementation. Physical-device validation is
 required before release.

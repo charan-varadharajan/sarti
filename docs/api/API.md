@@ -77,3 +77,11 @@ The encryption/AAD construction is specified in `docs/architecture/OFFLINE-SYNC.
   content, child names, or event data is included in the FCM payload. Returns
   `{"dispatched": N}`. If `fcm_credentials_file` is not configured, returns
   `{"dispatched": 0}` without error.
+
+## Encrypted recovery (ADR-032)
+
+`GET/PUT/DELETE /v1/families/{family_id}/backup` require an active authorized
+owner device. PUT accepts a bounded v2 binary snapshot and an expected revision;
+GET returns ciphertext and revision/time headers, never a recovery key. The
+shipping app discovers a backup after login and restores only after explicit
+phrase confirmation. See [backup protocol](BACKUP-RECOVERY.md).

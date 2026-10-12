@@ -4,11 +4,12 @@ import 'dart:typed_data';
 import 'package:sqlite3/sqlite3.dart';
 
 class SartiDatabase {
-  SartiDatabase._(this.raw);
+  SartiDatabase._(this.raw, this.path);
 
   static const schemaVersion = 5;
 
   final Database raw;
+  final String path;
 
   static SartiDatabase open(String path, Uint8List key) {
     if (key.length != 32) {
@@ -26,7 +27,7 @@ class SartiDatabase {
       }
       database.execute('PRAGMA foreign_keys = ON');
       database.select('SELECT count(*) FROM sqlite_master');
-      final result = SartiDatabase._(database);
+      final result = SartiDatabase._(database, path);
       result._migrate();
       return result;
     } catch (_) {

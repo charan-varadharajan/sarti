@@ -161,6 +161,72 @@ class SartiApiClient implements EncryptedRelay {
     return response.map(_familyFromJson).toList(growable: false);
   }
 
+  Future<RemoteBackup?> downloadBackup(String familyId) async {
+    try {
+      final response = await _backupRequest('GET', familyId);
+      final bytes = await response.fold<List<int>>([], (all, chunk) {
+        if (all.length + chunk.length > 10 * 1024 * 1024) {
+          throw StateError('Backup exceeds size limit.');
+        }
+        return all..addAll(chunk);
+      });
+      return RemoteBackup(
+        Uint8List.fromList(bytes),
+        int.parse(response.headers.value('X-Backup-Revision')!),
+        DateTime.parse(response.headers.value('X-Backup-Updated-At')!),
+      );
+    } on SartiApiException catch (error) {
+      if (error.statusCode == 404) return null;
+      rethrow;
+    }
+  }
+
+  Future<void> uploadBackup(
+    String familyId,
+    Uint8List bytes,
+    int revision,
+  ) async {
+    final response = await _backupRequest(
+      'PUT',
+      familyId,
+      bytes: bytes,
+      revision: revision,
+    );
+    await response.drain<void>();
+  }
+
+  Future<void> deleteBackup(String familyId) async {
+    final response = await _backupRequest('DELETE', familyId);
+    await response.drain<void>();
+  }
+
+  Future<HttpClientResponse> _backupRequest(
+    String method,
+    String familyId, {
+    Uint8List? bytes,
+    int? revision,
+  }) async {
+    final token = sessionToken;
+    if (token == null) throw StateError('Authentication required.');
+    if (bytes != null && bytes.length > 10 * 1024 * 1024) {
+      throw StateError('Backup exceeds size limit.');
+    }
+    final request = await _http.openUrl(
+      method,
+      baseUri.resolve('/v1/families/$familyId/backup'),
+    );
+    request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
+    request.headers.contentType = ContentType.binary;
+    if (revision != null) request.headers.set('X-Backup-Revision', '$revision');
+    if (bytes != null) request.add(bytes);
+    final response = await request.close();
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      await response.drain<void>();
+      throw SartiApiException(response.statusCode);
+    }
+    return response;
+  }
+
   Future<int> sendSyncWakeUp(String familyId) async {
     final response = await _json(
       'POST',
@@ -323,4 +389,11 @@ class SartiApiClient implements EncryptedRelay {
       base64Url.decode(base64Url.normalize(value));
 
   void close() => _http.close(force: true);
+}
+
+class RemoteBackup {
+  const RemoteBackup(this.bytes, this.revision, this.updatedAt);
+  final Uint8List bytes;
+  final int revision;
+  final DateTime updatedAt;
 }

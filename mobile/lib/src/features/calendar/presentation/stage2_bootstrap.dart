@@ -6,6 +6,7 @@ import 'package:sarti_mobile/src/core/crypto/device_key_store.dart';
 import 'package:sarti_mobile/src/core/database/sarti_database.dart';
 import 'package:sarti_mobile/src/features/calendar/data/reminder_scheduler.dart';
 import 'package:sarti_mobile/src/features/sync/authenticated_calendar_bootstrap.dart';
+import 'package:sarti_mobile/src/features/backup/backup_recovery.dart';
 import 'package:sodium/sodium.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 
@@ -31,12 +32,13 @@ class _Stage2BootstrapState extends State<Stage2Bootstrap> {
     tz_data.initializeTimeZones();
     final sodium = await SodiumInit.init();
     final secrets = PlatformSecretStore();
+    final directory = await getApplicationSupportDirectory();
+    final path = '${directory.path}${Platform.pathSeparator}sarti.db';
     final keys = await DeviceKeyStore(
       sodium,
       secrets,
       PlatformDeviceUnlock(),
-    ).loadOrCreate();
-    final directory = await getApplicationSupportDirectory();
+    ).loadOrCreate(beforeLoad: () => BackupRecovery.activate(path, secrets));
     final database = SartiDatabase.open(
       '${directory.path}${Platform.pathSeparator}sarti.db',
       keys.databaseKey.extractBytes(),
@@ -74,6 +76,9 @@ class _Stage2BootstrapState extends State<Stage2Bootstrap> {
   Widget build(BuildContext context) => FutureBuilder<_LocalResources>(
     future: _resources,
     builder: (context, snapshot) {
+      if (snapshot.connectionState != ConnectionState.done) {
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      }
       if (snapshot.hasError) {
         return Scaffold(
           body: Center(
@@ -102,6 +107,14 @@ class _Stage2BootstrapState extends State<Stage2Bootstrap> {
       }
       final resources = snapshot.requireData;
       return AuthenticatedCalendarBootstrap(
+        key: ObjectKey(resources),
+        onRecovered: () {
+          _database?.close();
+          _database = null;
+          _keys?.dispose();
+          _keys = null;
+          setState(() => _resources = _open());
+        },
         database: resources.database,
         keys: resources.keys,
         sodium: resources.sodium,

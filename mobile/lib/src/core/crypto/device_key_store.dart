@@ -114,10 +114,13 @@ class DeviceKeyStore {
     await secrets.write(_databaseKey, base64UrlEncode(key));
   }
 
-  Future<DeviceKeyMaterial> loadOrCreate() async {
+  Future<DeviceKeyMaterial> loadOrCreate({
+    Future<void> Function()? beforeLoad,
+  }) async {
     if (!await unlocker.unlock()) {
       throw StateError('Device authentication was cancelled.');
     }
+    await beforeLoad?.call();
     final storedDatabaseKey = await secrets.read(_databaseKey);
     if (storedDatabaseKey == null) return _create();
     final values = await Future.wait([

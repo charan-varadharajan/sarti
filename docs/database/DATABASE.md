@@ -16,6 +16,7 @@ grants, and relay ciphertext. Field-level designs and classifications are in
 | `0002` | PostgreSQL | Identity, devices, families, permissions, invitations, grants, relay; version 2 | Real PostgreSQL migration and API integration |
 | `0003` | PostgreSQL | `fcm_token` nullable column on `devices`; `email_token_digest` nullable column with partial unique index on `families`; `email_suggestions` table with status check constraint and expiry/family indexes; version 3 | Unit tests; Alembic upgrade to head |
 | `0004` | PostgreSQL | Removes plaintext sender/subject/body/status from `email_suggestions`; adds device-scoped sealed-ciphertext deliveries; version 4 | Real PostgreSQL upgrade and API integration; encrypted delivery unit tests |
+| `0005` | PostgreSQL | One opaque, bounded, revisioned backup per family; cascade and soft-delete purge; version 5 | Upgrade/downgrade/re-upgrade and owner/tenant/device API tests |
 
 Alembic upgrades run before backend startup. Local migrations use immediate
 transactions and update `user_version` only after success.

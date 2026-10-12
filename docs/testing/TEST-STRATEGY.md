@@ -87,3 +87,13 @@ provisioning, wake-up after upload, session expiry, and email refresh. The email
 widget path decrypts a sealed delivery, displays source attribution, proves no
 event exists before approval, then saves and dismisses after approval. These
 tests do not establish Cloudflare, Firebase, or physical-device compatibility.
+
+ADR-032 backup checks combine real SQLCipher snapshots of prepared recurring
+calendar events with an independent empty replacement installation. Tests verify
+key recovery, family scope, wrong phrases, corruption, preservation of existing
+local data, protected-storage failures, pending activation retries, and fresh
+device identity. Binary transport and real PostgreSQL API tests verify owner/
+tenant/device isolation, bounded uploads, stale revisions, and deletion purge.
+Direct backup-screen widget fixtures require explicit phrase acknowledgement and
+restore confirmation. Physical passkey-to-recovery and OS interruption/reminder
+behavior remain release checks; these are not established by widget mocks.

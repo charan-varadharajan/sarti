@@ -3,6 +3,15 @@ from sqlalchemy.dialects import postgresql
 
 metadata = sa.MetaData()
 
+family_backups = sa.Table(
+    "family_backups",
+    metadata,
+    sa.Column("family_id", postgresql.UUID(as_uuid=True), primary_key=True),
+    sa.Column("revision", sa.BigInteger(), nullable=False),
+    sa.Column("ciphertext", sa.LargeBinary(), nullable=False),
+    sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
+)
+
 adults = sa.Table(
     "adults",
     metadata,

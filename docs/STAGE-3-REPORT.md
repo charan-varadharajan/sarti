@@ -1,8 +1,8 @@
 # Stage 3 verification report
 
 - Stage: Stage 3 — AI proposals, email intake, push notifications, and backup/recovery
-- Date: 2026-10-11
-- State: incomplete; recovery redesign and real provider/device verification outstanding
+- Date: 2026-10-11 (original report; see 2026-10-12 remediation below)
+- State: incomplete; BUG-001/002 remediated; other open defects and real provider/device verification outstanding
 
 ## Features and remediation
 
@@ -26,7 +26,7 @@ idempotently, runs encrypted synchronization, registers FCM token rotations,
 coalesces opaque wake-ups, refreshes email deliveries, catches up on foreground,
 and clears expired sessions. Empty backend configuration preserves offline use.
 
-Backup envelope primitives pass isolated tests, but the current implementation
+At the original report date, backup envelope primitives passed isolated tests, but the implementation
 is not an acceptable recovery feature. Its phrase is not BIP-39, and decrypting
 the envelope on a replacement device yields a SQLCipher file whose database key
 is unavailable. Fixing this requires a superseding ADR and a reviewed dependency
@@ -115,3 +115,13 @@ material recovery dependency. The next work is to approve and implement that
 superseding recovery design, then finish the remaining Stage 2 mobile sharing
 journeys and execute provider/device acceptance. Stage 4 must not begin without
 explicit approval.
+
+## 2026-10-12 BUG-002 remediation
+
+Approved ADR-031/032 now supersede the recovery defects described in the original
+report. The shipping owner backup UI, authenticated opaque relay, automatic
+replacement-device discovery, v2 SQLCipher key envelope, and protected staged
+activation are implemented. See [BUG-002 verification](testing/BUG-002-VERIFICATION.md)
+for changed areas, exact checks, security controls and remaining physical-device
+limitations. Stage 3 remains unaccepted; BUG-003/004/005 are still open. Do not
+start Stage 4 or another defect without explicit approval.

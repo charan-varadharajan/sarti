@@ -10,6 +10,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from sarti_backend.api.auth import router as auth_router
+from sarti_backend.api.backups import router as backups_router
 from sarti_backend.api.email import router as email_router
 from sarti_backend.api.health import router as health_router
 from sarti_backend.api.households import router as households_router
@@ -132,6 +133,7 @@ def create_app(
 
     app.include_router(health_router)
     app.include_router(auth_router)
+    app.include_router(backups_router)
     app.include_router(households_router)
     app.include_router(sync_router)
     app.include_router(email_router)

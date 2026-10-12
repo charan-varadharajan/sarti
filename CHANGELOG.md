@@ -27,6 +27,10 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
   harness for prepared data, direct flow entry, emulator execution, and teardown.
 
 ### Corrected
+- BUG-002: connect v2 encrypted SQLCipher-key snapshots to an owner-authorized
+  upload/download/delete API and reachable backup/recovery UI. Replacement
+  installations discover backups after login, require the user-held phrase,
+  validate family/integrity, and activate through a protected recovery journal.
 - Fixed BUG-001: recovery phrases are now standard, checksum-validated BIP-39
   English mnemonics generated from libsodium entropy and checked before backup
   key derivation or restoration.
