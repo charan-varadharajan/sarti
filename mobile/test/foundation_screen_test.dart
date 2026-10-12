@@ -38,7 +38,16 @@ void main() {
     await harness.openAddEvent(tester);
     await tester.enterText(find.byType(TextField).first, 'Swimming');
     await tester.tap(find.text('Repeat weekly'));
-    await tester.tap(find.text('Mia'));
+    final miaId = harness.controller.family!.children
+        .firstWhere((child) => child.name == 'Mia')
+        .id;
+    final mia = find.byKey(Key('event-child-$miaId'));
+    await tester.drag(
+      find.byKey(const Key('event-editor-scroll')),
+      const Offset(0, -400),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(mia);
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 

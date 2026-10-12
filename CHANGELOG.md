@@ -39,6 +39,8 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
   parent to choose AM or PM; native AI cannot silently resolve the ambiguity.
 - Fixed BUG-008 so Android unlocks the protected secret-store key once per app
   process instead of opening competing prompts for each device-key field.
+- Fixed BUG-009 so `CAL-MOB-001` scrolls a child selector into view before
+  interacting with it on compact iPhone layouts.
 
 ### Known open defects
 See `docs/engineering/BUGS.md` for the current open defect list.

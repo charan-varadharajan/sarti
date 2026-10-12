@@ -111,6 +111,15 @@ in-repository record while Sarti has no external tracker.
 
 ## Resolved defects
 
+### BUG-009 — Prepared add-event scenario missed an off-screen child selector on iPhone
+- Severity: Low
+- Component: `mobile/integration_test/calendar_add_event_scenario_test.dart`
+- Discovered: 2026-10-12 during iPhone 18 Pro simulator execution
+- Fixed: 2026-10-12 — pending commit
+- Fix version: Unreleased
+- Disposition: The scenario now scrolls the child selector into view before
+  interaction, making the shared test work across Android and iPhone layouts.
+
 ### BUG-008 — Android device-key loading opened competing authentication prompts
 - Severity: High
 - Component: `mobile/lib/src/core/crypto/device_key_store.dart`

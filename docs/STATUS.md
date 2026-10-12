@@ -80,7 +80,7 @@ the flawed format.
 | Docker Compose health | Backend and PostgreSQL healthy |
 | Flutter format / analyze | Passed; no issues |
 | Flutter unit/widget tests | 80 passed on 2026-10-12 |
-| Prepared Android emulator scenario | `CAL-MOB-001` passed on API 35 on 2026-10-12 |
+| Prepared mobile emulator scenario | `CAL-MOB-001` passed on Android API 35 and iPhone 18 Pro / iOS 27.0 on 2026-10-12 |
 | Android debug / unsigned iOS debug builds | Passed; APK and Runner.app produced |
 | Pip-audit runtime dependency scan | Passed; no known vulnerabilities |
 | Version checker/tests | Passed; 3 tests |

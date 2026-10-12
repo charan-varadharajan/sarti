@@ -360,6 +360,7 @@ class CalendarScreen extends StatelessWidget {
         builder: (context, setState) => AlertDialog(
           title: Text(event == null ? 'New event' : 'Edit event'),
           content: SingleChildScrollView(
+            key: const Key('event-editor-scroll'),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -401,6 +402,7 @@ class CalendarScreen extends StatelessWidget {
                 ),
                 for (final child in family.children)
                   CheckboxListTile(
+                    key: Key('event-child-${child.id}'),
                     title: Text(child.name),
                     value: selectedChildren.contains(child.id),
                     onChanged: (value) => setState(() {
