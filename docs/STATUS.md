@@ -34,6 +34,12 @@ ADR-027 selects Google Cloud Run plus Neon Free for development and the initial
 private beta. Production hosting remains unresolved pending Stage 3 remediation,
 backup/recovery validation, provider review, and an explicit production decision.
 
+## Release governance
+
+ADR-030 defines repository-wide Semantic Versioning, monotonic mobile build
+numbers, matching `vMAJOR.MINOR.PATCH` tags, trunk-based releases, and CI drift
+checks. The current version is `0.1.0+1`; no public release tag has been created.
+
 ## Delivered
 
 ### Stage 2

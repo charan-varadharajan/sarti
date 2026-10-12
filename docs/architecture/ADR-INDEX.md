@@ -35,6 +35,7 @@ unresolved rather than inferred.
 | [ADR-027](adr/027-beta-hosting-cloud-run-neon.md) | Cloud Run and Neon Free for beta hosting | Accepted |
 | [ADR-028](adr/028-cloud-prompt-pseudonymization.md) | Local pseudonymization before optional cloud AI | Accepted; supersedes ADR-023 rules 1-2 |
 | [ADR-029](adr/029-native-on-device-ai-bridges.md) | Apple Foundation Models and Android ML Kit on-device AI bridges | Accepted |
+| [ADR-030](adr/030-release-versioning.md) | Repository-wide SemVer and mobile build numbering | Accepted |
 
 New records use the next three-digit number. Accepted decisions are changed only
 by an explicitly approved superseding ADR.

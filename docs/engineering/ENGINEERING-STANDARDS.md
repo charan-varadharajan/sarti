@@ -47,5 +47,5 @@ fundamental architecture assumption fails; or work exceeds P0.
 - CI runs on pushes to `main` and pull requests. Required checks should be branch
   protected when repository settings are configured.
 - Build products, local environments, coverage output, and secrets are ignored.
-- Release versioning and production branching remain unresolved until the first
-  release plan.
+- Release versioning and trunk-based production branching follow ADR-030 and
+  `RELEASES.md`; CI rejects version drift and mismatched release tags.

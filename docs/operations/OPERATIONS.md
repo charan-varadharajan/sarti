@@ -37,6 +37,13 @@ Generate OpenAPI with `cd backend && PYTHONPATH=src
 SARTI_DATABASE_URL=postgresql+psycopg://unused ../.venv/bin/python
 scripts_generate_openapi.py` and commit the result.
 
+Version validation and increments follow `docs/engineering/RELEASES.md`:
+
+```sh
+make version-check version-test
+python3 scripts/version.py bump patch
+```
+
 ## Troubleshooting
 
 - Start Docker Desktop if the daemon socket is unavailable.

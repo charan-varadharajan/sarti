@@ -1,10 +1,16 @@
-.PHONY: backend-check backend-test docker-down docker-up mobile-check setup
+.PHONY: backend-check backend-test docker-down docker-up mobile-check setup version-check version-test
 
 setup:
 	@test -f .env || cp .env.example .env
 	python3 -m venv .venv
 	.venv/bin/pip install -r backend/requirements-dev.txt
 	cd mobile && flutter pub get
+
+version-check:
+	python3 scripts/version.py check
+
+version-test:
+	python3 -m unittest discover -s scripts -p 'test_*.py'
 
 backend-test:
 	cd backend && ../.venv/bin/pytest -m "not integration" --cov --cov-report=term-missing --cov-fail-under=0

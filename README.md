@@ -6,6 +6,9 @@ This monorepo contains the Flutter iOS/Android app, FastAPI backend, PostgreSQL
 migrations, Docker local environment, tests, CI gates, and architecture/security
 documentation through Stage 2.
 
+Current release version: `0.1.0` (mobile build `1`). Version increments and
+release tags follow [ADR-030](docs/architecture/adr/030-release-versioning.md).
+
 ## Prerequisites
 
 - Flutter 3.47.7 with Dart 3.13.5
