@@ -1,266 +1,117 @@
-# Stage 3 completion report
+# Stage 3 verification report
 
 - Stage: Stage 3 — AI proposals, email intake, push notifications, and backup/recovery
-- Date: 2026-10-12
-- State: audit failed; remediation required before acceptance
+- Date: 2026-10-11
+- State: incomplete; recovery redesign and real provider/device verification outstanding
 
-## Post-implementation audit (2026-10-11)
+## Features and remediation
 
-The original completion claim below is retained as implementation history, but
-it is superseded by this audit. The full local suite passes after targeted build
-and test-infrastructure repairs: 19 backend tests at 87.47% branch coverage, 61
-Flutter tests, Ruff, Mypy, Bandit, Flutter analyze, Android and unsigned iOS
-builds, Docker health and migration 0003, pip-audit, OpenAPI drift, and Gitleaks.
+Natural-language entry runs a deterministic parser first, optionally uses a
+runtime-gated native model, shows an editable proposal, and writes only after an
+explicit save. Unsupported devices stay local and deterministic. The optional
+Gemini path is disabled by default and requires a versioned disclosure/opt-in;
+known child and location values are pseudonymized before transmission.
 
-Stage 3 acceptance is blocked by missing disclosure and opt-in for the approved
-pseudonymized cloud assist without opt-in, plaintext email persistence, missing encrypted email
-delivery and approval flow, missing mobile integration for Stage 3 features,
-missing application quiet hours, inaccurate BIP-39 claims, and unexecuted
-provider/physical-device tests. The detailed, current list is maintained in
-`docs/STATUS.md`.
+Email ingress now ends its plaintext persistence boundary inside one backend
+request. The service sanitizes and bounds the message, resolves the hashed family
+token, then seals the sender/subject/body separately to every currently active
+device with its X25519 public key. PostgreSQL stores only digest/expiry metadata
+and per-device ciphertext. The authenticated app decrypts locally, attributes
+the sender, treats the message as untrusted input, and uses the existing proposal
+review. Approval saves the event; dismissal is scoped to the receiving device.
 
-The natural-language mobile acceptance path has since been integrated under
-ADR-029: Apple Foundation Models and Android ML Kit native bridges, deterministic
-fallback, editable review, explicit confirmation, and Undo all compile and pass
-automated tests. Physical-device inference remains a release gap.
+The mobile bootstrap now restores secure sessions, supports native passkey
+registration/authentication, provisions offline-created family/calendar IDs
+idempotently, runs encrypted synchronization, registers FCM token rotations,
+coalesces opaque wake-ups, refreshes email deliveries, catches up on foreground,
+and clears expired sessions. Empty backend configuration preserves offline use.
 
-The opaque push client has since been implemented under ADR-026. It registers
-initial and refreshed FCM tokens through the authenticated API, accepts only the
-exact one-key `{"type":"sync_available"}` payload, coalesces duplicate hints,
-and requests catch-up when the app returns to the foreground. Flutter analysis,
-67 mobile tests, Android debug build, and unsigned iOS debug build pass. This is
-not an end-to-end delivery claim: Firebase/APNs configuration and the shipping
-authenticated `SartiApiClient`/`SyncEngine` bootstrap are still missing, and no
-two-device physical test has run.
+Backup envelope primitives pass isolated tests, but the current implementation
+is not an acceptable recovery feature. Its phrase is not BIP-39, and decrypting
+the envelope on a replacement device yields a SQLCipher file whose database key
+is unavailable. Fixing this requires a superseding ADR and a reviewed dependency
+or platform-independent mnemonic implementation from an established library.
 
----
+## Changed areas
 
-## Features delivered
+- Backend: idempotent client-ID family provisioning; encrypted email ingest,
+  polling, and dismissal; schema/migration `0004`; PyNaCl; regenerated OpenAPI.
+- Mobile: session store; authenticated bootstrap/runtime; API family, email,
+  push, and relay wiring; encrypted email inbox and proposal UI; regression tests.
+- Engineering: canonical `VERSION`/`BUILD_NUMBER`, ADR-030, release policy,
+  version checker/bump command, CI validation, and version tests.
+- Documentation: email boundary, API, database, data flow, dependencies,
+  operations, security, tests, module catalog, status, and this report.
 
-### Deterministic NLP event parser (ADR-023)
-`DeterministicEventParser` implementing the `AiProvider` interface. Parses title,
-12h/24h/bare time, today/tomorrow/weekday date, daily/weekly/monthly recurrence,
-location (`in`/`at` proper noun), and child/guardian name tokens. Never fabricates
-missing fields. `EventProposal` model with `isActionable` and `toRecurrenceRule()`.
+## ADRs and approvals
 
-### Gemini cloud assist adapter (ADR-023)
-`GeminiAiProvider` wrapping `google_generative_ai 0.4.7`. Known child names and
-locations are replaced locally under ADR-028 before the request. No family IDs,
-real child names, alias mappings, or profile records are sent. Structured JSON output.
-Additive-only merge with the deterministic result. Never throws; returns the
-deterministic result on any failure.
-
-### Native on-device AI and proposal UI (ADR-029)
-
-Flutter invokes Apple Foundation Models or Android ML Kit Prompt API through a
-private method channel only after the native runtime reports the model ready.
-The deterministic parser runs first and native JSON can fill unresolved fields
-only. The calendar exposes an editable proposal; it cannot write before explicit
-approval and offers Undo after creation. Unsupported or failed native inference
-continues with the deterministic parser and never silently calls cloud AI.
-
-Cloud use now has a user-facing residual-risk disclosure and a versioned,
-reversible consent value stored in SQLCipher. Consent defaults off. A provider
-gate returns no Gemini adapter without both current consent and configuration.
-
-### Inbound email gateway (ADR-024)
-`POST /v1/email/ingest` — Cloudflare Worker webhook. HMAC constant-time
-`X-Worker-Secret` authentication. `<INPUT>` tag injection sanitization on subject
-and body. Family token resolved to family ID via SHA-256 digest; unknown token
-returns 404. Rate limited to 20 emails per family per 24 hours via COUNT subquery.
-Content-digest deduplication returns existing suggestion ID on repeat. Suggestions
-stored with 7-day TTL. Raw email never persisted.
-
-### Push notifications (ADR-026)
-`POST /v1/push/register` — stores FCM token for the authenticated device.
-`POST /v1/push/wake-up` — verifies active membership, sends
-`{"type": "sync_available"}` to all other active family devices via
-`firebase_admin`. No family content in FCM payload. Returns `dispatched: 0`
-gracefully when `fcm_credentials_file` is not configured.
-
-Flutter now provides `PushSyncCoordinator` and a Firebase transport boundary.
-Provider initialization fails closed when local builds have no Firebase
-configuration; no token or provider exception text is exposed through its
-bounded failure reporting.
-
-### Backup and recovery (ADR-025)
-`BackupService` with `generateRecoveryPhrase()` (12-word BIP-39),
-`deriveKey()` (PBKDF2-HMAC-SHA256, 200 k iterations, 32-byte salt),
-`createBackup()` (magic header + version + salt + nonce + XChaCha20-Poly1305
-ciphertext), `restoreBackup()` (wrong phrase and corrupted data both fail with
-`BackupException`). `sodium` is a required parameter to avoid `FutureOr<Sodium>`
-type errors.
-
----
-
-## Changed files
-
-| File | Change |
+| ADR | Result |
 | --- | --- |
-| `mobile/pubspec.yaml` | Added `google_generative_ai: 0.4.7` |
-| `mobile/pubspec.yaml` | Added pinned `firebase_core` and `firebase_messaging` |
-| `mobile/lib/src/features/push/push_sync_coordinator.dart` | New — token lifecycle and opaque wake-up coordinator |
-| `mobile/test/push_sync_coordinator_test.dart` | New — 6 push coordinator tests |
-| `mobile/lib/src/core/network/sarti_api.dart` | Added authenticated push registration and wake-up methods |
-| `mobile/lib/src/features/ai/event_parser.dart` | New — deterministic parser |
-| `mobile/lib/src/features/ai/gemini_ai_provider.dart` | New — Gemini adapter |
-| `mobile/lib/src/core/backup/backup_service.dart` | New — backup/recovery service |
-| `mobile/test/event_parser_test.dart` | New — 30 parser tests |
-| `mobile/test/backup_service_test.dart` | New — 11 backup tests |
-| `backend/src/sarti_backend/core/config.py` | Added `email_worker_secret`, `gemini_api_key`, `fcm_credentials_file` |
-| `backend/src/sarti_backend/db/schema.py` | Added `fcm_token`, `email_token_digest`, `email_suggestions` table |
-| `backend/src/sarti_backend/api/email.py` | New — email ingest endpoint |
-| `backend/src/sarti_backend/api/push.py` | New — push register and wake-up endpoints |
-| `backend/src/sarti_backend/main.py` | Registered email/push routers; exposed `app.state.settings` |
-| `backend/alembic/versions/0003_stage3_email_and_push.py` | New — migration 0003 |
-| `backend/requirements.txt` | Added `firebase-admin==6.9.0` |
-| `backend/openapi.json` | Regenerated |
-| `backend/tests/unit/test_email_push.py` | New — 9 email/push unit tests |
-| `docs/architecture/ADR-INDEX.md` | Added ADR-023 through ADR-026 |
-| `docs/architecture/adr/023-natural-language-event-parsing.md` | New |
-| `docs/architecture/adr/024-inbound-email-gateway.md` | New |
-| `docs/architecture/adr/025-backup-and-recovery.md` | New |
-| `docs/architecture/adr/026-push-notifications.md` | New |
-| `docs/STATUS.md` | Updated to Stage 3 |
-| `docs/modules/MODULES.md` | Added Stage 3 modules |
-| `docs/api/API.md` | Documented email and push endpoints |
-| `docs/database/DATABASE.md` | Added migration 0003 |
+| ADR-023, ADR-028, ADR-029 | Parser/native AI/cloud-consent rules preserved |
+| ADR-024 | Implemented per-device ciphertext boundary as approved |
+| ADR-025 | Accepted decision is internally incomplete for replacement-device restore; superseding approval required |
+| ADR-026 | Opaque push and OS notification-control decision preserved |
+| ADR-027 | Cloud Run + Neon private-beta hosting preserved |
+| ADR-030 | SemVer/build-number policy implemented and pushed |
 
----
+## APIs and migrations
 
-## ADRs
+- `POST /v1/families` optionally accepts paired client-generated family and
+  calendar IDs and is idempotent for the creating owner.
+- `POST /v1/email/ingest` persists only sealed ciphertext and metadata.
+- `GET /v1/email/suggestions` returns the authenticated device's ciphertext.
+- `DELETE /v1/email/suggestions/{id}` dismisses that device's delivery.
+- Migration `0004` removes plaintext email columns, adds device-addressed
+  deliveries, and advances `schema_metadata` to 4. The real PostgreSQL migration
+  integration test passes.
 
-| ADR | Decision | Outcome |
-| --- | --- | --- |
-| ADR-023 / ADR-028 | Deterministic parser always runs; Gemini cloud assist uses local child/location pseudonymization; `AiProvider` seam | Accepted before implementation/remediation |
-| ADR-024 | Cloudflare Worker → FastAPI webhook; HMAC auth; injection sanitization; 7-day TTL; 20/day rate limit | Accepted before implementation |
-| ADR-025 | PBKDF2-HMAC-SHA256 (200 k iterations) key derivation; XChaCha20-Poly1305 backup; 12-word BIP-39 phrase | Accepted; Argon2id excluded — `sodium_sumo` has no Flutter-compatible pinned package |
-| ADR-026 | FCM opaque `{"type":"sync_available"}` payload only; OS-native lock screen sensitivity; no quiet-hours logic | Accepted before implementation |
+## Tests executed
 
-Stop condition triggered during ADR-023: no stable Flutter package for Apple
-NaturalLanguage or Gemini Nano exists. Gemini cloud approved with strict
-pseudonymization boundary. Implementation proceeded after explicit approval.
-
----
-
-## APIs
-
-| Endpoint | Method | Auth | Status |
-| --- | --- | --- | --- |
-| `/v1/email/ingest` | POST | `X-Worker-Secret` HMAC | New |
-| `/v1/push/register` | POST | Bearer session | New |
-| `/v1/push/wake-up` | POST | Bearer session | New |
-
-OpenAPI regenerated and contract test passing.
-
----
-
-## Migrations
-
-| Revision | Change |
+| Suite | Result |
 | --- | --- |
-| `0003` | `fcm_token TEXT` nullable on `devices`; `email_token_digest BYTEA` nullable with partial unique index on `families`; `email_suggestions` table with status check constraint, content-digest unique constraint, and expiry/family composite indexes; schema version updated to 3 |
+| Backend unit, security, contract, and PostgreSQL integration | 21 passed; 87.17% branch coverage |
+| Migration `0004` / schema readiness | Passed on PostgreSQL 17 |
+| Ruff, strict Mypy, Bandit | Passed |
+| Flutter unit/widget suite | 76 passed |
+| Flutter format and analyze | Passed; no issues |
+| Android debug build | Passed; APK produced |
+| iOS unsigned debug build | Passed; Runner.app produced |
+| Pip-audit runtime dependency scan | Passed; no known vulnerabilities |
+| Docker Compose health | Backend and PostgreSQL healthy |
+| Release version tests | 3 passed |
 
----
-
-## Documentation updated
-
-- `docs/STATUS.md` — stage, delivered list, verification table, gaps
-- `docs/modules/MODULES.md` — `core/backup`, `features/ai`, `api.email`, `api.push`
-- `docs/api/API.md` — email intake and push notification endpoint descriptions
-- `docs/database/DATABASE.md` — migration 0003 history entry
-- `docs/architecture/ADR-INDEX.md` — ADR-023 through ADR-026
-
----
-
-## Tests added and executed
-
-| Suite | Tests | Result |
-| --- | --- | --- |
-| `mobile/test/event_parser_test.dart` | 30 | Passed |
-| `mobile/test/backup_service_test.dart` | 11 | Passed |
-| `backend/tests/unit/test_email_push.py` | 9 | Passed |
-| All backend unit tests | 17 | Passed |
-| All mobile tests | 67 | Passed |
-
-Latest mobile rerun: 67 tests passing. The earlier backend result remains 19
-tests passing at 87.47% branch coverage; backend behavior did not change in this
-remediation.
-
----
+Gitleaks is configured in CI but was not installed locally for this rerun. The
+generated-contract drift check is rerun after the final documentation update.
 
 ## Tests not executed
 
-- Physical iOS/Android passkey ceremony and biometric secure-storage policy
-- Scheduled notification delivery on device
-- Two-device network sync over a real transport
-- FCM delivery with production credentials
-- Cloudflare Worker → backend webhook end-to-end
-- Gemini cloud assist against the live API
-- Alembic upgrade/downgrade on a real PostgreSQL instance with migration 0003
-  (Docker Compose integration test covers 0001/0002; 0003 covered by unit tests only)
-- Backend integration test coverage with Stage 3 endpoints (PostgreSQL required)
+- Physical iOS/Android passkeys, biometric secret access, scheduled reminders,
+  native AI inference, process suspension, and two-device encrypted convergence.
+- Live FCM/APNs dispatch, Cloudflare Email Routing delivery, Gemini API request,
+  and production TLS/RP/associated-domain configuration.
+- Replacement-device backup restore, because the accepted format cannot supply
+  the restored SQLCipher database key.
 
----
+Mocks and successful platform builds do not establish these provider or device
+claims.
 
-## Security findings
+## Security findings and limitations
 
-- **Prompt injection** — `<INPUT>` delimiter stripping applied to subject and body
-  before storage. Strict JSON schema output from Gemini limits injection surface.
-  Raw email is never stored.
-- **Family token exposure** — token is resolved via SHA-256 digest only; the raw
-  token is never stored or logged.
-- **FCM payload privacy** — only `{"type": "sync_available"}` is sent; no family
-  IDs, child names, event titles, or any family content in the FCM payload
-  (ADR-026 binding rule).
-- **Worker secret** — HMAC constant-time comparison prevents timing attacks.
-  Empty `email_worker_secret` causes all ingest requests to be rejected.
-- **Backup phrase** — 12-word BIP-39 phrase provides ~128 bits of entropy.
-  PBKDF2 with 200 k iterations provides key stretching. Wrong phrase or corrupted
-  ciphertext both raise `BackupException`; no partial decryption is possible.
-- No critical or high-severity vulnerabilities identified.
+- Server email plaintext persistence is removed. A backend operator can observe
+  bounded recipient/timing/ciphertext-size metadata but cannot decrypt content.
+- Malformed sealed email payloads are discarded, and no email can create an
+  event without explicit approval.
+- Push contains only `{"type":"sync_available"}` and relies on normal
+  authenticated encrypted sync for correctness.
+- The Stage 2 child-profile and guardian mobile journeys remain incomplete even
+  though backend authorization and relay tests pass.
+- The current phrase generator and raw-SQLCipher backup format must not be
+  represented as completed recovery.
 
----
+## Stop condition and next work
 
-## Limitations
-
-- `sodium_sumo` (required for Argon2id) has no Flutter-compatible pinned package.
-  PBKDF2-HMAC-SHA256 is used instead per ADR-025. Argon2id remains the preferred
-  KDF if a compatible package becomes available.
-- The native bridges avoid dependence on a Flutter AI package, but Apple
-  Foundation Models requires iOS 26 and eligible Apple Intelligence hardware.
-  Android ML Kit Prompt API requires API 26, a supported AICore/Gemini Nano
-  device, and is beta without an SLA. Physical-device inference is unverified.
-- `firebase-admin` is a runtime dependency but is imported lazily inside
-  `_send_fcm`; the backend starts without FCM credentials configured.
-- The `email_suggestions` table has no consumer endpoint yet (mobile polling or
-  server-sent events for suggestion delivery is a Stage 4 concern).
-
----
-
-## Approval decisions
-
-| Decision | Outcome |
-| --- | --- |
-| ADR-023 / ADR-028: Gemini cloud assist with local pseudonymization | Approved |
-| ADR-024: Cloudflare Email Routing → FastAPI webhook | Approved |
-| ADR-025: PBKDF2 instead of Argon2id | Approved |
-| ADR-026: FCM opaque payload, OS-native sensitivity | Approved |
-
----
-
-## Recommended next stage
-
-**Stage 4 — suggestion delivery, export/deletion, and production readiness.**
-
-Suggested scope (requires explicit approval before any implementation):
-
-- Mobile endpoint to poll or receive `email_suggestions` and surface them as
-  event proposals in the calendar UI
-- User-controlled data export (ADR-017) and account/family deletion
-- Production hosting decision; ADR-027 covers development/private beta only
-- Associated domains / asset links for the production RP domain
-- Privacy-preserving monitoring baseline (ADR-016)
-- PostgreSQL-backed job runner for suggestion TTL expiry (ADR-013)
-
-Do not begin Stage 4 without explicit approval.
+Engineering standards require approval before changing ADR-025 or choosing a
+material recovery dependency. The next work is to approve and implement that
+superseding recovery design, then finish the remaining Stage 2 mobile sharing
+journeys and execute provider/device acceptance. Stage 4 must not begin without
+explicit approval.

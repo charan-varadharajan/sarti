@@ -126,6 +126,69 @@
         "title": "EmailSuggestionResponse",
         "type": "object"
       },
+      "EncryptedEmailSuggestion": {
+        "additionalProperties": false,
+        "properties": {
+          "ciphertext": {
+            "title": "Ciphertext",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "received_at": {
+            "format": "date-time",
+            "title": "Received At",
+            "type": "string"
+          },
+          "suggestion_id": {
+            "format": "uuid",
+            "title": "Suggestion Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "suggestion_id",
+          "ciphertext",
+          "received_at",
+          "expires_at"
+        ],
+        "title": "EncryptedEmailSuggestion",
+        "type": "object"
+      },
+      "FamilyCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "calendar_resource_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Calendar Resource Id"
+          },
+          "family_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Family Id"
+          }
+        },
+        "title": "FamilyCreate",
+        "type": "object"
+      },
       "FamilyResponse": {
         "additionalProperties": false,
         "properties": {
@@ -1009,6 +1072,111 @@
         ]
       }
     },
+    "/v1/email/suggestions": {
+      "get": {
+        "operationId": "list_suggestions_v1_email_suggestions_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EncryptedEmailSuggestion"
+                  },
+                  "title": "Response List Suggestions V1 Email Suggestions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Suggestions",
+        "tags": [
+          "email"
+        ]
+      }
+    },
+    "/v1/email/suggestions/{suggestion_id}": {
+      "delete": {
+        "operationId": "dismiss_suggestion_v1_email_suggestions__suggestion_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "suggestion_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Suggestion Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Dismiss Suggestion",
+        "tags": [
+          "email"
+        ]
+      }
+    },
     "/v1/families": {
       "get": {
         "operationId": "list_families_v1_families_get",
@@ -1081,6 +1249,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/FamilyCreate"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "content": {

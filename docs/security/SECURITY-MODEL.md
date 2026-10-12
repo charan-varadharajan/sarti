@@ -1,23 +1,26 @@
 # Security model
 
 Status: Stage 2 identity, authorization, device-key, encrypted-relay, and local
-calendar controls are implemented under ADR-019 through ADR-022. Stage 3 code is
-present but failed the 2026-10-11 privacy and acceptance audit.
+calendar controls are implemented under ADR-019 through ADR-022. Stage 3 privacy
+remediation is implemented except for the approved recovery-design conflict and
+provider/physical-device validation recorded in `docs/STATUS.md`.
 
 The backend implements passkeys, one-active-device enforcement, owner/guardian
 membership, resource permissions, signed sealed key grants, replay defense, and
 a seven-day ciphertext relay. Mobile implements SQLCipher persistence, platform
 secret storage/user-presence gating, resource encryption, local-first outbox,
 version-vector conflicts, and generic local reminder text. Stage 3 adds parser,
-email-ingest, push-dispatch/client, and backup modules, but they are not release-ready:
+email-ingest, push-dispatch/client, and backup modules, but Stage 3 is not release-ready:
 the approved pseudonymized cloud assist has a versioned local disclosure and
 opt-in but provider configuration remains unverified. The native proposal flow
 is integrated: it runs the deterministic parser first, runtime-gates Apple or
 Android on-device inference, treats output as untrusted, fills unresolved fields
-only, and requires confirmation. Email content is persisted as server plaintext,
-the push client accepts only the exact opaque payload and coalesces sync hints,
-but authenticated bootstrap and provider/physical-device validation are
-outstanding. Other mobile acceptance flows are not integrated.
+only, and requires confirmation. Email plaintext exists only within the external
+gateway and backend request-processing boundary; the backend persists one
+libsodium sealed-box ciphertext per active device. The mobile app decrypts and
+reviews these suggestions locally. The push client accepts only the exact opaque
+payload, coalesces sync hints, and is connected to authenticated sync bootstrap.
+Provider and physical-device validation remain outstanding.
 Account/family deletion remains unimplemented.
 
 ## Protected assets
@@ -63,7 +66,10 @@ available to it. Revocation protects future access and is not remote erasure.
 
 ADR-020 and `KEY-MANAGEMENT.md` specify the implemented device/resource lifecycle.
 Guardian removal increments every resource epoch and prevents future grants.
-Backup derivation and recovery remain unresolved and do not reuse sync keys.
+Backup derivation is independent of sync keys. Replacement-device recovery is
+blocked because ADR-025 encrypts raw SQLCipher file bytes without including a
+recoverable SQLCipher key; changing that accepted payload format requires an
+approved superseding ADR.
 
 ## Authentication and device authorization
 
@@ -75,10 +81,10 @@ content encryption or allow the server to reconstruct private keys.
 ## Email boundary
 
 External mail is plaintext in transit to and during initial gateway processing.
-Implementation must document the provider, retention, subprocessors, log
-redaction, deletion, abuse controls, attachment policy, maximum sizes, parser
-isolation, injection defenses, and point at which content becomes E2EE. Until
-those controls are accepted, email ingestion is not approved for implementation.
+Cloudflare, retention, logging, attachment rejection, size limits, injection
+defenses, and the encryption boundary are specified in ADR-024. The boundary
+ends when the backend seals the bounded JSON payload to active device public
+keys. PostgreSQL stores no sender, subject, body, or server-decryptable content.
 
 ## Logging and monitoring
 
@@ -99,7 +105,8 @@ material, notification text, and unbounded exception payloads.
 
 ## Open security decisions
 
-Email/provider boundaries, AI compatibility, remote push, backup/recovery format,
-deletion deadlines, production RP domain/hosting, device-attestation policy, and
-metadata retention beyond the seven-day relay rule require approval or Stage 3/4
-implementation. Physical-device validation is required before release.
+Provider production configuration, AI compatibility on physical devices, the
+backup/recovery format conflict, deletion deadlines, production RP domain,
+device-attestation policy, and metadata retention beyond the seven-day relay
+rule require approval or later implementation. Physical-device validation is
+required before release.

@@ -3,6 +3,14 @@
 - Status: Accepted
 - Date: 2026-10-12
 
+## Implementation conformance audit
+
+The current implementation does not conform to this ADR and is not an accepted
+recovery feature. It generates 12 independent words from a 256-word subset with
+no BIP-39 checksum. It also encrypts the raw SQLCipher file without defining how
+a replacement device recovers the independent SQLCipher database key. A
+superseding ADR is required before the format or key lifecycle changes.
+
 ## Decision
 
 Backups are encrypted on-device before leaving the app. The backup key is
@@ -68,7 +76,7 @@ Sarti does not integrate with any specific cloud storage provider.
 
 ## Independence from sync encryption
 
-Backup key derivation uses Argon2id from a user phrase. Sync resource keys are
+Backup key derivation uses PBKDF2-HMAC-SHA256 from a user phrase. Sync resource keys are
 random 256-bit keys wrapped in libsodium sealed boxes. The two systems share no
 key material and cannot be used to attack each other.
 

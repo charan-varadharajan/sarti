@@ -11,6 +11,7 @@ class CalendarController extends ChangeNotifier {
     this.repository, {
     required this.timezone,
     this.onFamilyCreated,
+    this.onLocalMutation,
     this.reminders,
   }) {
     family = repository.load();
@@ -19,6 +20,7 @@ class CalendarController extends ChangeNotifier {
   final CalendarRepository repository;
   final String timezone;
   final void Function(FamilyCalendar family)? onFamilyCreated;
+  final void Function()? onLocalMutation;
   final ReminderScheduler? reminders;
   FamilyCalendar? family;
   CalendarRange range = CalendarRange.today;
@@ -26,12 +28,14 @@ class CalendarController extends ChangeNotifier {
   void createFamily(String name, String ownerName) {
     family = repository.createFamily(name: name, ownerName: ownerName);
     onFamilyCreated?.call(family!);
+    onLocalMutation?.call();
     notifyListeners();
   }
 
   void addChild(String name, int colorArgb, {String? cloudAlias}) {
     repository.addChild(name, colorArgb, cloudAlias: cloudAlias);
     refresh();
+    onLocalMutation?.call();
   }
 
   void setRange(CalendarRange value) {
@@ -73,6 +77,7 @@ class CalendarController extends ChangeNotifier {
     repository.saveEvent(saved);
     reminders?.replaceFor(saved);
     refresh();
+    onLocalMutation?.call();
     return saved;
   }
 
@@ -86,6 +91,7 @@ class CalendarController extends ChangeNotifier {
     );
     reminders?.cancelFor(event.id);
     refresh();
+    onLocalMutation?.call();
   }
 
   void delete(CalendarEvent event) {
@@ -98,11 +104,13 @@ class CalendarController extends ChangeNotifier {
     );
     reminders?.cancelFor(event.id);
     refresh();
+    onLocalMutation?.call();
   }
 
   void resolve(String conflictId, {required bool useRemote}) {
     repository.resolveConflict(conflictId, useRemote: useRemote);
     refresh();
+    onLocalMutation?.call();
   }
 
   void refresh() {

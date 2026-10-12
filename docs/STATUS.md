@@ -2,114 +2,107 @@
 
 - Current stage: Stage 3 — AI proposals, email intake, push notifications, and backup/recovery
 - Updated: 2026-10-11
-- Stage state: audit failed; remediation required before Stage 3 acceptance
+- Stage state: remediation in progress; recovery design approval and provider/device validation outstanding
+- Repository version: `0.1.0+1`; no public release tag
 
-## Stage 3 verification audit (2026-10-11)
+## Current result
 
-The local mechanical gates pass after repairing the migration assertion,
-resolved Firebase dependency locks, backend formatting/lint findings, a calendar
-timezone round-trip regression, and two documented Gitleaks false positives.
-Stage 3 remains incomplete because:
+The software-only privacy remediation now connects the shipping mobile app to
+authenticated API sessions, encrypted synchronization, opaque push lifecycle,
+and device-addressed encrypted email suggestions. The backend no longer stores
+email sender, subject, or body in plaintext. Migration `0004` replaces those
+columns with libsodium sealed-box ciphertext addressed separately to each active
+device. Mobile decrypts locally, identifies the external sender, and requires the
+normal editable proposal and explicit save action.
 
-- the Gemini adapter now pseudonymizes known child names and locations locally
-  and has a versioned, reversible user disclosure/opt-in gate; provider
-  data-handling and production credential configuration remain unverified;
-- the server persists email sender, subject, and body as plaintext and has no
-  authorized-device encrypted delivery path or retention cleanup job;
-- the shipping mobile app now exposes native/local natural-language proposal,
-  edit, confirmation, and Undo, but does not expose email suggestion or
-  backup/restore flows;
-- the Firebase Messaging client now registers current/refreshed tokens, accepts
-  only the exact opaque wake-up, coalesces bursts, and requests foreground
-  catch-up; the shipping bootstrap still lacks the authenticated network sync
-  lifecycle needed to instantiate it;
-- application-level quiet hours are not implemented;
-- the recovery phrase uses a 256-word subset without the BIP-39 checksum and is
-  therefore not a BIP-39 mnemonic; and
-- real provider and physical-device acceptance tests remain unexecuted.
+Stage 3 is not accepted yet. Two defects in the accepted recovery design require
+a superseding ADR before safe implementation:
 
-## Approved beta hosting
+- the implemented 12-word phrase selects from a 256-word subset and has no
+  BIP-39 checksum, so it is not the BIP-39 mnemonic required by ADR-025; and
+- ADR-025 encrypts raw SQLCipher database bytes with an independent backup key,
+  but a replacement device does not possess the SQLCipher key needed to open the
+  restored file. The ADR explicitly excludes device secrets and does not define
+  a recoverable database-key envelope or logical export.
 
-ADR-027 selects Google Cloud Run plus Neon Free for development and the initial
-private beta. Production hosting remains unresolved pending Stage 3 remediation,
-backup/recovery validation, provider review, and an explicit production decision.
-
-## Release governance
-
-ADR-030 defines repository-wide Semantic Versioning, monotonic mobile build
-numbers, matching `vMAJOR.MINOR.PATCH` tags, trunk-based releases, and CI drift
-checks. The current version is `0.1.0+1`; no public release tag has been created.
+The applicable stop conditions are an accepted-ADR change, a security guarantee
+that cannot presently be met, a material dependency choice for BIP-39, and a
+failed architecture assumption. No backup UI or release claim will be built on
+the flawed format.
 
 ## Delivered
 
-### Stage 2
-- WebAuthn passkey registration/authentication, hashed sessions, and atomic
-  one-active-phone replacement
-- Family ownership, child resources, progressive guardian invitations, explicit
-  resource permissions, household isolation, revocation, and key-epoch rotation
-- SQLCipher-backed family/guardian/child/event/reminder/outbox/conflict schema
-- Today/Week/Month UI, child colours, recurring events, pickup assignment,
-  cancellation/deletion, and local reminders
-- X25519/Ed25519 device keys, XChaCha20-Poly1305 resource operations, signed sealed
-  key grants, strict device sequence/replay defense, version vectors, explicit
-  conflict resolution, and seven-day ciphertext retention
-- Migration `0002`, OpenAPI, ADR-019 through ADR-022, schemas, permissions,
-  interaction flows, and security/sync/key documentation
+### Stages 1 and 2
+
+- Flutter/Riverpod and FastAPI/PostgreSQL foundation, Docker development,
+  migrations, CI quality gates, structured errors, sanitized logs, and health
+  endpoints.
+- Passkey API, one-active-phone authorization, households, guardian invitation
+  and permission primitives, SQLCipher local storage, resource cryptography,
+  encrypted relay, replay protection, offline outbox, explicit conflicts,
+  calendar views, recurrence/DST behavior, pickup assignment, and local reminders.
 
 ### Stage 3
-- Deterministic NLP event parser (title, time, date, recurrence, location, name
-  tokens); never fabricates; 30 unit tests
-- Gemini cloud assist adapter with local child/location pseudonymization,
-  fail-closed alias coverage, and additive-only merge; ADR-023 and ADR-028
-- Encrypted, versioned cloud-AI consent that defaults off, includes the residual
-  privacy disclosure, and gates provider construction
-- Apple Foundation Models and Android ML Kit Prompt API native bridges with
-  runtime availability checks, deterministic fallback, strict additive merge,
-  editable proposal, explicit confirmation, and Undo; ADR-029
-- Cloudflare Email Routing → `POST /v1/email/ingest` webhook: HMAC worker-secret
-  auth, prompt-injection sanitization, family-token resolution, 20 emails/family/day
-  rate limit, content-digest deduplication, 7-day TTL; ADR-024
-- FCM push: `POST /v1/push/register` stores token, `POST /v1/push/wake-up` sends
-  opaque `{"type":"sync_available"}` to family devices; ADR-026
-- Flutter push coordinator: bounded Firebase initialization, token rotation
-  registration, strict opaque-payload validation, sync coalescing, and
-  foreground catch-up; six unit tests
-- PBKDF2-HMAC-SHA256 (200 k iterations) + XChaCha20-Poly1305 backup with 12-word
-  BIP-39 recovery phrase; 11 unit tests; ADR-025
-- Migration `0003` (`fcm_token` on devices, `email_token_digest` on families,
-  `email_suggestions` table), OpenAPI regenerated, `firebase-admin` dependency added
-- ADR-023 through ADR-026 written and approved before implementation
 
-## Local verification
+- Deterministic natural-language parser and native Apple Foundation Models /
+  Android ML Kit bridges with runtime gates, local fallback, editable proposals,
+  explicit confirmation, and Undo.
+- Optional Gemini adapter behind versioned opt-in and local child/location
+  pseudonymization. Production provider terms and credentials remain unverified.
+- Cloudflare email ingress controls: worker secret, bounded input, injection
+  sanitization, hashed routing token, rate limit, deduplication, and seven-day
+  expiry.
+- Per-device PyNaCl/libsodium sealed-box email encryption, authenticated polling
+  and dismissal, local decryption, source attribution, proposal review, and
+  post-approval dismissal.
+- Authenticated mobile bootstrap with secure session persistence, stable offline
+  family provisioning, serialized encrypted sync, wake-up dispatch after upload,
+  email refresh, session expiry handling, and foreground catch-up.
+- Opaque FCM payload validation and token rotation. ADR-026 deliberately uses OS
+  notification controls for quiet hours; no sensitive schedule content is sent.
+- Backup envelope cryptography and corruption/wrong-key tests exist, but the
+  recovery format is non-conforming and unusable for replacement-device restore
+  until the design issues above are approved and fixed.
+- Repository-wide SemVer/build numbering policy, drift checker, bump command,
+  tests, CI tag validation, and release documentation under ADR-030.
+
+## Verified locally on 2026-10-11
 
 | Check | Result |
 | --- | --- |
-| Backend Pytest unit + PostgreSQL integration | 19 passed; 87.47% branch coverage |
-| Alembic upgrade to head | Passed; schema version 3 |
-| Ruff / strict Mypy | Passed |
-| OpenAPI drift | Passed after regeneration |
+| Backend Pytest unit + PostgreSQL integration | 21 passed; 87.17% branch coverage |
+| Alembic upgrade to head | Passed; schema version 4 |
+| Ruff / strict Mypy / Bandit | Passed |
+| OpenAPI contract | Passed |
 | Docker Compose health | Backend and PostgreSQL healthy |
-| Flutter format/analyze | Passed; no issues |
-| Flutter unit/widget tests | 67 passed (including 6 push coordinator tests) |
-| Android debug build | Passed; APK produced |
-| iOS unsigned debug build | Passed; Runner.app produced |
-| Gitleaks working-tree/history scan | Passed; no leaks found |
-| Pip-audit runtime dependency scan | Passed; no known vulnerabilities found |
+| Flutter format / analyze | Passed; no issues |
+| Flutter unit/widget tests | 76 passed |
+| Android debug / unsigned iOS debug builds | Passed; APK and Runner.app produced |
+| Pip-audit runtime dependency scan | Passed; no known vulnerabilities |
+| Version checker/tests | Passed; 3 tests |
 
-## Device/platform gaps
+Gitleaks was not installed for this local rerun; it remains a CI gate. Final
+OpenAPI drift is checked before the remediation commit.
 
-- No physical iOS/Android passkey ceremony, biometric secure-storage policy,
-  scheduled-notification delivery, or two-device network sync was executed.
-- Associated domains/asset links need the production RP domain.
-- The in-process encrypted sync simulation validates protocol behavior but does
-  not establish provider or OS compatibility.
-- Snapshot recovery for a device offline beyond seven days requires a full backup
-  restore via the 12-word recovery phrase (ADR-025).
-- FCM delivery requires Firebase app configuration, APNs credentials/capability,
-  backend service-account configuration, and an authenticated mobile sync
-  bootstrap; it has not been exercised end-to-end on two physical devices.
-- Gemini cloud assist requires a production API key; the adapter is wired but
-  not exercised against the live API.
-- Apple Foundation Models and Android Gemini Nano bridges compile and their
-  availability/fallback behavior is automated, but actual inference has not been
-  executed on eligible physical devices. Android Prompt API is beta.
+## Remaining Stage 2 and Stage 3 work
+
+- Child profile creation is still local-only. The server has a child-resource
+  endpoint, but mobile does not provision that resource, encrypt the profile, or
+  distribute its key. Cross-device child labels therefore remain incomplete.
+- Guardian invitation/approval and resource-key delivery exist in backend and
+  protocol tests but are not connected to a complete shipping mobile journey.
+- Approve a superseding recovery ADR and implement a true BIP-39 phrase plus a
+  replacement-device-restorable payload.
+- Run physical iOS/Android tests for passkeys, secure storage, local reminders,
+  native AI, FCM/APNs, background/foreground behavior, and two-device sync.
+- Run live Cloudflare email routing and approved Gemini provider tests with
+  production-equivalent configuration.
+
+## Hosting
+
+ADR-027 selects Google Cloud Run plus Neon Free for development and the initial
+private beta. Production hosting remains unresolved until Stage 3 recovery and
+provider/device validation pass.
+
+Do not begin Stage 4 until Stage 3 is accepted and the user explicitly approves
+the next stage.

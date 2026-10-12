@@ -149,11 +149,17 @@ email_suggestions = sa.Table(
     metadata,
     sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
     sa.Column("family_id", postgresql.UUID(as_uuid=True), nullable=False),
-    sa.Column("sender", sa.Text(), nullable=False),
-    sa.Column("subject_sanitized", sa.Text(), nullable=False),
-    sa.Column("body_sanitized", sa.Text(), nullable=False),
     sa.Column("content_digest", sa.LargeBinary(), nullable=False),
-    sa.Column("status", sa.Text(), nullable=False),
     sa.Column("received_at", sa.DateTime(timezone=True), nullable=False),
     sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
+)
+
+email_suggestion_deliveries = sa.Table(
+    "email_suggestion_deliveries",
+    metadata,
+    sa.Column("suggestion_id", postgresql.UUID(as_uuid=True), primary_key=True),
+    sa.Column("device_id", postgresql.UUID(as_uuid=True), primary_key=True),
+    sa.Column("ciphertext", sa.LargeBinary(), nullable=False),
+    sa.Column("status", sa.Text(), nullable=False),
+    sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
 )

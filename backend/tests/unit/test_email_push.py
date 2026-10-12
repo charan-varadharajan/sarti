@@ -2,12 +2,15 @@
 
 import asyncio
 import hashlib
+import json
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import UUID, uuid4
 
 from httpx import ASGITransport, AsyncClient
+from nacl.public import PrivateKey, SealedBox
 
 from sarti_backend.core.config import Settings
 from sarti_backend.main import create_app
@@ -18,6 +21,7 @@ _FAMILY_TOKEN_DIGEST = hashlib.sha256(_FAMILY_TOKEN.encode()).digest()
 _FAMILY_ID = UUID("00000000-0000-4000-8000-000000000010")
 _DEVICE_ID = UUID("00000000-0000-4000-8000-000000000020")
 _ADULT_ID = UUID("00000000-0000-4000-8000-000000000030")
+_DEVICE_PRIVATE_KEY = PrivateKey.generate()
 
 
 def _settings(**overrides: Any) -> Settings:
@@ -78,7 +82,23 @@ def _make_conn(family_row: Any, rate_count: int = 0, duplicate_row: Any = None) 
     dup_result = MagicMock()
     dup_result.mappings.return_value.one_or_none.return_value = duplicate_row
 
-    conn.execute.side_effect = [family_result, rate_result, dup_result, MagicMock()]
+    recipients_result = MagicMock()
+    recipients_result.all.return_value = [
+        SimpleNamespace(
+            id=_DEVICE_ID,
+            encryption_public_key=bytes(_DEVICE_PRIVATE_KEY.public_key),
+        )
+    ]
+
+    conn.execute.side_effect = [
+        MagicMock(),  # expired-row cleanup
+        family_result,
+        rate_result,
+        dup_result,
+        recipients_result,
+        MagicMock(),  # suggestion metadata insert
+        MagicMock(),  # per-device ciphertext insert
+    ]
     return conn
 
 
@@ -130,7 +150,7 @@ def test_email_ingest_unknown_family_token_returns_404() -> None:
 
     family_result = MagicMock()
     family_result.mappings.return_value.one_or_none.return_value = None
-    db.conn.execute.side_effect = [family_result]
+    db.conn.execute.side_effect = [MagicMock(), family_result]
 
     r = _post_email(app, {"family_token": "unknown-token-xyz-9999", "sender": "a@b.com"})
     assert r.status_code == 404
@@ -187,6 +207,75 @@ def test_email_ingest_strips_injection_pattern() -> None:
         },
     )
     assert r.status_code == 201
+    delivery_values = db.conn.execute.call_args_list[-1].args[1]
+    plaintext = SealedBox(_DEVICE_PRIVATE_KEY).decrypt(delivery_values[0]["ciphertext"])
+    delivered = json.loads(plaintext)
+    assert delivered["subject"] == "inject"
+    assert delivered["body"] == "Hello bad world"
+    assert "sender" not in str(db.conn.execute.call_args_list[-2].args[0].compile().params)
+
+
+def test_email_suggestions_require_device_and_return_only_ciphertext() -> None:
+    from sarti_backend.core.auth import AuthenticatedDevice, require_device
+
+    db = StubDatabase()
+    app = create_app(_settings(), db)
+    actor = AuthenticatedDevice(adult_id=_ADULT_ID, device_id=_DEVICE_ID)
+    app.dependency_overrides[require_device] = lambda: actor
+    suggestion_id = uuid4()
+    now = datetime.now(UTC)
+    rows = MagicMock()
+    rows.all.return_value = [
+        SimpleNamespace(
+            id=suggestion_id,
+            ciphertext=b"sealed-only",
+            received_at=now,
+            expires_at=now + timedelta(days=7),
+        )
+    ]
+    db.conn.execute.side_effect = [MagicMock(), rows]
+
+    async def _req() -> Any:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            return await c.get("/v1/email/suggestions", headers={"Authorization": "Bearer fake"})
+
+    response = _run(_req())
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json()[0]["suggestion_id"] == str(suggestion_id)
+    assert set(response.json()[0]) == {
+        "suggestion_id",
+        "ciphertext",
+        "received_at",
+        "expires_at",
+    }
+
+
+def test_email_suggestion_dismissal_is_scoped_to_authenticated_device() -> None:
+    from sarti_backend.core.auth import AuthenticatedDevice, require_device
+
+    db = StubDatabase()
+    app = create_app(_settings(), db)
+    app.dependency_overrides[require_device] = lambda: AuthenticatedDevice(
+        adult_id=_ADULT_ID, device_id=_DEVICE_ID
+    )
+    result = MagicMock(rowcount=1)
+    db.conn.execute.return_value = result
+
+    async def _req() -> Any:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            return await c.delete(
+                f"/v1/email/suggestions/{uuid4()}",
+                headers={"Authorization": "Bearer fake"},
+            )
+
+    response = _run(_req())
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 204
+    compiled = db.conn.execute.call_args.args[0].compile()
+    assert _DEVICE_ID in compiled.params.values()
 
 
 # ---------------------------------------------------------------------------

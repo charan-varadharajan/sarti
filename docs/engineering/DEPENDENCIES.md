@@ -27,6 +27,7 @@ was verified against official package registries and resolved builds on
 | SQLAlchemy / Psycopg / Alembic | 2.1.3 / 3.3.6 / 1.20.0 | PostgreSQL/migrations |
 | webauthn | 3.0.0 | Server WebAuthn validation |
 | firebase-admin | 6.9.0 | Opaque FCM wake-up dispatch |
+| PyNaCl | 1.6.2 | Maintained libsodium sealed-box binding for device-addressed email ciphertext |
 | PostgreSQL | 17 | Server metadata/ciphertext relay |
 
 License and dependency-review gates remain in CI. SQLCipher and cryptographic

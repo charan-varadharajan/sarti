@@ -119,11 +119,32 @@ async def _request_flow() -> None:
         guardian = await api.register("guardian-credential")
         outsider = await api.register("outsider-credential")
 
-        family_response = await client.post("/v1/families", headers=api.headers(owner))
+        offline_family_id = str(uuid4())
+        offline_calendar_id = str(uuid4())
+        family_response = await client.post(
+            "/v1/families",
+            headers=api.headers(owner),
+            json={
+                "family_id": offline_family_id,
+                "calendar_resource_id": offline_calendar_id,
+            },
+        )
         assert family_response.status_code == 201
         family = family_response.json()
         family_id = family["id"]
         calendar = next(item for item in family["resources"] if item["kind"] == "calendar")
+        assert family_id == offline_family_id
+        assert calendar["id"] == offline_calendar_id
+        retried_family = await client.post(
+            "/v1/families",
+            headers=api.headers(owner),
+            json={
+                "family_id": offline_family_id,
+                "calendar_resource_id": offline_calendar_id,
+            },
+        )
+        assert retried_family.status_code == 201
+        assert retried_family.json() == family
 
         child = await client.post(
             f"/v1/families/{family_id}/resources",

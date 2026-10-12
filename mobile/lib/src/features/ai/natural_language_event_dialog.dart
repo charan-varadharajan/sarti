@@ -10,21 +10,31 @@ Future<CalendarEvent?> showNaturalLanguageEventDialog(
   BuildContext context, {
   required CalendarController controller,
   required NativeEventAiProvider provider,
+  String? initialInput,
+  String? sourceLabel,
 }) => showDialog<CalendarEvent>(
   context: context,
   barrierDismissible: false,
-  builder: (context) =>
-      _NaturalLanguageEventDialog(controller: controller, provider: provider),
+  builder: (context) => _NaturalLanguageEventDialog(
+    controller: controller,
+    provider: provider,
+    initialInput: initialInput,
+    sourceLabel: sourceLabel,
+  ),
 );
 
 class _NaturalLanguageEventDialog extends StatefulWidget {
   const _NaturalLanguageEventDialog({
     required this.controller,
     required this.provider,
+    this.initialInput,
+    this.sourceLabel,
   });
 
   final CalendarController controller;
   final NativeEventAiProvider provider;
+  final String? initialInput;
+  final String? sourceLabel;
 
   @override
   State<_NaturalLanguageEventDialog> createState() =>
@@ -44,6 +54,16 @@ class _NaturalLanguageEventDialogState
   bool _loading = false;
 
   FamilyCalendar get _family => widget.controller.family!;
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initialInput?.trim();
+    if (initial != null && initial.isNotEmpty) {
+      _input.text = initial;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _preview());
+    }
+  }
 
   @override
   void dispose() {
@@ -194,6 +214,11 @@ class _NaturalLanguageEventDialogState
         alignment: Alignment.centerLeft,
         child: Text('Nothing is saved until you approve this suggestion.'),
       ),
+      if (widget.sourceLabel case final source?)
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Text(source, style: Theme.of(context).textTheme.bodySmall),
+        ),
       TextField(
         controller: _title,
         onChanged: (_) => setState(() {}),

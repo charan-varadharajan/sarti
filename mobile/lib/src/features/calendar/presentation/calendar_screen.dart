@@ -6,6 +6,7 @@ import 'package:sarti_mobile/src/features/ai/natural_language_event_dialog.dart'
 import 'package:sarti_mobile/src/features/calendar/domain/calendar_event.dart';
 import 'package:sarti_mobile/src/features/calendar/domain/recurrence.dart';
 import 'package:sarti_mobile/src/features/calendar/presentation/calendar_controller.dart';
+import 'package:sarti_mobile/src/features/email/email_suggestion_inbox.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 class CalendarScreen extends StatelessWidget {
@@ -14,11 +15,13 @@ class CalendarScreen extends StatelessWidget {
     required this.controller,
     this.cloudAiConsent,
     this.nativeAi,
+    this.emailInbox,
   });
 
   final CalendarController controller;
   final CloudAiConsentController? cloudAiConsent;
   final NativeEventAiProvider? nativeAi;
+  final EmailSuggestionInbox? emailInbox;
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
@@ -31,6 +34,19 @@ class CalendarScreen extends StatelessWidget {
         appBar: AppBar(
           title: Text(family.name),
           actions: [
+            if (emailInbox != null)
+              ListenableBuilder(
+                listenable: emailInbox!,
+                builder: (context, _) => IconButton(
+                  tooltip: 'Email suggestions',
+                  onPressed: () => _showEmailSuggestions(context),
+                  icon: Badge(
+                    isLabelVisible: emailInbox!.suggestions.isNotEmpty,
+                    label: Text('${emailInbox!.suggestions.length}'),
+                    child: const Icon(Icons.mark_email_unread_outlined),
+                  ),
+                ),
+              ),
             if (nativeAi != null)
               IconButton(
                 tooltip: 'Add with natural language',
@@ -211,6 +227,69 @@ class CalendarScreen extends StatelessWidget {
         ),
       );
     }
+  }
+
+  Future<void> _showEmailSuggestions(BuildContext context) async {
+    final inbox = emailInbox!;
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) => ListenableBuilder(
+        listenable: inbox,
+        builder: (context, _) => SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Text(
+                'Email suggestions',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Email is untrusted. Sarti interprets it on this phone and never changes the calendar without your approval.',
+              ),
+              if (inbox.suggestions.isEmpty)
+                ListTile(
+                  title: Text(
+                    inbox.unavailable
+                        ? 'Suggestions could not be refreshed. Try again later.'
+                        : 'No pending suggestions',
+                  ),
+                ),
+              for (final suggestion in inbox.suggestions)
+                Card(
+                  child: ListTile(
+                    title: Text(
+                      suggestion.subject.trim().isEmpty
+                          ? 'Email suggestion'
+                          : suggestion.subject,
+                    ),
+                    subtitle: Text('From ${suggestion.sender}'),
+                    onTap: () async {
+                      final saved = await showNaturalLanguageEventDialog(
+                        context,
+                        controller: controller,
+                        provider: nativeAi ?? NativeEventAiProvider(),
+                        initialInput: suggestion.interpretationInput,
+                        sourceLabel:
+                            'Suggested from email by ${suggestion.sender}',
+                      );
+                      if (saved != null) {
+                        await inbox.dismiss(suggestion.id);
+                        if (context.mounted) Navigator.pop(context);
+                      }
+                    },
+                    trailing: IconButton(
+                      tooltip: 'Dismiss suggestion',
+                      onPressed: () => inbox.dismiss(suggestion.id),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _addChild(BuildContext context) async {

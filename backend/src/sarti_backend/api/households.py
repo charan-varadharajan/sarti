@@ -5,7 +5,7 @@ from typing import Annotated, Any, Literal, Protocol
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Request
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 from sqlalchemy import and_, delete, func, select, update
 
 from sarti_backend.core.auth import AuthenticatedDevice, require_device
@@ -35,6 +35,19 @@ class FamilyResponse(BaseModel):
     role: Literal["owner", "guardian"]
     status: Literal["pending", "active", "revoked"]
     resources: list[ResourceResponse]
+
+
+class FamilyCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    family_id: UUID | None = None
+    calendar_resource_id: UUID | None = None
+
+    @model_validator(mode="after")
+    def require_complete_offline_identity(self) -> "FamilyCreate":
+        if (self.family_id is None) != (self.calendar_resource_id is None):
+            raise ValueError("family_id and calendar_resource_id must be supplied together")
+        return self
 
 
 class ResourceCreate(BaseModel):
@@ -92,13 +105,45 @@ Authenticated = Annotated[AuthenticatedDevice, Depends(require_device)]
 
 
 @router.post("/families", response_model=FamilyResponse, status_code=201)
-def create_family(request: Request, actor: Authenticated) -> FamilyResponse:
+def create_family(
+    request: Request, actor: Authenticated, payload: FamilyCreate | None = None
+) -> FamilyResponse:
     database: TransactionalDatabase = request.app.state.database
-    family_id = uuid4()
+    requested = payload or FamilyCreate()
+    family_id = requested.family_id or uuid4()
     profile_id = uuid4()
-    calendar_id = uuid4()
+    calendar_id = requested.calendar_resource_id or uuid4()
     now = datetime.now(UTC)
     with database.transaction() as connection:
+        existing_family = connection.execute(
+            select(families.c.created_by).where(families.c.id == family_id)
+        ).one_or_none()
+        if existing_family is not None:
+            if existing_family.created_by != actor.adult_id:
+                raise ConflictDetected("The offline family identifier is unavailable.")
+            existing_resources = connection.execute(
+                select(resources.c.id, resources.c.kind, resources.c.key_epoch).where(
+                    and_(resources.c.family_id == family_id, resources.c.deleted_at.is_(None))
+                )
+            ).all()
+            if not any(
+                row.id == calendar_id and row.kind == "calendar" for row in existing_resources
+            ):
+                raise ConflictDetected("The offline family identity does not match.")
+            return FamilyResponse(
+                id=family_id,
+                role="owner",
+                status="active",
+                resources=[
+                    ResourceResponse(id=row.id, kind=row.kind, key_epoch=row.key_epoch)
+                    for row in existing_resources
+                ],
+            )
+        identifier_in_use = connection.execute(
+            select(resources.c.id).where(resources.c.id.in_((family_id, calendar_id)))
+        ).first()
+        if identifier_in_use is not None:
+            raise ConflictDetected("The offline family identifier is unavailable.")
         connection.execute(
             families.insert().values(
                 id=family_id,

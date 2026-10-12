@@ -14,5 +14,11 @@ per adult. Relay operations are indexed by family/server sequence and expiry.
 The schema contains no family names, event titles, notes, child names, colours,
 pickup details, reminders, or resource keys in decryptable form.
 
-The migration suite upgrades a real PostgreSQL database, asserts schema version 2
+Migration `0003` adds opaque push tokens, hashed family email routing tokens,
+and the initial suggestion table. Migration `0004` removes all email content
+columns and adds `email_suggestion_deliveries`, which contains a recipient device
+ID, libsodium sealed-box ciphertext, delivery state, and timestamps. The server
+cannot decrypt these per-device payloads.
+
+The migration suite upgrades a real PostgreSQL database, asserts schema version 4
 and required tables, and exercises the constraints through the full API flow.

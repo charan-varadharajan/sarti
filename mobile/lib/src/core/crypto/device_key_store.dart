@@ -9,6 +9,7 @@ import 'package:sodium/sodium.dart';
 abstract interface class SecretStore {
   Future<String?> read(String key);
   Future<void> write(String key, String value);
+  Future<void> delete(String key);
   Future<void> deleteAll();
 }
 
@@ -57,6 +58,10 @@ class PlatformSecretStore implements SecretStore {
     iOptions: _ios,
     aOptions: _android,
   );
+
+  @override
+  Future<void> delete(String key) =>
+      _storage.delete(key: key, iOptions: _ios, aOptions: _android);
 
   @override
   Future<void> deleteAll() =>

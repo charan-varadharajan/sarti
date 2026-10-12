@@ -1,5 +1,7 @@
+import base64
 import hashlib
 import hmac
+import json
 import re
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any, Protocol
@@ -7,9 +9,19 @@ from uuid import UUID, uuid4
 
 import sqlalchemy as sa
 from fastapi import APIRouter, Depends, Header, Request
+from nacl.public import PublicKey, SealedBox
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy import and_, delete, select, update
 
+from sarti_backend.core.auth import AuthenticatedDevice, require_device
 from sarti_backend.core.errors import InvalidRequest, PermissionDenied, TenantAccessDenied
+from sarti_backend.db.schema import (
+    devices,
+    email_suggestion_deliveries,
+    email_suggestions,
+    families,
+    memberships,
+)
 
 _MAX_BODY_BYTES = 102_400  # 100 KB
 _MAX_EMAILS_PER_DAY = 20
@@ -41,7 +53,17 @@ class EmailSuggestionResponse(BaseModel):
     expires_at: datetime
 
 
+class EncryptedEmailSuggestion(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    suggestion_id: UUID
+    ciphertext: str
+    received_at: datetime
+    expires_at: datetime
+
+
 router = APIRouter(prefix="/v1/email", tags=["email"])
+Authenticated = Annotated[AuthenticatedDevice, Depends(require_device)]
 
 
 def _require_worker_secret(
@@ -69,8 +91,6 @@ def ingest_email(
     request: Request,
     _: WorkerAuth,
 ) -> EmailSuggestionResponse:
-    from sarti_backend.db.schema import email_suggestions, families
-
     database: TransactionalDatabase = request.app.state.database
 
     # Sanitize: strip injection attempts from body and subject
@@ -86,6 +106,7 @@ def ingest_email(
     expires_at = now + timedelta(days=_SUGGESTION_TTL_DAYS)
 
     with database.transaction() as connection:
+        connection.execute(delete(email_suggestions).where(email_suggestions.c.expires_at <= now))
         # Resolve family token → family_id
         token_digest = hashlib.sha256(payload.family_token.encode()).digest()
         family_row = (
@@ -131,22 +152,120 @@ def ingest_email(
                 expires_at=existing["expires_at"],
             )
 
+        recipients = connection.execute(
+            select(devices.c.id, devices.c.encryption_public_key)
+            .join(memberships, memberships.c.adult_id == devices.c.adult_id)
+            .where(
+                and_(
+                    memberships.c.family_id == family_id,
+                    memberships.c.status == "active",
+                    devices.c.state == "active",
+                )
+            )
+        ).all()
+        if not recipients:
+            raise InvalidRequest("No active authorized device can receive this email.")
+
         suggestion_id = uuid4()
+        plaintext = json.dumps(
+            {
+                "version": 1,
+                "suggestion_id": str(suggestion_id),
+                "sender": payload.sender,
+                "subject": subject,
+                "body": body,
+                "received_at": now.isoformat(),
+            },
+            separators=(",", ":"),
+        ).encode()
+        deliveries = [
+            {
+                "suggestion_id": suggestion_id,
+                "device_id": recipient.id,
+                "ciphertext": SealedBox(PublicKey(recipient.encryption_public_key)).encrypt(
+                    plaintext
+                ),
+                "status": "pending",
+                "created_at": now,
+            }
+            for recipient in recipients
+        ]
         connection.execute(
             email_suggestions.insert().values(
                 id=suggestion_id,
                 family_id=family_id,
-                sender=payload.sender,
-                subject_sanitized=subject,
-                body_sanitized=body,
                 content_digest=content_digest,
-                status="pending",
                 received_at=now,
                 expires_at=expires_at,
             )
         )
+        connection.execute(email_suggestion_deliveries.insert(), deliveries)
 
     return EmailSuggestionResponse(
         suggestion_id=suggestion_id,
         expires_at=expires_at,
     )
+
+
+@router.get("/suggestions", response_model=list[EncryptedEmailSuggestion])
+def list_suggestions(request: Request, actor: Authenticated) -> list[EncryptedEmailSuggestion]:
+    database: TransactionalDatabase = request.app.state.database
+    now = datetime.now(UTC)
+    with database.transaction() as connection:
+        connection.execute(delete(email_suggestions).where(email_suggestions.c.expires_at <= now))
+        rows = connection.execute(
+            select(
+                email_suggestions.c.id,
+                email_suggestion_deliveries.c.ciphertext,
+                email_suggestions.c.received_at,
+                email_suggestions.c.expires_at,
+            )
+            .join(
+                email_suggestion_deliveries,
+                email_suggestion_deliveries.c.suggestion_id == email_suggestions.c.id,
+            )
+            .join(
+                memberships,
+                and_(
+                    memberships.c.family_id == email_suggestions.c.family_id,
+                    memberships.c.adult_id == actor.adult_id,
+                    memberships.c.status == "active",
+                ),
+            )
+            .where(
+                and_(
+                    email_suggestion_deliveries.c.device_id == actor.device_id,
+                    email_suggestion_deliveries.c.status == "pending",
+                    email_suggestions.c.expires_at > now,
+                )
+            )
+            .order_by(email_suggestions.c.received_at)
+        ).all()
+    return [
+        EncryptedEmailSuggestion(
+            suggestion_id=row.id,
+            ciphertext=base64.urlsafe_b64encode(row.ciphertext).rstrip(b"=").decode("ascii"),
+            received_at=row.received_at,
+            expires_at=row.expires_at,
+        )
+        for row in rows
+    ]
+
+
+@router.delete("/suggestions/{suggestion_id}", status_code=204)
+def dismiss_suggestion(suggestion_id: UUID, request: Request, actor: Authenticated) -> None:
+    database: TransactionalDatabase = request.app.state.database
+    with database.transaction() as connection:
+        result = connection.execute(
+            update(email_suggestion_deliveries)
+            .where(
+                and_(
+                    email_suggestion_deliveries.c.suggestion_id == suggestion_id,
+                    email_suggestion_deliveries.c.device_id == actor.device_id,
+                    email_suggestion_deliveries.c.status == "pending",
+                )
+            )
+            .values(status="dismissed")
+        )
+        if result.rowcount != 1:
+            raise TenantAccessDenied

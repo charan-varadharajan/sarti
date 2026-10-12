@@ -29,12 +29,14 @@ after the suggestion is produced.
    `POST /v1/email/ingest` over HTTPS with a shared secret header.
 6. Backend validates the shared secret, resolves `family_token` to a
    `family_id`, verifies the family exists and has email ingestion enabled.
-7. Backend passes `{sender, subject, body}` to the suggestion pipeline. The
-   family_id is never included in any AI prompt.
-8. Suggestion pipeline produces a structured `EmailSuggestion` record stored
-   as ciphertext in PostgreSQL with a 7-day TTL.
-9. On next sync, authorized devices download the encrypted suggestion, decrypt
-   locally, and present it as a proposal requiring explicit approval.
+7. Backend builds one bounded JSON payload in memory and encrypts it separately
+   for every currently active family device with a libsodium sealed box and the
+   device's registered X25519 public key.
+8. PostgreSQL stores only the content digest, expiry metadata, recipient device
+   ID, and per-device ciphertext. The plaintext buffer is not persisted.
+9. Each authorized device polls its own delivery, decrypts locally, and passes
+   the untrusted text to the on-device suggestion pipeline. The source-attributed
+   proposal requires explicit approval before any calendar write.
 
 ## Prompt injection protection
 
@@ -58,6 +60,8 @@ after the suggestion is produced.
 
 - Raw email is never stored by Sarti (Worker discards after POST).
 - Encrypted suggestion records expire after 7 days (same TTL as sync relay).
+- Expired suggestion metadata and ciphertext deliveries are removed during
+  ingest and authenticated polling; the foreign key cascades delivery deletion.
 - Cloudflare Worker logs contain only: timestamp, family_token hash, sender
   domain, accept/reject decision. No email body or subject in logs.
 

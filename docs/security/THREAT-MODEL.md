@@ -6,11 +6,11 @@
 | Unauthorized guardian | One-use hashed invite, pending membership, owner approval, explicit permission matrix | Duplicate invite, outsider, pending, revoked-recipient tests; invitation delivery channel remains external |
 | Lost/stolen device | Platform user-presence gate, one active phone, replacement revokes old sessions | API replacement test; physical locked-device validation pending |
 | Compromised credential | Required WebAuthn user verification, one-use challenge, hashed expiring session | Auth replay and old-session tests; account recovery is Stage 3 |
-| Key rotation/recovery failure | Removal increments all resource epochs; future grants exclude revoked device | Stale epoch and revoked grant tests; backup/recovery pending |
+| Key rotation/recovery failure | Removal increments all resource epochs; future grants exclude revoked device | Stale epoch and revoked grant tests; replacement-device backup restore blocked by ADR-025 payload conflict |
 | Malicious sync payload | Bounded schemas, exact sequence, UUID/digest/epoch checks, AEAD tag, durable de-duplication | Malformed digest, duplicate, replay, no-key, and conflict tests |
-| Email prompt injection | No email ingestion exists; email is defined as untrusted | Stage 3 parser/injection corpus required |
+| Email prompt injection | Sanitization, bounded input, per-device sealed delivery, on-device parsing, explicit approval | Injection, ciphertext isolation/tamper, and no-preapproval-write tests; live Cloudflare test pending |
 | Sensitive logging | Allowlisted fields, generic errors, no body/ciphertext/token logging | Canary log test and Bandit/Gitleaks gates |
-| Backup exposure | No backup exists, so sync keys are not reused for backup | Stage 3 independent encryption, corruption, wrong-key tests required |
+| Backup exposure | Independent PBKDF2/XChaCha20-Poly1305 envelope; corruption and wrong phrase fail closed | Unit tests pass; phrase format is not BIP-39 and replacement-device SQLCipher-key recovery is unresolved |
 | Replay attacks | One-use WebAuthn challenge, operation UUID, exact device sequence | Authentication and sync replay tests |
 | Account/family deletion | Not implemented | Stage 4 deletion deadlines, idempotency, partial-failure tests required |
 
@@ -18,4 +18,5 @@ An unlocked compromised authorized device can expose content and keys it already
 holds. Revocation protects only future content and cannot remotely erase copies.
 The server observes bounded relationship/timing metadata and ciphertext sizes.
 Physical OS behavior, production TLS/RP configuration, snapshot recovery after
-seven offline days, email, backup, and deletion remain residual risks.
+seven offline days, live email/provider delivery, backup recovery, and deletion
+remain residual risks.

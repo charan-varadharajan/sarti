@@ -21,6 +21,14 @@ curl --fail http://localhost:8000/v1/health/ready
 `.env` is ignored. Its values are local development placeholders and must be
 changed for any shared environment. Runtime settings use the `SARTI_` prefix.
 
+Mobile builds connect to a backend only when an HTTPS endpoint is supplied at
+compile time; loopback HTTP is accepted for local development. With no value the
+calendar remains fully local:
+
+```sh
+flutter run --dart-define=SARTI_API_BASE_URL=https://api.example.invalid
+```
+
 ## Checks
 
 ```sh
@@ -75,9 +83,8 @@ reports unavailable. For a provider/device test environment:
    remote notifications, and upload the APNs authentication key to Firebase.
 4. Mount the backend service-account secret as a file and set
    `SARTI_FCM_CREDENTIALS_FILE` to that path.
-5. Complete authenticated mobile network bootstrap, construct
-   `PushSyncCoordinator` with `SartiApiClient.registerPushToken` and the encrypted
-   sync engine, and forward app foreground lifecycle events.
+5. Build the app with `SARTI_API_BASE_URL`, authenticate, and confirm the existing
+   bootstrap registers token rotations and forwards foreground lifecycle events.
 6. Run the two-device cases in `docs/testing/TEST-STRATEGY.md` before release.
 
 Silent push delivery is opportunistic. Correctness depends on local writes and

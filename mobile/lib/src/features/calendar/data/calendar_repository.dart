@@ -132,16 +132,18 @@ class CalendarRepository {
   FamilyCalendar createFamily({
     String name = 'My family',
     String ownerName = 'Me',
+    String? familyId,
+    String? calendarResourceId,
   }) {
-    final householdId = newId();
-    final calendarResourceId = newId();
+    final householdId = familyId ?? newId();
+    final resourceId = calendarResourceId ?? newId();
     final guardianId = newId();
     final operationId = newId();
     final now = DateTime.now().toUtc().toIso8601String();
     database.transaction(() {
       database.raw.execute(
         'INSERT INTO households(id, display_name, created_at, calendar_resource_id) VALUES (?, ?, ?, ?)',
-        [householdId, name, now, calendarResourceId],
+        [householdId, name, now, resourceId],
       );
       database.raw.execute('INSERT INTO guardians VALUES (?, ?, ?)', [
         guardianId,
@@ -153,7 +155,7 @@ class CalendarRepository {
         [
           operationId,
           householdId,
-          calendarResourceId,
+          resourceId,
           'family_created',
           jsonEncode({'householdId': householdId}),
           jsonEncode({deviceId: 1}),

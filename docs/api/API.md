@@ -23,7 +23,10 @@ only WebAuthn output and 32-byte device public keys. Protected endpoints require
 
 ## Families and authorization
 
-- `POST/GET /v1/families` creates/lists families and opaque resources.
+- `POST/GET /v1/families` creates/lists families and opaque resources. Creation
+  optionally accepts a client-generated `family_id` and
+  `calendar_resource_id` together so an offline-first family can be provisioned
+  idempotently after connectivity returns.
 - `POST /v1/families/{family_id}/resources` creates child-profile resources;
   owner only.
 - `POST /v1/families/{family_id}/invitations` creates a one-use 48-hour token.
@@ -53,11 +56,16 @@ The encryption/AAD construction is specified in `docs/architecture/OFFLINE-SYNC.
   `X-Worker-Secret` header (HMAC constant-time comparison). Accepts
   `family_token`, `sender`, `subject`, and `body`. The family token is resolved
   to a family ID via its SHA-256 digest; an unknown token returns 404.
-  `<INPUT>` tags are stripped from subject and body before storage. Rate limited
+  `<INPUT>` tags are stripped from subject and body before encryption. Rate limited
   to 20 emails per family per 24 hours. Identical content (same digest) is
   deduplicated and returns the existing suggestion ID. Suggestions expire after
-  7 days. Raw email is never stored; only sanitized subject and body are kept.
-  Returns `suggestion_id` and `expires_at` on 201.
+  7 days. The backend seals the sanitized sender, subject, and body separately
+  to every active device and persists ciphertext only. Returns `suggestion_id`
+  and `expires_at` on 201.
+- `GET /v1/email/suggestions` — Authenticated. Returns only pending encrypted
+  deliveries addressed to the calling active device. Ciphertext is base64url.
+- `DELETE /v1/email/suggestions/{suggestion_id}` — Authenticated. Dismisses only
+  the calling device's delivery and returns 204.
 
 ## Push notifications (ADR-026)
 

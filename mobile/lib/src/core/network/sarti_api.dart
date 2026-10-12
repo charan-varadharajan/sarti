@@ -25,6 +25,46 @@ class SartiApiException implements Exception {
   final int statusCode;
 }
 
+class RemoteResource {
+  const RemoteResource({
+    required this.id,
+    required this.kind,
+    required this.keyEpoch,
+  });
+
+  final String id;
+  final String kind;
+  final int keyEpoch;
+}
+
+class RemoteFamily {
+  const RemoteFamily({
+    required this.id,
+    required this.role,
+    required this.status,
+    required this.resources,
+  });
+
+  final String id;
+  final String role;
+  final String status;
+  final List<RemoteResource> resources;
+}
+
+class EncryptedEmailDelivery {
+  const EncryptedEmailDelivery({
+    required this.suggestionId,
+    required this.ciphertext,
+    required this.receivedAt,
+    required this.expiresAt,
+  });
+
+  final String suggestionId;
+  final Uint8List ciphertext;
+  final DateTime receivedAt;
+  final DateTime expiresAt;
+}
+
 class SartiApiClient implements EncryptedRelay {
   SartiApiClient(this.baseUri, {HttpClient? httpClient, this.sessionToken})
     : _http = httpClient ?? HttpClient();
@@ -100,6 +140,27 @@ class SartiApiClient implements EncryptedRelay {
     );
   }
 
+  Future<RemoteFamily> provisionFamily({
+    required String familyId,
+    required String calendarResourceId,
+  }) async => _familyFromJson(
+    await _json(
+      'POST',
+      '/v1/families',
+      authenticated: true,
+      body: {'family_id': familyId, 'calendar_resource_id': calendarResourceId},
+    ),
+  );
+
+  Future<List<RemoteFamily>> listFamilies() async {
+    final response = await _jsonList(
+      'GET',
+      '/v1/families',
+      authenticated: true,
+    );
+    return response.map(_familyFromJson).toList(growable: false);
+  }
+
   Future<int> sendSyncWakeUp(String familyId) async {
     final response = await _json(
       'POST',
@@ -108,6 +169,32 @@ class SartiApiClient implements EncryptedRelay {
       body: {'family_id': familyId},
     );
     return response['dispatched'] as int;
+  }
+
+  Future<List<EncryptedEmailDelivery>> listEmailSuggestions() async {
+    final response = await _jsonList(
+      'GET',
+      '/v1/email/suggestions',
+      authenticated: true,
+    );
+    return response
+        .map(
+          (value) => EncryptedEmailDelivery(
+            suggestionId: value['suggestion_id'] as String,
+            ciphertext: _decode(value['ciphertext'] as String),
+            receivedAt: DateTime.parse(value['received_at'] as String),
+            expiresAt: DateTime.parse(value['expires_at'] as String),
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  Future<void> dismissEmailSuggestion(String suggestionId) async {
+    await _json(
+      'DELETE',
+      '/v1/email/suggestions/$suggestionId',
+      authenticated: true,
+    );
   }
 
   @override
@@ -182,8 +269,52 @@ class SartiApiClient implements EncryptedRelay {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw SartiApiException(response.statusCode);
     }
+    if (bytes.isEmpty) return <String, dynamic>{};
     return Map<String, dynamic>.from(jsonDecode(utf8.decode(bytes)) as Map);
   }
+
+  Future<List<Map<String, dynamic>>> _jsonList(
+    String method,
+    String path, {
+    bool authenticated = false,
+  }) async {
+    final request = await _http.openUrl(method, baseUri.resolve(path));
+    request.headers.contentType = ContentType.json;
+    if (authenticated) {
+      final token = sessionToken;
+      if (token == null) {
+        throw StateError('An authenticated session is required.');
+      }
+      request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
+    }
+    final response = await request.close();
+    final bytes = await response.fold<List<int>>(
+      <int>[],
+      (all, value) => all..addAll(value),
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw SartiApiException(response.statusCode);
+    }
+    return (jsonDecode(utf8.decode(bytes)) as List<Object?>)
+        .map((value) => Map<String, dynamic>.from(value! as Map))
+        .toList(growable: false);
+  }
+
+  RemoteFamily _familyFromJson(Map<String, dynamic> value) => RemoteFamily(
+    id: value['id'] as String,
+    role: value['role'] as String,
+    status: value['status'] as String,
+    resources: (value['resources'] as List<Object?>)
+        .map((item) {
+          final resource = Map<String, dynamic>.from(item! as Map);
+          return RemoteResource(
+            id: resource['id'] as String,
+            kind: resource['kind'] as String,
+            keyEpoch: resource['key_epoch'] as int,
+          );
+        })
+        .toList(growable: false),
+  );
 
   String _encode(List<int> bytes) =>
       base64Url.encode(bytes).replaceAll('=', '');

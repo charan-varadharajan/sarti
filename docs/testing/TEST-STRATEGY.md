@@ -36,6 +36,9 @@ are not applicable with a reason in its completion report.
 - Malformed native output is rejected without leaking prompt or response data.
 - Cloud AI defaults off, requires explicit versioned consent, and can be disabled.
 - Email content cannot override parser policy or cause automatic mutations.
+- Email plaintext is absent from PostgreSQL; delivery is sealed separately to
+  active devices, malformed ciphertext is discarded, and dismissal is scoped to
+  the authenticated recipient device.
 - Logs, URLs, crash data, and push payloads contain no sensitive content.
 - Push clients reject payloads containing fields beyond the exact opaque
   `{"type":"sync_available"}` shape, register token rotation, coalesce duplicate
@@ -74,3 +77,9 @@ Push coordinator tests establish application behavior only. A release requires
 two physical devices to verify FCM/APNs token registration, delayed/coalesced
 delivery, revoked-device behavior, process suspension, and encrypted convergence
 with production-equivalent provider configuration.
+
+Authenticated runtime tests cover serialized retry, client-ID family
+provisioning, wake-up after upload, session expiry, and email refresh. The email
+widget path decrypts a sealed delivery, displays source attribution, proves no
+event exists before approval, then saves and dismisses after approval. These
+tests do not establish Cloudflare, Firebase, or physical-device compatibility.

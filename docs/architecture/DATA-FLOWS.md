@@ -57,9 +57,21 @@ rotations. A sending device uploads encrypted operations, then may request a
 wake-up for the family. The backend authorizes the request and sends only
 `{"type":"sync_available"}` to other active registered devices. A recipient
 validates that exact shape, coalesces bursts, and requests the ordinary encrypted
-sync path. Foreground transition also requests catch-up. Firebase configuration
-and authenticated mobile sync bootstrap remain to be connected and tested on
-physical devices.
+sync path. Foreground transition also requests catch-up. The shipping bootstrap
+restores an authenticated session, provisions an offline family with stable
+client IDs, connects `SartiApiClient` to `SyncEngine`, and starts push
+registration. Firebase configuration and physical-device delivery remain to be
+tested.
 
-Inbound email and backup/restore are Stage 3 flows whose complete mobile
-acceptance paths remain unintegrated.
+## Inbound email suggestion
+
+Cloudflare forwards bounded plaintext to the authenticated ingress. The backend
+sanitizes the text, resolves the hashed family token, and holds plaintext only in
+memory while sealing one JSON payload to each currently active device's X25519
+public key. PostgreSQL stores digest/expiry metadata and per-device ciphertext.
+The authenticated mobile app downloads only its delivery, decrypts locally,
+shows the sender and untrusted-source warning, and requires the normal proposal
+review and save action. Dismissal is device scoped.
+
+Backup/restore remains blocked by the recovery design conflict recorded in
+`docs/STATUS.md`.
