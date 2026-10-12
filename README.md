@@ -31,6 +31,21 @@ conflicts. The API is exposed on `8000`.
 
 ## Verify the repository
 
+Quick local Flutter tests (from this directory):
+
+```sh
+./test             # unit/widget tests, no device needed
+./test --ios       # prepared UI journeys on an iOS simulator
+./test --android   # prepared UI journeys on an Android emulator
+```
+
+Console shows pass/fail; logs are saved in `test-results/`. The runner starts an
+installed simulator/emulator if needed. See
+[scenario instructions](docs/testing/TEST-SCENARIOS.md) for individual journeys
+and coverage limits. Backup portability is excluded from these shortcuts.
+
+Full repository gates:
+
 ```sh
 make setup
 make backend-check

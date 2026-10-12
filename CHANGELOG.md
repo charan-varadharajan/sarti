@@ -21,6 +21,10 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
 ## [Unreleased]
 
 ### Added
+- Simple local test entry point: `./test`, `./test --ios`, and
+  `./test --android`, with automatic simulator/emulator startup/selection,
+  prepared calendar/child journeys, console pass/fail and ignored saved logs.
+  Backup portability remains excluded; runner regression tests added, not run.
 - Record BUG-012: pending native iOS simulator integration coverage in CI;
   current iOS job builds only. Document user-owned test execution and direct
   main pushes for the current remediation workflow.

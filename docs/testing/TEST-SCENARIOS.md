@@ -81,6 +81,32 @@ harness is introduced.
 
 ## Running a prepared scenario
 
+From the repository root:
+
+```sh
+./test                     # all Flutter unit/widget tests; no device
+./test --ios               # calendar + child UI journeys; iOS simulator
+./test --android           # same journeys; Android emulator
+./test --ios --scenario calendar  # only CAL-MOB-001
+./test --ios --scenario child     # only CHILD-NATIVE-001
+```
+
+The runner selects a running supported simulator/emulator automatically, or
+starts an installed iPhone simulator / configured Android emulator if none is
+running. Xcode with an iOS runtime or Android Studio with an AVD must already be
+installed; tools must be on PATH. It never selects physical phones. With multiple
+running devices, selection is sorted by ID; use `--device ID` to override.
+It leaves the simulator/emulator open afterward; scenario fixtures handle their
+own database/key teardown. First builds can take several minutes.
+
+Watch UI actions in Simulator/Android Emulator. Terminal prints PASS/FAIL and
+the full log path under ignored `test-results/`. The command returns nonzero
+on setup/test failure and stops at the first failed scenario. Native mode uses
+an explicit two-file allowlist, not the whole integration directory: neither
+backup portability direction is run. These commands do not run backend tests,
+production-provider checks or the complete CI quality gates. BUG-012 remains
+pending; this helper does not change CI.
+
 Fast widget feedback:
 
 ```sh

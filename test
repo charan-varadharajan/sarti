@@ -1,0 +1,3 @@
+#!/bin/sh
+# Run from any working directory; Python handles selection, output and exit codes.
+exec python3 "$(dirname "$0")/scripts/run_tests.py" "$@"

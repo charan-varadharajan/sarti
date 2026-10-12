@@ -1,5 +1,14 @@
 # Module catalog
 
+## Developer tooling
+
+`test` delegates to `scripts/run_tests.py`: Flutter unit/widget execution or
+explicit prepared native calendar/child scenarios, automatic simulated-device
+selection/startup, streamed logs and failure exit codes. No dependencies beyond
+Python standard library and installed platform tools. Regression coverage is in
+`scripts/test_run_tests.py`; added but not executed by the assistant per the
+maintainer's test-ownership preference. Backup portability is excluded.
+
 ## Mobile
 
 | Module | Responsibility | Principal tests |
