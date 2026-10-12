@@ -19,7 +19,7 @@ def test_migrations_and_database_readiness() -> None:
         version = connection.execute(
             text("SELECT value FROM schema_metadata WHERE key = 'schema_version'")
         ).scalar_one()
-    assert version == "2"
+    assert version == "3"
     assert "schema_metadata" in inspect(engine).get_table_names()
 
     assert {
@@ -29,6 +29,7 @@ def test_migrations_and_database_readiness() -> None:
         "memberships",
         "resources",
         "sync_operations",
+        "email_suggestions",
     }.issubset(set(inspect(engine).get_table_names()))
 
     command.downgrade(config, "base")

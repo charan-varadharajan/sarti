@@ -2,7 +2,21 @@
 
 - Stage: Stage 3 — AI proposals, email intake, push notifications, and backup/recovery
 - Date: 2026-10-12
-- State: implementation complete; local acceptance gates passed
+- State: audit failed; remediation required before acceptance
+
+## Post-implementation audit (2026-10-11)
+
+The original completion claim below is retained as implementation history, but
+it is superseded by this audit. The full local suite passes after targeted build
+and test-infrastructure repairs: 19 backend tests at 87.47% branch coverage, 46
+Flutter tests, Ruff, Mypy, Bandit, Flutter analyze, Android and unsigned iOS
+builds, Docker health and migration 0003, pip-audit, OpenAPI drift, and Gitleaks.
+
+Stage 3 acceptance is blocked by the cloud AI privacy violation, plaintext email
+persistence, missing encrypted email delivery and approval flow, missing mobile
+integration for Stage 3 features, missing application quiet hours, inaccurate
+BIP-39 claims, and unexecuted provider/physical-device tests. The detailed,
+current list is maintained in `docs/STATUS.md`.
 
 ---
 

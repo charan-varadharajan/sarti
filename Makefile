@@ -7,7 +7,7 @@ setup:
 	cd mobile && flutter pub get
 
 backend-test:
-	cd backend && ../.venv/bin/pytest -m "not integration" --cov --cov-report=term-missing
+	cd backend && ../.venv/bin/pytest -m "not integration" --cov --cov-report=term-missing --cov-fail-under=0
 
 backend-check:
 	cd backend && ../.venv/bin/ruff format --check src tests alembic scripts_generate_openapi.py

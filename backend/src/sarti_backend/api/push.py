@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, ConfigDict
 
 from sarti_backend.core.auth import AuthenticatedDevice, require_device
-from sarti_backend.core.errors import PermissionDenied
 from sarti_backend.households.authorization import require_active_member
 
 router = APIRouter(prefix="/v1/push", tags=["push"])
@@ -75,9 +74,9 @@ def send_wake_up(
     No event titles, child names, family identifiers, or any family content
     are included (ADR-026).
     """
-    from sarti_backend.db.schema import devices, memberships
-
     from sqlalchemy import and_, select
+
+    from sarti_backend.db.schema import devices, memberships
 
     database: TransactionalDatabase = request.app.state.database
     fcm_credentials_file = request.app.state.settings.fcm_credentials_file
@@ -86,19 +85,23 @@ def send_wake_up(
         require_active_member(connection, payload.family_id, actor.adult_id)
 
         # Collect FCM tokens for all other active devices in this family
-        rows = connection.execute(
-            select(devices.c.fcm_token)
-            .join(memberships, memberships.c.adult_id == devices.c.adult_id)
-            .where(
-                and_(
-                    memberships.c.family_id == payload.family_id,
-                    memberships.c.status == "active",
-                    devices.c.state == "active",
-                    devices.c.id != actor.device_id,
-                    devices.c.fcm_token.isnot(None),
+        rows = (
+            connection.execute(
+                select(devices.c.fcm_token)
+                .join(memberships, memberships.c.adult_id == devices.c.adult_id)
+                .where(
+                    and_(
+                        memberships.c.family_id == payload.family_id,
+                        memberships.c.status == "active",
+                        devices.c.state == "active",
+                        devices.c.id != actor.device_id,
+                        devices.c.fcm_token.isnot(None),
+                    )
                 )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
     tokens = [t for t in rows if t]
     if not tokens or not fcm_credentials_file:
@@ -112,7 +115,7 @@ def _send_fcm(credentials_file: str, tokens: list[str]) -> int:
     """Send opaque wake-up via FCM. Returns number of tokens dispatched to."""
     try:
         import firebase_admin  # type: ignore[import-untyped]
-        from firebase_admin import credentials, messaging  # type: ignore[import-untyped]
+        from firebase_admin import credentials, messaging
 
         if not firebase_admin._apps:
             cred = credentials.Certificate(credentials_file)
@@ -125,14 +128,11 @@ def _send_fcm(credentials_file: str, tokens: list[str]) -> int:
                 token=token,
                 android=messaging.AndroidConfig(priority="normal"),
                 apns=messaging.APNSConfig(
-                    payload=messaging.APNSPayload(
-                        aps=messaging.Aps(content_available=True)
-                    )
+                    payload=messaging.APNSPayload(aps=messaging.Aps(content_available=True))
                 ),
             )
             for token in tokens
         ]
-        batch = messaging.BatchResponse
         response = messaging.send_each(messages)
         return sum(1 for r in response.responses if r.success)
     except Exception:

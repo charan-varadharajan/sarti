@@ -21,11 +21,11 @@ _ADULT_ID = UUID("00000000-0000-4000-8000-000000000030")
 
 
 def _settings(**overrides: Any) -> Settings:
-    base = dict(
-        environment="test",
-        database_url="postgresql+psycopg://unused",
-        email_worker_secret=_WORKER_SECRET,
-    )
+    base = {
+        "environment": "test",
+        "database_url": "postgresql+psycopg://unused",
+        "email_worker_secret": _WORKER_SECRET,
+    }
     base.update(overrides)
     return Settings(**base)  # type: ignore[arg-type]
 
@@ -116,7 +116,11 @@ def test_email_ingest_missing_secret_returns_403() -> None:
 def test_email_ingest_wrong_secret_returns_403() -> None:
     db = StubDatabase()
     app = create_app(_settings(), db)
-    r = _post_email(app, {"family_token": _FAMILY_TOKEN, "sender": "a@b.com"}, secret="wrong")
+    r = _post_email(
+        app,
+        {"family_token": _FAMILY_TOKEN, "sender": "a@b.com"},
+        secret="wrong",  # noqa: S106 - deliberate invalid test credential
+    )
     assert r.status_code == 403
 
 
@@ -227,9 +231,7 @@ def test_push_wakeup_no_fcm_credentials_returns_zero_dispatched() -> None:
     with patch("sarti_backend.households.authorization.require_active_member"):
 
         async def _req() -> Any:
-            async with AsyncClient(
-                transport=ASGITransport(app=app), base_url="http://test"
-            ) as c:
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
                 return await c.post(
                     "/v1/push/wake-up",
                     json={"family_id": str(_FAMILY_ID)},

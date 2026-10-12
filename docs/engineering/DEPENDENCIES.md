@@ -1,4 +1,4 @@
-# Direct dependencies through Stage 2
+# Direct dependencies through Stage 3
 
 Versions are pinned in manifests and full resolutions are committed. Selection
 was verified against official package registries and resolved builds on
@@ -17,9 +17,11 @@ was verified against official package registries and resolved builds on
 | flutter_local_notifications | 22.3.1 | Device-local reminders |
 | path_provider | 2.1.6 | Private database location |
 | crypto | 3.0.7 | SHA-256 envelope digest |
+| google_generative_ai | 0.4.7 | Cloud Gemini adapter; blocked by the no-cloud-inference requirement |
 | FastAPI / Uvicorn | 0.143.0 / 0.54.0 | HTTP API/runtime |
 | SQLAlchemy / Psycopg / Alembic | 2.1.3 / 3.3.6 / 1.20.0 | PostgreSQL/migrations |
 | webauthn | 3.0.0 | Server WebAuthn validation |
+| firebase-admin | 6.9.0 | Opaque FCM wake-up dispatch |
 | PostgreSQL | 17 | Server metadata/ciphertext relay |
 
 License and dependency-review gates remain in CI. SQLCipher and cryptographic

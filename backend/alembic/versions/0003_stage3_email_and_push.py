@@ -20,9 +20,7 @@ depends_on: str | Sequence[str] | None = None
 
 def upgrade() -> None:
     op.add_column("devices", sa.Column("fcm_token", sa.Text(), nullable=True))
-    op.add_column(
-        "families", sa.Column("email_token_digest", sa.LargeBinary(), nullable=True)
-    )
+    op.add_column("families", sa.Column("email_token_digest", sa.LargeBinary(), nullable=True))
     op.create_index(
         "uq_families_email_token",
         "families",

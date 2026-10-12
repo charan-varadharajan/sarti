@@ -7,7 +7,7 @@ need. Before adoption, review official release source, supported runtime,
 maintenance, license, security advisories, native/platform behavior, transitive
 dependencies, and privacy impact. Pin direct versions and commit resolver locks.
 
-## Selections through Stage 2
+## Selections through Stage 3
 
 Backend: FastAPI, Uvicorn, Pydantic Settings, SQLAlchemy, Psycopg, and Alembic;
 development uses Pytest, HTTPX, Ruff, Mypy, Bandit, and pip-audit. Mobile uses
@@ -16,6 +16,12 @@ storage and local authentication, native passkeys, IANA timezone data, local
 notifications, and SHA-256 support. The backend adds the maintained Python
 `webauthn` verifier. Exact resolved versions live in the backend requirement
 locks and `mobile/pubspec.lock`.
+
+Stage 3 adds `firebase-admin` for opaque push wake-ups and
+`google_generative_ai` for a cloud adapter. The cloud adapter conflicts with the
+Master Engineering Contract's on-device-only AI boundary and is blocked from a
+production release pending removal or an explicitly approved architecture
+change.
 
 `sqlite3` downloads checksum-pinned native artifacts via Dart build hooks. Sarti
 selects its SQLCipher community build and verifies the engine at runtime. A

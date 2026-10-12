@@ -69,7 +69,7 @@ def ingest_email(
     request: Request,
     _: WorkerAuth,
 ) -> EmailSuggestionResponse:
-    from sarti_backend.db.schema import email_suggestions, families, memberships
+    from sarti_backend.db.schema import email_suggestions, families
 
     database: TransactionalDatabase = request.app.state.database
 

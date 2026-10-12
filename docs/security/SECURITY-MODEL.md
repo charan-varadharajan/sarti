@@ -1,14 +1,19 @@
 # Security model
 
 Status: Stage 2 identity, authorization, device-key, encrypted-relay, and local
-calendar controls are implemented under ADR-019 through ADR-022.
+calendar controls are implemented under ADR-019 through ADR-022. Stage 3 code is
+present but failed the 2026-10-11 privacy and acceptance audit.
 
 The backend implements passkeys, one-active-device enforcement, owner/guardian
 membership, resource permissions, signed sealed key grants, replay defense, and
 a seven-day ciphertext relay. Mobile implements SQLCipher persistence, platform
 secret storage/user-presence gating, resource encryption, local-first outbox,
-version-vector conflicts, and generic local reminder text. Email, AI, backup,
-recovery, push dispatch, and account/family deletion remain unimplemented.
+version-vector conflicts, and generic local reminder text. Stage 3 adds parser,
+email-ingest, push-dispatch, and backup modules, but they are not release-ready:
+cloud AI violates the on-device-only boundary, email content is persisted as
+server plaintext, the mobile acceptance flows are not integrated, and provider
+and physical-device validation is outstanding. Account/family deletion remains
+unimplemented.
 
 ## Protected assets
 

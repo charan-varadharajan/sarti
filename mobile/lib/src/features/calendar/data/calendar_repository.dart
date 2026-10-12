@@ -4,6 +4,7 @@ import 'package:sarti_mobile/src/core/database/sarti_database.dart';
 import 'package:sarti_mobile/src/core/ids.dart';
 import 'package:sarti_mobile/src/features/calendar/domain/calendar_event.dart';
 import 'package:sarti_mobile/src/features/sync/version_vector.dart';
+import 'package:timezone/timezone.dart' as tz;
 
 class ChildProfile {
   const ChildProfile({
@@ -478,7 +479,10 @@ class CalendarRepository {
       calendarResourceId: row['calendar_resource_id'] as String,
       title: row['title'] as String,
       notes: row['notes'] as String?,
-      localStart: DateTime.parse(row['local_start'] as String),
+      localStart: tz.TZDateTime.from(
+        DateTime.parse(row['local_start'] as String),
+        tz.getLocation(row['timezone'] as String),
+      ),
       timezone: row['timezone'] as String,
       durationMinutes: row['duration_minutes'] as int,
       status: EventStatus.values.byName(row['status'] as String),

@@ -2,7 +2,27 @@
 
 - Current stage: Stage 3 — AI proposals, email intake, push notifications, and backup/recovery
 - Updated: 2026-10-12
-- Stage state: implementation complete; local acceptance gates passed
+- Stage state: audit failed; remediation required before Stage 3 acceptance
+
+## Stage 3 verification audit (2026-10-11)
+
+The local mechanical gates pass after repairing the migration assertion,
+resolved Firebase dependency locks, backend formatting/lint findings, a calendar
+timezone round-trip regression, and two documented Gitleaks false positives.
+Stage 3 remains incomplete because:
+
+- the Gemini adapter sends natural-language family input to cloud inference,
+  contrary to the on-device-only contract;
+- the server persists email sender, subject, and body as plaintext and has no
+  authorized-device encrypted delivery path or retention cleanup job;
+- the shipping mobile app still boots the Stage 2 calendar and does not expose
+  the proposal/confirmation, email suggestion, push registration, or backup and
+  restore flows;
+- quiet hours and the documented Firebase Messaging client integration are not
+  implemented;
+- the recovery phrase uses a 256-word subset without the BIP-39 checksum and is
+  therefore not a BIP-39 mnemonic; and
+- real provider and physical-device acceptance tests remain unexecuted.
 
 ## Delivered
 
@@ -40,8 +60,7 @@
 
 | Check | Result |
 | --- | --- |
-| Backend Pytest unit | 17 passed |
-| Backend Pytest + PostgreSQL integration | 10 passed; 88.28% coverage (Stage 2 baseline) |
+| Backend Pytest unit + PostgreSQL integration | 19 passed; 87.47% branch coverage |
 | Alembic upgrade to head | Passed; schema version 3 |
 | Ruff / strict Mypy | Passed |
 | OpenAPI drift | Passed after regeneration |
@@ -51,6 +70,7 @@
 | Android debug build | Passed; APK produced |
 | iOS unsigned debug build | Passed; Runner.app produced |
 | Gitleaks working-tree/history scan | Passed; no leaks found |
+| Pip-audit runtime dependency scan | Passed; no known vulnerabilities found |
 
 ## Device/platform gaps
 
