@@ -79,7 +79,7 @@ in-repository record while Sarti has no external tracker.
 - Severity: High
 - Component: backup service, recovery UI/bootstrap, authenticated backup API
 - Discovered: 2026-10-11
-- Fixed: 2026-10-12 — fixing commit references BUG-002 (recorded below after commit)
+- Fixed: 2026-10-12 — commit `cb08bc3`
 - Fix version: Unreleased
 - Disposition: Approved ADR-032 carries the SQLCipher key inside the independent
   recovery envelope. Explicit owner upload, automatic discovery after login,

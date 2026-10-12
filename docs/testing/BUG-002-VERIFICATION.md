@@ -2,7 +2,7 @@
 
 ## Result and scope
 
-BUG-002 is resolved in application code and automated tests. Owner on phone 1
+BUG-002 is resolved in application code and automated tests (commit `cb08bc3`). Owner on phone 1
 explicitly generates/saves a recovery phrase and uploads an encrypted snapshot.
 An empty phone 2 installation authenticates, discovers/downloads the owner's
 snapshot automatically, and requires phrase confirmation before local restore.
