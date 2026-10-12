@@ -19,7 +19,13 @@ class Stage2Bootstrap extends StatefulWidget {
 class _Stage2BootstrapState extends State<Stage2Bootstrap> {
   SartiDatabase? _database;
   DeviceKeyMaterial? _keys;
-  late final Future<_LocalResources> _resources = _open();
+  late Future<_LocalResources> _resources;
+
+  @override
+  void initState() {
+    super.initState();
+    _resources = _open();
+  }
 
   Future<_LocalResources> _open() async {
     tz_data.initializeTimeZones();
@@ -60,6 +66,10 @@ class _Stage2BootstrapState extends State<Stage2Bootstrap> {
     super.dispose();
   }
 
+  void _retryUnlock() {
+    setState(() => _resources = _open());
+  }
+
   @override
   Widget build(BuildContext context) => FutureBuilder<_LocalResources>(
     future: _resources,
@@ -69,9 +79,19 @@ class _Stage2BootstrapState extends State<Stage2Bootstrap> {
           body: Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
-              child: Text(
-                'Sarti could not unlock encrypted local storage.\n${snapshot.error}',
-                textAlign: TextAlign.center,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Sarti could not unlock encrypted local storage. Set up or use your device PIN, password, or biometric, then try again.',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    onPressed: _retryUnlock,
+                    child: const Text('Try again'),
+                  ),
+                ],
               ),
             ),
           ),

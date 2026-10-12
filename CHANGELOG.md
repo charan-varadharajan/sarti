@@ -31,6 +31,8 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
 - Removed incomplete, untested BUG-003 API groundwork that was accidentally
   bundled into the administrative commit. BUG-003 remains open for a coherent
   implementation.
+- Fixed BUG-006 so a missing device credential shows a bounded setup message and
+  retry action instead of an internal `LocalAuthException`.
 
 ### Known open defects
 See `docs/engineering/BUGS.md` for the current open defect list.
