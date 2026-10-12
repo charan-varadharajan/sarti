@@ -98,7 +98,7 @@ in-repository record while Sarti has no external tracker.
 - Severity: High
 - Component: `mobile/lib/src/core/backup/backup_service.dart`
 - Discovered: 2026-10-11
-- Fixed: 2026-10-12 — pending commit
+- Fixed: 2026-10-12 — commit `6b55cd1`
 - Fix version: Unreleased
 - Disposition: ADR-031 replaces the 256-word, checksum-free generator with
   `bip39_mnemonic` 4.1.0. New phrases use 128-bit libsodium entropy, standard
