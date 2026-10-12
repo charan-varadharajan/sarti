@@ -27,6 +27,7 @@ class EventProposal {
     this.recurrenceWeekday,
     this.childNameTokens = const [],
     this.guardianNameTokens = const [],
+    this.requiresTimeConfirmation = false,
   });
 
   final String rawInput;
@@ -40,6 +41,10 @@ class EventProposal {
   final int? recurrenceWeekday;
   final List<String> childNameTokens;
   final List<String> guardianNameTokens;
+
+  /// True when the input contained a clock time without enough information to
+  /// distinguish morning from afternoon/evening.
+  final bool requiresTimeConfirmation;
 
   /// True when enough information exists to show a confirmation UI.
   bool get isActionable => title != null && title!.isNotEmpty;
@@ -215,6 +220,7 @@ class DeterministicEventParser implements AiProvider {
 
     // ── time ──────────────────────────────────────────────────────────────
     ParsedTime? timeOfDay;
+    var requiresTimeConfirmation = false;
     final t12 = _time12.firstMatch(working);
     if (t12 != null) {
       var hour = int.parse(t12.group(1)!);
@@ -226,16 +232,23 @@ class DeterministicEventParser implements AiProvider {
     } else {
       final t24 = _time24.firstMatch(working);
       if (t24 != null) {
-        timeOfDay = ParsedTime(
-          int.parse(t24.group(1)!),
-          int.parse(t24.group(2)!),
-        );
+        final hour = int.parse(t24.group(1)!);
+        final minute = int.parse(t24.group(2)!);
+        if (hour == 0 || hour > 12) {
+          timeOfDay = ParsedTime(hour, minute);
+        } else {
+          requiresTimeConfirmation = true;
+        }
       } else {
         // bare hour without am/pm: "at 4"
         final bh = _bareHour.firstMatch(working);
         if (bh != null) {
           final h = int.parse(bh.group(1)!);
-          if (h >= 0 && h <= 23) timeOfDay = ParsedTime(h, 0);
+          if (h == 0 || (h > 12 && h <= 23)) {
+            timeOfDay = ParsedTime(h, 0);
+          } else if (h >= 1 && h <= 12) {
+            requiresTimeConfirmation = true;
+          }
         }
       }
     }
@@ -295,6 +308,7 @@ class DeterministicEventParser implements AiProvider {
       recurrenceWeekday: recurrenceWeekday,
       childNameTokens: childTokens,
       guardianNameTokens: guardianTokens,
+      requiresTimeConfirmation: requiresTimeConfirmation,
     );
   }
 }

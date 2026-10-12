@@ -43,7 +43,10 @@ class PlatformSecretStore implements SecretStore {
   );
   static const _android = AndroidOptions.biometric(
     enforceBiometrics: true,
-    requireBiometricsPerOperation: true,
+    // The app performs an explicit local_auth check above. Keep the protected
+    // storage key cached for this process so loading the six-part device key
+    // does not open overlapping authentication prompts.
+    requireBiometricsPerOperation: false,
     storageNamespace: 'sarti_device_secrets',
   );
 

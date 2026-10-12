@@ -66,6 +66,25 @@ void main() {
     expect(result.childNameTokens, ['Mia']);
   });
 
+  test('native model cannot resolve an ambiguous AM or PM choice', () async {
+    final provider = NativeEventAiProvider(
+      _FakeNativeAiBridge(
+        NativeAiAvailability.available,
+        '{"timeHour":17,"timeMinute":0}',
+      ),
+    );
+    const base = EventProposal(
+      rawInput: 'Mia has swimming Tuesday at 5',
+      title: 'swimming',
+      requiresTimeConfirmation: true,
+    );
+
+    final result = await provider.tryEnrich(base);
+
+    expect(result.timeOfDay, isNull);
+    expect(result.requiresTimeConfirmation, isTrue);
+  });
+
   test('prompt encodes instruction-like user text as a JSON string', () async {
     final bridge = _FakeNativeAiBridge(NativeAiAvailability.available, '{}');
     final provider = NativeEventAiProvider(bridge);

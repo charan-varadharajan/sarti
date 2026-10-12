@@ -111,6 +111,27 @@ in-repository record while Sarti has no external tracker.
 
 ## Resolved defects
 
+### BUG-008 — Android device-key loading opened competing authentication prompts
+- Severity: High
+- Component: `mobile/lib/src/core/crypto/device_key_store.dart`
+- Discovered: 2026-10-12 during Android API 35 emulator smoke test
+- Fixed: 2026-10-12 — pending commit
+- Fix version: Unreleased
+- Disposition: Android still enforces device credentials for its hardware-backed
+  protected storage key and Sarti still performs its explicit local unlock, but
+  the plugin now caches the unlocked storage key for the app process instead of
+  prompting separately for every field in the six-part device key.
+
+### BUG-007 — Natural-language parser silently selected AM for ambiguous times
+- Severity: High
+- Component: `mobile/lib/src/features/ai/`
+- Discovered: 2026-10-12 during Android API 35 emulator smoke test
+- Fixed: 2026-10-12 — pending commit
+- Fix version: Unreleased
+- Disposition: Clock times from 1 through 12 without AM or PM now remain unset,
+  the review UI requires the parent to choose the intended time, and model
+  enrichment cannot bypass that confirmation.
+
 ### BUG-006 — Missing device credential exposed an internal unlock error
 - Severity: Medium
 - Component: `mobile/lib/src/features/calendar/presentation/stage2_bootstrap.dart`

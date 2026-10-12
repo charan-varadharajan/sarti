@@ -244,6 +244,13 @@ class _NaturalLanguageEventDialogState
         subtitle: Text(_time?.toString() ?? 'Missing — choose a time'),
         onTap: _chooseTime,
       ),
+      if (_proposal!.requiresTimeConfirmation && _time == null)
+        const Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            'Is that AM or PM? Choose the intended time before adding it.',
+          ),
+        ),
       if (_proposal!.recurrenceFrequency != null)
         ListTile(
           contentPadding: EdgeInsets.zero,

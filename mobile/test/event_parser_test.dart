@@ -46,10 +46,10 @@ void main() {
       expect(p.timeOfDay?.minute, 30);
     });
 
-    test('parses half-hour time', () {
+    test('requires confirmation for half-hour time without am or pm', () {
       final p = parser.parse('Pick up at 3:30');
-      expect(p.timeOfDay?.hour, 3);
-      expect(p.timeOfDay?.minute, 30);
+      expect(p.timeOfDay, isNull);
+      expect(p.requiresTimeConfirmation, isTrue);
     });
 
     test('leaves time null when absent', () {
@@ -173,10 +173,16 @@ void main() {
         now: now,
       );
       expect(p.title, 'football practice');
-      // bare "at 4" has no am/pm — parser returns 4, does not fabricate pm
-      expect(p.timeOfDay?.hour, 4);
+      expect(p.timeOfDay, isNull);
+      expect(p.requiresTimeConfirmation, isTrue);
       expect(p.date?.day, 14);
       expect(p.childNameTokens, contains('Jithu'));
+    });
+
+    test('bare 12-hour time does not assume AM or PM', () {
+      final p = parser.parse('Mia has swimming Tuesday at 5');
+      expect(p.timeOfDay, isNull);
+      expect(p.requiresTimeConfirmation, isTrue);
     });
 
     test('full sentence: football tomorrow explicit pm', () {

@@ -10,7 +10,7 @@ class EventProposalMerger {
     final location = base.location ?? _string(json['location']);
 
     ParsedTime? timeOfDay = base.timeOfDay;
-    if (timeOfDay == null) {
+    if (timeOfDay == null && !base.requiresTimeConfirmation) {
       final hour = _integer(json['timeHour']);
       final minute = _integer(json['timeMinute']) ?? 0;
       if (hour != null &&
@@ -56,6 +56,7 @@ class EventProposalMerger {
       recurrenceWeekday: recurrenceWeekday,
       childNameTokens: childTokens,
       guardianNameTokens: guardianTokens,
+      requiresTimeConfirmation: base.requiresTimeConfirmation,
     );
   }
 

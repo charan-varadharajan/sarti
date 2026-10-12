@@ -18,6 +18,49 @@ import 'package:timezone/data/latest.dart' as tz_data;
 void main() {
   setUpAll(tz_data.initializeTimeZones);
 
+  testWidgets('ambiguous time requires an explicit AM or PM choice', (
+    tester,
+  ) async {
+    final database = SartiDatabase.open(':memory:', Uint8List(32));
+    addTearDown(database.close);
+    final repository = CalendarRepository(database, deviceId: newId());
+    repository.createFamily(name: 'Family', ownerName: 'Parent');
+    repository.addChild('Mia', 0xFF8E6CEF);
+    final controller = CalendarController(
+      repository,
+      timezone: 'America/Vancouver',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CalendarScreen(
+          controller: controller,
+          nativeAi: NativeEventAiProvider(_UnavailableBridge()),
+        ),
+      ),
+    );
+    await tester.tap(find.byTooltip('Add with natural language'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Event description'),
+      'Mia has swimming Tuesday at 5',
+    );
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, 'Preview'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Missing — choose a time'), findsOneWidget);
+    expect(
+      find.text('Is that AM or PM? Choose the intended time before adding it.'),
+      findsOneWidget,
+    );
+    final addButton = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'Add to calendar'),
+    );
+    expect(addButton.onPressed, isNull);
+    expect(repository.load()!.events, isEmpty);
+  });
+
   testWidgets('natural-language event requires review and supports undo', (
     tester,
   ) async {
