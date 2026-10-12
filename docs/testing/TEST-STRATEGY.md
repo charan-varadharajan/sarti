@@ -6,6 +6,10 @@ Tests demonstrate defined behavior at the lowest useful level. Security claims
 need negative and abuse-case coverage. Mocks demonstrate application behavior,
 not compatibility with devices, operating systems, SDKs, or providers.
 
+Functional journeys and their reusable fixture/entry/teardown contracts are
+maintained in [`TEST-SCENARIOS.md`](TEST-SCENARIOS.md). Prerequisite state is
+seeded outside the UI unless creation of that state is the behavior under test.
+
 ## Suites
 
 | Suite | Purpose | Required when |

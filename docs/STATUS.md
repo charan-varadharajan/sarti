@@ -1,7 +1,7 @@
 # Project status
 
 - Current stage: Stage 3 — AI proposals, email intake, push notifications, and backup/recovery
-- Updated: 2026-10-11
+- Updated: 2026-10-12
 - Stage state: remediation in progress; recovery design approval and provider/device validation outstanding
 - Repository version: `0.1.0+1`; no public release tag
 
@@ -65,8 +65,11 @@ the flawed format.
   until the design issues above are approved and fixed.
 - Repository-wide SemVer/build numbering policy, drift checker, bump command,
   tests, CI tag validation, and release documentation under ADR-030.
+- Stable functional-scenario IDs, reusable synthetic Flutter fixtures, direct
+  target-flow entry helpers, and automatic database teardown. `CAL-MOB-001`
+  runs from a prepared calendar on widget tests and an Android emulator.
 
-## Verified locally on 2026-10-11
+## Latest local verification
 
 | Check | Result |
 | --- | --- |
@@ -76,7 +79,8 @@ the flawed format.
 | OpenAPI contract | Passed |
 | Docker Compose health | Backend and PostgreSQL healthy |
 | Flutter format / analyze | Passed; no issues |
-| Flutter unit/widget tests | 76 passed |
+| Flutter unit/widget tests | 80 passed on 2026-10-12 |
+| Prepared Android emulator scenario | `CAL-MOB-001` passed on API 35 on 2026-10-12 |
 | Android debug / unsigned iOS debug builds | Passed; APK and Runner.app produced |
 | Pip-audit runtime dependency scan | Passed; no known vulnerabilities |
 | Version checker/tests | Passed; 3 tests |

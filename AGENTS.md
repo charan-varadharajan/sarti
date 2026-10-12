@@ -32,6 +32,10 @@ Read, in order:
   same change as behavior.
 - State exactly which checks ran. Never infer provider or device compatibility
   from mocks.
+- Add or update the stable scenario entry in
+  `docs/testing/TEST-SCENARIOS.md` with every functional journey. Use prepared
+  fixtures and direct target-screen entry; create prerequisites through UI only
+  when prerequisite creation is itself under test.
 - Stop for approval under the conditions in `docs/engineering/ENGINEERING-STANDARDS.md`.
 - Read `docs/engineering/CONTRIBUTING.md` and
   `docs/engineering/BUGS.md` before making a change. The PR checklist is

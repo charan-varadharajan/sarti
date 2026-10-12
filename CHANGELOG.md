@@ -23,6 +23,8 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
 ### Added
 - Repository-maintained changelog, known-defect register, contribution guide,
   draft privacy disclosure, and draft Cloud Run/Neon deployment runbook.
+- Maintained functional scenario catalogue and a disposable Flutter fixture
+  harness for prepared data, direct flow entry, emulator execution, and teardown.
 
 ### Corrected
 - Reviewed the new process documents against the accepted ADRs and current
