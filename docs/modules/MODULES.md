@@ -8,7 +8,7 @@
 | `core/crypto` | Device keys, secure storage, XChaCha20-Poly1305 resource content | Encrypted sync simulation |
 | `core/backup` | PBKDF2 key derivation, XChaCha20-Poly1305 backup, BIP-39 recovery phrase | 11 backup unit tests |
 | `core/database` | SQLCipher verification, schema v1-v5, transactional migrations | Native engine and repository tests |
-| `features/ai` | Deterministic parser, local pseudonymization, versioned opt-in, and gated optional Gemini adapter | Parser, consent widget, and cloud-boundary tests |
+| `features/ai` | Deterministic parser, Apple/Android native bridge, strict proposal merge/review, local pseudonymization, versioned opt-in, and gated optional cloud adapter | Parser, native fallback/merge, approval/Undo widget, consent, and cloud-boundary tests |
 | `features/calendar/domain` | Event, recurrence, IANA timezone/DST behavior | Recurrence unit tests |
 | `features/calendar/data` | Family/child/event repository, outbox, durable conflicts, reminders | Repository/sync tests |
 | `features/calendar/presentation` | Progressive onboarding, Today/Week/Month, edit/assign/cancel/delete/conflict UI | Widget journey |

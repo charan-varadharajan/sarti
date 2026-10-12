@@ -11,9 +11,12 @@ secret storage/user-presence gating, resource encryption, local-first outbox,
 version-vector conflicts, and generic local reminder text. Stage 3 adds parser,
 email-ingest, push-dispatch, and backup modules, but they are not release-ready:
 the approved pseudonymized cloud assist has a versioned local disclosure and
-opt-in but provider configuration remains unverified, email content is persisted
-as server plaintext, the mobile acceptance flows are not
-integrated, and provider and physical-device validation is outstanding.
+opt-in but provider configuration remains unverified. The native proposal flow
+is integrated: it runs the deterministic parser first, runtime-gates Apple or
+Android on-device inference, treats output as untrusted, fills unresolved fields
+only, and requires confirmation. Email content is persisted as server plaintext,
+other mobile acceptance flows are not integrated, and provider/physical-device
+validation is outstanding.
 Account/family deletion remains unimplemented.
 
 ## Protected assets
@@ -49,6 +52,8 @@ available to it. Revocation protects future access and is not remote erasure.
 - Push payloads and URLs do not contain sensitive data.
 - AI output and inbound email are untrusted input.
 - Generated changes require explicit approval.
+- Native AI failure or unavailability falls back locally and never silently
+  invokes cloud inference.
 - Secrets come from runtime configuration and never source control.
 
 ## Key lifecycle

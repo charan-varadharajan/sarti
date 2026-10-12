@@ -8,7 +8,7 @@
 
 The original completion claim below is retained as implementation history, but
 it is superseded by this audit. The full local suite passes after targeted build
-and test-infrastructure repairs: 19 backend tests at 87.47% branch coverage, 55
+and test-infrastructure repairs: 19 backend tests at 87.47% branch coverage, 61
 Flutter tests, Ruff, Mypy, Bandit, Flutter analyze, Android and unsigned iOS
 builds, Docker health and migration 0003, pip-audit, OpenAPI drift, and Gitleaks.
 
@@ -18,6 +18,11 @@ delivery and approval flow, missing mobile integration for Stage 3 features,
 missing application quiet hours, inaccurate BIP-39 claims, and unexecuted
 provider/physical-device tests. The detailed, current list is maintained in
 `docs/STATUS.md`.
+
+The natural-language mobile acceptance path has since been integrated under
+ADR-029: Apple Foundation Models and Android ML Kit native bridges, deterministic
+fallback, editable review, explicit confirmation, and Undo all compile and pass
+automated tests. Physical-device inference remains a release gap.
 
 ---
 
@@ -35,6 +40,15 @@ locations are replaced locally under ADR-028 before the request. No family IDs,
 real child names, alias mappings, or profile records are sent. Structured JSON output.
 Additive-only merge with the deterministic result. Never throws; returns the
 deterministic result on any failure.
+
+### Native on-device AI and proposal UI (ADR-029)
+
+Flutter invokes Apple Foundation Models or Android ML Kit Prompt API through a
+private method channel only after the native runtime reports the model ready.
+The deterministic parser runs first and native JSON can fill unresolved fields
+only. The calendar exposes an editable proposal; it cannot write before explicit
+approval and offers Undo after creation. Unsupported or failed native inference
+continues with the deterministic parser and never silently calls cloud AI.
 
 Cloud use now has a user-facing residual-risk disclosure and a versioned,
 reversible consent value stored in SQLCipher. Consent defaults off. A provider
@@ -149,7 +163,7 @@ OpenAPI regenerated and contract test passing.
 | `mobile/test/backup_service_test.dart` | 11 | Passed |
 | `backend/tests/unit/test_email_push.py` | 9 | Passed |
 | All backend unit tests | 17 | Passed |
-| All mobile tests | 55 | Passed |
+| All mobile tests | 61 | Passed |
 
 Total: 63 tests passing across backend and mobile.
 
@@ -193,8 +207,10 @@ Total: 63 tests passing across backend and mobile.
 - `sodium_sumo` (required for Argon2id) has no Flutter-compatible pinned package.
   PBKDF2-HMAC-SHA256 is used instead per ADR-025. Argon2id remains the preferred
   KDF if a compatible package becomes available.
-- Gemini Nano / Apple NaturalLanguage have no stable Flutter packages. Cloud
-  Gemini is used with the local pseudonymization privacy constraint.
+- The native bridges avoid dependence on a Flutter AI package, but Apple
+  Foundation Models requires iOS 26 and eligible Apple Intelligence hardware.
+  Android ML Kit Prompt API requires API 26, a supported AICore/Gemini Nano
+  device, and is beta without an SLA. Physical-device inference is unverified.
 - `firebase-admin` is a runtime dependency but is imported lazily inside
   `_send_fcm`; the backend starts without FCM credentials configured.
 - The `email_suggestions` table has no consumer endpoint yet (mobile polling or

@@ -1,8 +1,9 @@
 # System architecture
 
 Status: Stage 2 calendar, identity, authorization, and encrypted synchronization
-are implemented under ADR-019 through ADR-022. Stage 3 components shown in the
-context diagram remain future boundaries.
+are implemented under ADR-019 through ADR-022. The Stage 3 native event-proposal
+path is integrated under ADR-029; other Stage 3 acceptance gaps remain in
+`docs/STATUS.md`.
 
 ## System context
 
@@ -82,11 +83,13 @@ rotation, replay protection, ordering, and explicit conflict semantics.
 
 ### AI suggestion
 
-1. The app invokes a verified native on-device capability.
-2. If unavailable or invalid, it uses a deterministic local parser.
-3. The result is validated against a strict local schema and displayed as a
+1. The deterministic parser produces a local partial proposal.
+2. The app invokes Apple Foundation Models or Android ML Kit only after its
+   native runtime reports the model available.
+3. If unavailable, invalid, or failed, it retains the deterministic proposal.
+4. Native output can fill unresolved fields only, is validated locally, and is displayed as a
    proposal.
-4. Only explicit confirmation writes the change.
+5. Only explicit confirmation writes the change; the user can immediately undo.
 
 ### Push notification
 
@@ -140,3 +143,5 @@ repositories.
 - [Error handling](../engineering/ERROR-HANDLING.md)
 - [Dependency governance](../engineering/DEPENDENCY-GOVERNANCE.md)
 - [Threat model](../security/THREAT-MODEL.md)
+- [AI architecture](../ai/AI-ARCHITECTURE.md)
+- [Native AI compatibility](../ai/DEVICE-COMPATIBILITY.md)

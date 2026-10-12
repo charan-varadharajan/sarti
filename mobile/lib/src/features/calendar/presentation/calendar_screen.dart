@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:sarti_mobile/src/features/ai/cloud_ai_consent.dart';
 import 'package:sarti_mobile/src/features/ai/cloud_ai_consent_dialog.dart';
+import 'package:sarti_mobile/src/features/ai/native_ai_provider.dart';
+import 'package:sarti_mobile/src/features/ai/natural_language_event_dialog.dart';
 import 'package:sarti_mobile/src/features/calendar/domain/calendar_event.dart';
 import 'package:sarti_mobile/src/features/calendar/domain/recurrence.dart';
 import 'package:sarti_mobile/src/features/calendar/presentation/calendar_controller.dart';
@@ -11,10 +13,12 @@ class CalendarScreen extends StatelessWidget {
     super.key,
     required this.controller,
     this.cloudAiConsent,
+    this.nativeAi,
   });
 
   final CalendarController controller;
   final CloudAiConsentController? cloudAiConsent;
+  final NativeEventAiProvider? nativeAi;
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
@@ -27,6 +31,12 @@ class CalendarScreen extends StatelessWidget {
         appBar: AppBar(
           title: Text(family.name),
           actions: [
+            if (nativeAi != null)
+              IconButton(
+                tooltip: 'Add with natural language',
+                onPressed: () => _addWithNaturalLanguage(context),
+                icon: const Icon(Icons.auto_awesome_outlined),
+              ),
             if (cloudAiConsent != null)
               ListenableBuilder(
                 listenable: cloudAiConsent!,
@@ -182,6 +192,25 @@ class CalendarScreen extends StatelessWidget {
     final child = childName == null ? '' : ' · $childName';
     final pickup = event.pickupGuardianId == null ? '' : ' · pickup assigned';
     return '${start.month}/${start.day} ${TimeOfDay.fromDateTime(start).format24()}$child$recurring$pickup';
+  }
+
+  Future<void> _addWithNaturalLanguage(BuildContext context) async {
+    final saved = await showNaturalLanguageEventDialog(
+      context,
+      controller: controller,
+      provider: nativeAi!,
+    );
+    if (saved != null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Event added'),
+          action: SnackBarAction(
+            label: 'Undo',
+            onPressed: () => controller.delete(saved),
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _addChild(BuildContext context) async {

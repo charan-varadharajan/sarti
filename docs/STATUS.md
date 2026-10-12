@@ -1,7 +1,7 @@
 # Project status
 
 - Current stage: Stage 3 — AI proposals, email intake, push notifications, and backup/recovery
-- Updated: 2026-10-12
+- Updated: 2026-10-11
 - Stage state: audit failed; remediation required before Stage 3 acceptance
 
 ## Stage 3 verification audit (2026-10-11)
@@ -16,9 +16,9 @@ Stage 3 remains incomplete because:
   data-handling and production credential configuration remain unverified;
 - the server persists email sender, subject, and body as plaintext and has no
   authorized-device encrypted delivery path or retention cleanup job;
-- the shipping mobile app still boots the Stage 2 calendar and does not expose
-  the proposal/confirmation, email suggestion, push registration, or backup and
-  restore flows;
+- the shipping mobile app now exposes native/local natural-language proposal,
+  edit, confirmation, and Undo, but does not expose email suggestion, push
+  registration, or backup/restore flows;
 - quiet hours and the documented Firebase Messaging client integration are not
   implemented;
 - the recovery phrase uses a 256-word subset without the BIP-39 checksum and is
@@ -54,6 +54,9 @@ backup/recovery validation, provider review, and an explicit production decision
   fail-closed alias coverage, and additive-only merge; ADR-023 and ADR-028
 - Encrypted, versioned cloud-AI consent that defaults off, includes the residual
   privacy disclosure, and gates provider construction
+- Apple Foundation Models and Android ML Kit Prompt API native bridges with
+  runtime availability checks, deterministic fallback, strict additive merge,
+  editable proposal, explicit confirmation, and Undo; ADR-029
 - Cloudflare Email Routing → `POST /v1/email/ingest` webhook: HMAC worker-secret
   auth, prompt-injection sanitization, family-token resolution, 20 emails/family/day
   rate limit, content-digest deduplication, 7-day TTL; ADR-024
@@ -75,7 +78,7 @@ backup/recovery validation, provider review, and an explicit production decision
 | OpenAPI drift | Passed after regeneration |
 | Docker Compose health | Backend and PostgreSQL healthy |
 | Flutter format/analyze | Passed; no issues |
-| Flutter unit/widget tests | 55 passed (including parser, backup, SQLCipher migration, consent widget, and cloud-boundary tests) |
+| Flutter unit/widget tests | 61 passed (including native fallback/merge, prompt encoding, and proposal confirmation/Undo) |
 | Android debug build | Passed; APK produced |
 | iOS unsigned debug build | Passed; Runner.app produced |
 | Gitleaks working-tree/history scan | Passed; no leaks found |
@@ -94,3 +97,6 @@ backup/recovery validation, provider review, and an explicit production decision
   and have not been exercised end-to-end.
 - Gemini cloud assist requires a production API key; the adapter is wired but
   not exercised against the live API.
+- Apple Foundation Models and Android Gemini Nano bridges compile and their
+  availability/fallback behavior is automated, but actual inference has not been
+  executed on eligible physical devices. Android Prompt API is beta.

@@ -6,6 +6,7 @@ import 'package:sarti_mobile/src/core/crypto/device_key_store.dart';
 import 'package:sarti_mobile/src/core/crypto/resource_crypto.dart';
 import 'package:sarti_mobile/src/core/database/sarti_database.dart';
 import 'package:sarti_mobile/src/features/ai/cloud_ai_consent.dart';
+import 'package:sarti_mobile/src/features/ai/native_ai_provider.dart';
 import 'package:sarti_mobile/src/features/calendar/data/calendar_repository.dart';
 import 'package:sarti_mobile/src/features/calendar/data/reminder_scheduler.dart';
 import 'package:sarti_mobile/src/features/calendar/presentation/calendar_controller.dart';
@@ -96,6 +97,7 @@ class _Stage2BootstrapState extends State<Stage2Bootstrap> {
       final database = _database!;
       return CalendarScreen(
         controller: snapshot.requireData,
+        nativeAi: NativeEventAiProvider(),
         cloudAiConsent: CloudAiConsentController(CloudAiConsentStore(database)),
       );
     },

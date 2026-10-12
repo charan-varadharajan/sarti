@@ -32,6 +32,8 @@ are not applicable with a reason in its completion report.
 - Duplicate, reordered, malformed, replayed, and tampered sync input is safe.
 - AI suggestions cannot mutate state before explicit confirmation.
 - Deterministic fallback works when native AI is absent or fails.
+- Native model output cannot replace fields the deterministic parser resolved.
+- Malformed native output is rejected without leaking prompt or response data.
 - Cloud AI defaults off, requires explicit versioned consent, and can be disabled.
 - Email content cannot override parser policy or cause automatic mutations.
 - Logs, URLs, crash data, and push payloads contain no sensitive content.
@@ -58,3 +60,9 @@ assignment, and reminder scheduling invocation.
 Mocks establish application behavior only. Real passkey ceremonies, Keychain and
 Keystore biometric policies, notification delivery, process-kill persistence,
 and multi-device networking need physical-device/provider validation.
+
+ADR-029 adds native-bridge unit tests and an end-to-end widget path that enters a
+sentence, reviews a proposal, confirms it, verifies the child assignment, and
+undoes the event. Native iOS and Android compilation are build gates. A release
+still requires successful inference and offline/failure behavior on eligible
+physical devices; mocked channels and simulators cannot establish those facts.

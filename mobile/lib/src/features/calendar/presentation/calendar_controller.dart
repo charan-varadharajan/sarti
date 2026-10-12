@@ -39,9 +39,10 @@ class CalendarController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void save({
+  CalendarEvent save({
     String? id,
     required String title,
+    String? notes,
     required DateTime localStart,
     required int durationMinutes,
     required List<String> childIds,
@@ -58,6 +59,7 @@ class CalendarController extends ChangeNotifier {
       householdId: current.householdId,
       calendarResourceId: current.calendarResourceId,
       title: title,
+      notes: notes,
       localStart: localStart,
       timezone: timezone,
       durationMinutes: durationMinutes,
@@ -71,6 +73,7 @@ class CalendarController extends ChangeNotifier {
     repository.saveEvent(saved);
     reminders?.replaceFor(saved);
     refresh();
+    return saved;
   }
 
   void cancel(CalendarEvent event) {

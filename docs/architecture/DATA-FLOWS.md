@@ -41,5 +41,14 @@ The returned structured proposal is restored and validated locally. No proposal
 mutates calendar state without explicit approval. With consent absent or revoked,
 the provider is not constructed and local parsing continues.
 
+## Native on-device event parsing
+
+The deterministic parser runs first. When the platform reports its local model
+ready, the Flutter method-channel bridge sends the sentence to Apple Foundation
+Models or Android ML Kit Prompt API. No Sarti server participates. Native output
+is parsed as untrusted JSON and can fill only unresolved deterministic fields.
+Unavailable or invalid results fall back locally. The editable proposal requires
+an explicit save action and offers Undo after persistence.
+
 Inbound email, backup/restore, and remote push are Stage 3 flows whose backend
 components exist but whose complete mobile acceptance flows remain unintegrated.
