@@ -109,10 +109,10 @@ TODO — implement per ADR-017. User can:
 Deletion deadlines: TODO — define maximum server-side deletion SLA.
 
 ### Backup and recovery
-- A prototype encrypted envelope exists, but its phrase is not BIP-39 and a
-  replacement device cannot recover the SQLCipher key (BUG-001 and BUG-002).
-- Backup UI is not shipped. No recovery promise can be made until a superseding
-  ADR is approved, implemented, and independently verified.
+- The prototype envelope now uses a validated, standard BIP-39 recovery phrase.
+  A replacement device still cannot recover the SQLCipher key (BUG-002).
+- Backup UI is not shipped. No recovery promise can be made until BUG-002 is
+  resolved and independently verified.
 
 ---
 

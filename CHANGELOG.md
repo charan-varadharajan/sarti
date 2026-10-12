@@ -27,6 +27,9 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
   harness for prepared data, direct flow entry, emulator execution, and teardown.
 
 ### Corrected
+- Fixed BUG-001: recovery phrases are now standard, checksum-validated BIP-39
+  English mnemonics generated from libsodium entropy and checked before backup
+  key derivation or restoration.
 - Reviewed the new process documents against the accepted ADRs and current
   implementation; removed unsupported privacy/deployment claims and duplicate
   agent instructions.

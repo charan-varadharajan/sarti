@@ -36,6 +36,7 @@ unresolved rather than inferred.
 | [ADR-028](adr/028-cloud-prompt-pseudonymization.md) | Local pseudonymization before optional cloud AI | Accepted; supersedes ADR-023 rules 1-2 |
 | [ADR-029](adr/029-native-on-device-ai-bridges.md) | Apple Foundation Models and Android ML Kit on-device AI bridges | Accepted |
 | [ADR-030](adr/030-release-versioning.md) | Repository-wide SemVer and mobile build numbering | Accepted |
+| [ADR-031](adr/031-bip39-recovery-phrase-conformance.md) | BIP-39 recovery-phrase conformance | Accepted; supersedes ADR-025 phrase rules |
 
 New records use the next three-digit number. Accepted decisions are changed only
 by an explicitly approved superseding ADR.

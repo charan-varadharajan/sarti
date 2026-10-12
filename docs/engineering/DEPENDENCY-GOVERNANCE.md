@@ -46,6 +46,12 @@ a child-facing product cannot inherit this selection without renewed review.
 selects its SQLCipher community build and verifies the engine at runtime. A
 release process must additionally verify published artifact provenance/SBOMs.
 
+ADR-031 adds `bip39_mnemonic` `4.1.0` for standard BIP-39 English recovery
+phrase encoding and validation. The app supplies 128-bit entropy from the
+existing libsodium random-byte API; it does not use the package's own random
+generator. The direct dependency is MIT licensed and introduces `pointycastle`
+and `unorm_dart` as resolver-locked transitive dependencies.
+
 ## Ongoing controls
 
 CI checks dependency vulnerabilities. Updates are explicit reviewed changes with

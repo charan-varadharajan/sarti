@@ -5,11 +5,11 @@
 
 ## Implementation conformance audit
 
-The current implementation does not conform to this ADR and is not an accepted
-recovery feature. It generates 12 independent words from a 256-word subset with
-no BIP-39 checksum. It also encrypts the raw SQLCipher file without defining how
-a replacement device recovers the independent SQLCipher database key. A
-superseding ADR is required before the format or key lifecycle changes.
+ADR-031 supersedes this record's recovery-phrase rules and brings phrase
+generation and validation into BIP-39 conformance. The raw SQLCipher payload
+still does not define how a replacement device recovers the independent
+SQLCipher database key. Backup recovery is therefore not an accepted feature
+until BUG-002 is resolved through a separately approved ADR.
 
 ## Decision
 

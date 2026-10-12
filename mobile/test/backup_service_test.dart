@@ -1,12 +1,17 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sarti_mobile/src/core/backup/backup_service.dart';
 import 'package:sarti_mobile/src/core/database/sarti_database.dart';
 import 'package:sodium/sodium.dart';
 
 void main() {
+  const validPhrase =
+      'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
+  const otherValidPhrase =
+      'legal winner thank year wave sausage worth useful legal winner thank yellow';
   late Sodium sodium;
   setUpAll(() async => sodium = await SodiumInit.init());
 
@@ -16,44 +21,55 @@ void main() {
     setUp(() => tempDir = Directory.systemTemp.createTempSync('sarti-backup-'));
     tearDown(() => tempDir.deleteSync(recursive: true));
 
-    test('generates a 12-word recovery phrase', () {
-      final phrase = BackupService.generateRecoveryPhrase();
+    test('matches the official BIP-39 English vector', () {
+      final mnemonic = Mnemonic(Uint8List(16), Language.english);
+      expect(mnemonic.sentence, validPhrase);
+      expect(
+        BackupService.validateRecoveryPhrase(mnemonic.sentence),
+        validPhrase,
+      );
+    });
+
+    test('generates a valid 12-word BIP-39 English recovery phrase', () {
+      final phrase = BackupService.generateRecoveryPhrase(sodium: sodium);
       final words = phrase.trim().split(RegExp(r'\s+'));
       expect(words, hasLength(12));
       for (final word in words) {
         expect(word, isNotEmpty);
         expect(word, matches(RegExp(r'^[a-z]+')));
       }
+      expect(BackupService.validateRecoveryPhrase(phrase), phrase);
+    });
+
+    test('rejects a recovery phrase with an invalid checksum', () {
+      expect(
+        () => BackupService.validateRecoveryPhrase(
+          'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon',
+        ),
+        throwsA(isA<BackupException>()),
+      );
     });
 
     test('same phrase always derives the same key', () {
-      const phrase =
-          'abandon ability able about above absent absorb abstract absurd abuse access accident';
-      final k1 = BackupService.deriveKey(phrase, salt: Uint8List(16));
-      final k2 = BackupService.deriveKey(phrase, salt: Uint8List(16));
+      final k1 = BackupService.deriveKey(validPhrase, salt: Uint8List(16));
+      final k2 = BackupService.deriveKey(validPhrase, salt: Uint8List(16));
       expect(k1, equals(k2));
     });
 
     test('different phrases derive different keys', () {
-      const p1 =
-          'abandon ability able about above absent absorb abstract absurd abuse access accident';
-      const p2 =
-          'zoo zebra yellow xray wolf violet umbrella tiger snake rabbit queen parrot';
       final salt = Uint8List(16);
       expect(
-        BackupService.deriveKey(p1, salt: salt),
-        isNot(equals(BackupService.deriveKey(p2, salt: salt))),
+        BackupService.deriveKey(validPhrase, salt: salt),
+        isNot(equals(BackupService.deriveKey(otherValidPhrase, salt: salt))),
       );
     });
 
     test('different salts derive different keys', () {
-      const phrase =
-          'abandon ability able about above absent absorb abstract absurd abuse access accident';
       final s1 = Uint8List(16);
       final s2 = Uint8List.fromList(List.filled(16, 1));
       expect(
-        BackupService.deriveKey(phrase, salt: s1),
-        isNot(equals(BackupService.deriveKey(phrase, salt: s2))),
+        BackupService.deriveKey(validPhrase, salt: s1),
+        isNot(equals(BackupService.deriveKey(validPhrase, salt: s2))),
       );
     });
 
@@ -62,13 +78,11 @@ void main() {
       final db = SartiDatabase.open(dbPath, Uint8List(32));
       db.close();
 
-      const phrase =
-          'abandon ability able about above absent absorb abstract absurd abuse access accident';
       final backupPath = '${tempDir.path}/backup.srtbk';
       BackupService.createBackup(
         databasePath: dbPath,
         outputPath: backupPath,
-        recoveryPhrase: phrase,
+        recoveryPhrase: validPhrase,
         sodium: sodium,
       );
 
@@ -85,13 +99,11 @@ void main() {
       final db = SartiDatabase.open(dbPath, Uint8List(32));
       db.close();
 
-      const phrase =
-          'abandon ability able about above absent absorb abstract absurd abuse access accident';
       final backupPath = '${tempDir.path}/backup.srtbk';
       BackupService.createBackup(
         databasePath: dbPath,
         outputPath: backupPath,
-        recoveryPhrase: phrase,
+        recoveryPhrase: validPhrase,
         sodium: sodium,
       );
 
@@ -109,13 +121,11 @@ void main() {
       );
       db.close();
 
-      const phrase =
-          'abandon ability able about above absent absorb abstract absurd abuse access accident';
       final backupPath = '${tempDir.path}/backup.srtbk';
       BackupService.createBackup(
         databasePath: dbPath,
         outputPath: backupPath,
-        recoveryPhrase: phrase,
+        recoveryPhrase: validPhrase,
         sodium: sodium,
       );
 
@@ -123,7 +133,7 @@ void main() {
       BackupService.restoreBackup(
         backupPath: backupPath,
         outputPath: restorePath,
-        recoveryPhrase: phrase,
+        recoveryPhrase: validPhrase,
         sodium: sodium,
       );
 
@@ -138,15 +148,11 @@ void main() {
       final db = SartiDatabase.open(dbPath, Uint8List(32));
       db.close();
 
-      const phrase =
-          'abandon ability able about above absent absorb abstract absurd abuse access accident';
-      const wrongPhrase =
-          'zoo zebra yellow xray wolf violet umbrella tiger snake rabbit queen parrot';
       final backupPath = '${tempDir.path}/backup.srtbk';
       BackupService.createBackup(
         databasePath: dbPath,
         outputPath: backupPath,
-        recoveryPhrase: phrase,
+        recoveryPhrase: validPhrase,
         sodium: sodium,
       );
 
@@ -154,11 +160,37 @@ void main() {
         () => BackupService.restoreBackup(
           backupPath: backupPath,
           outputPath: '${tempDir.path}/bad.db',
-          recoveryPhrase: wrongPhrase,
+          recoveryPhrase: otherValidPhrase,
           sodium: sodium,
         ),
         throwsA(isA<BackupException>()),
       );
+    });
+
+    test('invalid recovery phrase fails before a restore file is written', () {
+      final dbPath = '${tempDir.path}/source.db';
+      final db = SartiDatabase.open(dbPath, Uint8List(32));
+      db.close();
+
+      final backupPath = '${tempDir.path}/backup.srtbk';
+      BackupService.createBackup(
+        databasePath: dbPath,
+        outputPath: backupPath,
+        recoveryPhrase: validPhrase,
+        sodium: sodium,
+      );
+      final restorePath = '${tempDir.path}/invalid-phrase.db';
+
+      expect(
+        () => BackupService.restoreBackup(
+          backupPath: backupPath,
+          outputPath: restorePath,
+          recoveryPhrase: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon',
+          sodium: sodium,
+        ),
+        throwsA(isA<BackupException>()),
+      );
+      expect(File(restorePath).existsSync(), isFalse);
     });
 
     test('restore fails with corrupted backup', () {
@@ -166,13 +198,11 @@ void main() {
       final db = SartiDatabase.open(dbPath, Uint8List(32));
       db.close();
 
-      const phrase =
-          'abandon ability able about above absent absorb abstract absurd abuse access accident';
       final backupPath = '${tempDir.path}/backup.srtbk';
       BackupService.createBackup(
         databasePath: dbPath,
         outputPath: backupPath,
-        recoveryPhrase: phrase,
+        recoveryPhrase: validPhrase,
         sodium: sodium,
       );
 
@@ -184,7 +214,7 @@ void main() {
         () => BackupService.restoreBackup(
           backupPath: backupPath,
           outputPath: '${tempDir.path}/bad.db',
-          recoveryPhrase: phrase,
+          recoveryPhrase: validPhrase,
           sodium: sodium,
         ),
         throwsA(isA<BackupException>()),
@@ -199,7 +229,7 @@ void main() {
         () => BackupService.restoreBackup(
           backupPath: backupPath,
           outputPath: '${tempDir.path}/bad.db',
-          recoveryPhrase: 'any phrase here',
+          recoveryPhrase: validPhrase,
           sodium: sodium,
         ),
         throwsA(isA<BackupException>()),
@@ -207,10 +237,8 @@ void main() {
     });
 
     test('backup key is independent from SQLCipher database key', () {
-      const phrase =
-          'abandon ability able about above absent absorb abstract absurd abuse access accident';
       final salt = Uint8List(16);
-      final backupKey = BackupService.deriveKey(phrase, salt: salt);
+      final backupKey = BackupService.deriveKey(validPhrase, salt: salt);
       final dbKey = Uint8List(32);
       expect(backupKey, isNot(equals(dbKey)));
     });

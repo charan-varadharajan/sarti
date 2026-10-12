@@ -10,7 +10,7 @@
 | Malicious sync payload | Bounded schemas, exact sequence, UUID/digest/epoch checks, AEAD tag, durable de-duplication | Malformed digest, duplicate, replay, no-key, and conflict tests |
 | Email prompt injection | Sanitization, bounded input, per-device sealed delivery, on-device parsing, explicit approval | Injection, ciphertext isolation/tamper, and no-preapproval-write tests; live Cloudflare test pending |
 | Sensitive logging | Allowlisted fields, generic errors, no body/ciphertext/token logging | Canary log test and Bandit/Gitleaks gates |
-| Backup exposure | Independent PBKDF2/XChaCha20-Poly1305 envelope; corruption and wrong phrase fail closed | Unit tests pass; phrase format is not BIP-39 and replacement-device SQLCipher-key recovery is unresolved |
+| Backup exposure | Independent PBKDF2/XChaCha20-Poly1305 envelope with validated BIP-39 recovery phrase; corruption and wrong phrase fail closed | BIP-39 vector and envelope tests pass; replacement-device SQLCipher-key recovery remains unresolved (BUG-002) |
 | Replay attacks | One-use WebAuthn challenge, operation UUID, exact device sequence | Authentication and sync replay tests |
 | Account/family deletion | Not implemented | Stage 4 deletion deadlines, idempotency, partial-failure tests required |
 
