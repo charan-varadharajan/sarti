@@ -107,22 +107,19 @@ in-repository record while Sarti has no external tracker.
   ADR-028 pseudonymization and explicit consent without exposing a reusable key,
   then implement and perform a live provider test.
 
-### BUG-006 — Missing device credential exposes an internal unlock error
-- Severity: Medium
-- Component: `mobile/lib/src/features/calendar/presentation/stage2_bootstrap.dart`
-- Discovered: 2026-10-12 during Android API 35 emulator smoke test
-- Blocking: First-run usability on devices without a configured PIN/biometric
-- Summary: `LocalAuthException(noCredentialsSet)` was rendered directly to the
-  user and the bootstrap offered no retry after device security was configured.
-- Root cause: The bootstrap interpolated the raw platform exception and held a
-  single final initialization future.
-- Workaround: Configure a PIN/biometric before opening Sarti and restart the app.
-- Required action: Show a bounded, actionable message without exception details
-  and allow initialization to be retried without weakening the unlock policy.
-
 ---
 
 ## Resolved defects
+
+### BUG-006 — Missing device credential exposed an internal unlock error
+- Severity: Medium
+- Component: `mobile/lib/src/features/calendar/presentation/stage2_bootstrap.dart`
+- Discovered: 2026-10-12 during Android API 35 emulator smoke test
+- Fixed: 2026-10-12 — commit `f4dedad`
+- Fix version: Unreleased
+- Disposition: The bootstrap now displays a bounded device-security explanation
+  and retry action without exposing platform exception details or weakening the
+  PIN/biometric requirement.
 
 ### BUG-000 — Email suggestions stored plaintext on server
 - Severity: High
