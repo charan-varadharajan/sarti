@@ -7,8 +7,8 @@
 | `core/auth` | Native passkey adapter | Backend contract; physical platform pending |
 | `core/crypto` | Device keys, secure storage, XChaCha20-Poly1305 resource content | Encrypted sync simulation |
 | `core/backup` | PBKDF2 key derivation, XChaCha20-Poly1305 backup, BIP-39 recovery phrase | 11 backup unit tests |
-| `core/database` | SQLCipher verification, schema v1-v3, transactional migrations | Native engine and repository tests |
-| `features/ai` | Deterministic NLP event parser, Gemini cloud assist adapter (raw text only) | 30 parser unit tests |
+| `core/database` | SQLCipher verification, schema v1-v4, transactional migrations | Native engine and repository tests |
+| `features/ai` | Deterministic NLP parser, local child/location pseudonymization, optional additive Gemini adapter | Parser and cloud-boundary unit tests |
 | `features/calendar/domain` | Event, recurrence, IANA timezone/DST behavior | Recurrence unit tests |
 | `features/calendar/data` | Family/child/event repository, outbox, durable conflicts, reminders | Repository/sync tests |
 | `features/calendar/presentation` | Progressive onboarding, Today/Week/Month, edit/assign/cancel/delete/conflict UI | Widget journey |

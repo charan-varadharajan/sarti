@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:sarti_mobile/src/core/database/sarti_database.dart';
 import 'package:sarti_mobile/src/core/ids.dart';
+import 'package:sarti_mobile/src/features/ai/cloud_alias.dart';
 import 'package:sarti_mobile/src/features/calendar/domain/calendar_event.dart';
 import 'package:sarti_mobile/src/features/sync/version_vector.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -11,11 +12,13 @@ class ChildProfile {
     required this.id,
     required this.name,
     required this.colorArgb,
+    required this.cloudAlias,
   });
 
   final String id;
   final String name;
   final int colorArgb;
+  final String cloudAlias;
 }
 
 class GuardianProfile {
@@ -55,6 +58,10 @@ class FamilyCalendar {
   final List<GuardianProfile> guardians;
   final List<CalendarEvent> events;
   final int openConflicts;
+
+  Map<String, String> get cloudChildAliases => {
+    for (final child in children) child.name: child.cloudAlias,
+  };
 }
 
 enum RemoteApplyResult { applied, duplicate, conflict, stale }
@@ -80,6 +87,7 @@ class CalendarRepository {
             id: row['id'] as String,
             name: row['display_name'] as String,
             colorArgb: row['color_argb'] as int,
+            cloudAlias: row['cloud_alias'] as String,
           ),
         )
         .toList();
@@ -156,20 +164,39 @@ class CalendarRepository {
     return load()!;
   }
 
-  ChildProfile addChild(String name, int colorArgb) {
+  ChildProfile addChild(String name, int colorArgb, {String? cloudAlias}) {
     final family = load() ?? (throw StateError('Create a family first.'));
+    final childName = name.trim();
+    if (childName.isEmpty) throw ArgumentError.value(name, 'name');
+    var alias = CloudAlias.validate(
+      cloudAlias?.trim().isNotEmpty == true
+          ? cloudAlias!
+          : CloudAlias.generate(childName: childName),
+      childName: childName,
+    );
+    while (database.raw.select(
+      'SELECT 1 FROM children WHERE household_id = ? AND cloud_alias = ? COLLATE NOCASE',
+      [family.householdId, alias],
+    ).isNotEmpty) {
+      if (cloudAlias?.trim().isNotEmpty == true) {
+        throw ArgumentError.value(
+          cloudAlias,
+          'cloudAlias',
+          'This private AI alias is already in use.',
+        );
+      }
+      alias = CloudAlias.generate(childName: childName);
+    }
     final child = ChildProfile(
       id: newId(),
-      name: name.trim(),
+      name: childName,
       colorArgb: colorArgb,
+      cloudAlias: alias,
     );
-    if (child.name.isEmpty) throw ArgumentError.value(name, 'name');
-    database.raw.execute('INSERT INTO children VALUES (?, ?, ?, ?)', [
-      child.id,
-      family.householdId,
-      child.name,
-      colorArgb,
-    ]);
+    database.raw.execute(
+      'INSERT INTO children(id, household_id, display_name, color_argb, cloud_alias) VALUES (?, ?, ?, ?, ?)',
+      [child.id, family.householdId, child.name, colorArgb, child.cloudAlias],
+    );
     return child;
   }
 

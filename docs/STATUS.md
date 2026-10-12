@@ -11,8 +11,9 @@ resolved Firebase dependency locks, backend formatting/lint findings, a calendar
 timezone round-trip regression, and two documented Gitleaks false positives.
 Stage 3 remains incomplete because:
 
-- the approved raw-text-only Gemini exception still lacks a user-facing
-  disclosure, explicit opt-in, and verified provider data-handling configuration;
+- the Gemini adapter now pseudonymizes known child names and locations locally,
+  but still lacks a user-facing disclosure, explicit opt-in, and verified
+  provider data-handling configuration;
 - the server persists email sender, subject, and body as plaintext and has no
   authorized-device encrypted delivery path or retention cleanup job;
 - the shipping mobile app still boots the Stage 2 calendar and does not expose
@@ -49,8 +50,8 @@ backup/recovery validation, provider review, and an explicit production decision
 ### Stage 3
 - Deterministic NLP event parser (title, time, date, recurrence, location, name
   tokens); never fabricates; 30 unit tests
-- Gemini cloud assist adapter (raw text only, no family context, additive-only
-  merge with deterministic result, never throws); ADR-023
+- Gemini cloud assist adapter with local child/location pseudonymization,
+  fail-closed alias coverage, and additive-only merge; ADR-023 and ADR-028
 - Cloudflare Email Routing → `POST /v1/email/ingest` webhook: HMAC worker-secret
   auth, prompt-injection sanitization, family-token resolution, 20 emails/family/day
   rate limit, content-digest deduplication, 7-day TTL; ADR-024
@@ -72,7 +73,7 @@ backup/recovery validation, provider review, and an explicit production decision
 | OpenAPI drift | Passed after regeneration |
 | Docker Compose health | Backend and PostgreSQL healthy |
 | Flutter format/analyze | Passed; no issues |
-| Flutter unit/widget tests | 46 passed (30 parser + 11 backup + 5 Stage 2) |
+| Flutter unit/widget tests | 51 passed (including parser, backup, SQLCipher migration, widget, and cloud-boundary tests) |
 | Android debug build | Passed; APK produced |
 | iOS unsigned debug build | Passed; Runner.app produced |
 | Gitleaks working-tree/history scan | Passed; no leaks found |

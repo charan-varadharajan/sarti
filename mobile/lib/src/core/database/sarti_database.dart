@@ -6,7 +6,7 @@ import 'package:sqlite3/sqlite3.dart';
 class SartiDatabase {
   SartiDatabase._(this.raw);
 
-  static const schemaVersion = 3;
+  static const schemaVersion = 4;
 
   final Database raw;
 
@@ -169,6 +169,25 @@ class SartiDatabase {
           ) STRICT;
         ''');
         raw.userVersion = 3;
+        raw.execute('COMMIT');
+      } catch (_) {
+        raw.execute('ROLLBACK');
+        rethrow;
+      }
+    }
+    if (raw.userVersion < 4) {
+      raw.execute('BEGIN IMMEDIATE');
+      try {
+        raw.execute('''
+          ALTER TABLE children ADD COLUMN cloud_alias TEXT;
+          UPDATE children
+             SET cloud_alias = 'child-' || lower(hex(randomblob(8)))
+           WHERE cloud_alias IS NULL;
+          CREATE UNIQUE INDEX uq_children_household_cloud_alias
+            ON children(household_id, cloud_alias COLLATE NOCASE)
+            WHERE cloud_alias IS NOT NULL;
+        ''');
+        raw.userVersion = 4;
         raw.execute('COMMIT');
       } catch (_) {
         raw.execute('ROLLBACK');

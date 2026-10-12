@@ -165,14 +165,28 @@ class CalendarScreen extends StatelessWidget {
 
   Future<void> _addChild(BuildContext context) async {
     final name = TextEditingController();
+    final cloudAlias = TextEditingController();
     final accepted = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Add a child'),
-        content: TextField(
-          controller: name,
-          autofocus: true,
-          decoration: const InputDecoration(labelText: 'Name'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: name,
+              autofocus: true,
+              decoration: const InputDecoration(labelText: 'Name'),
+            ),
+            TextField(
+              controller: cloudAlias,
+              decoration: const InputDecoration(
+                labelText: 'Private AI alias (optional)',
+                hintText: 'Example: happy-frog-4821',
+                helperText: 'Stored only in encrypted local data',
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -187,7 +201,17 @@ class CalendarScreen extends StatelessWidget {
       ),
     );
     if (accepted == true && name.text.trim().isNotEmpty) {
-      controller.addChild(name.text, 0xFF8E6CEF);
+      try {
+        controller.addChild(name.text, 0xFF8E6CEF, cloudAlias: cloudAlias.text);
+      } on ArgumentError catch (error) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(error.message?.toString() ?? 'Invalid alias'),
+            ),
+          );
+        }
+      }
     }
   }
 

@@ -42,7 +42,7 @@ void main() {
 
     await tester.tap(find.byTooltip('Add child'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), 'Mia');
+    await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Mia');
     await tester.tap(find.text('Add'));
     await tester.pumpAndSettle();
 

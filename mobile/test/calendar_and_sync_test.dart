@@ -63,11 +63,13 @@ void main() {
     old.execute('PRAGMA key = "x\'$hex\'"');
     old.execute('''
       CREATE TABLE households(id TEXT PRIMARY KEY, display_name TEXT NOT NULL, created_at TEXT NOT NULL) STRICT;
+      CREATE TABLE children(id TEXT PRIMARY KEY, household_id TEXT NOT NULL REFERENCES households(id) ON DELETE CASCADE, display_name TEXT NOT NULL, color_argb INTEGER NOT NULL) STRICT;
       CREATE TABLE outbox(operation_id TEXT PRIMARY KEY, family_id TEXT NOT NULL, resource_id TEXT NOT NULL, kind TEXT NOT NULL, payload_json TEXT NOT NULL, vector_json TEXT NOT NULL, state TEXT NOT NULL, created_at TEXT NOT NULL) STRICT;
       CREATE TABLE conflicts(id TEXT PRIMARY KEY, resource_id TEXT NOT NULL, local_operation_id TEXT NOT NULL, remote_operation_id TEXT NOT NULL, local_payload_json TEXT NOT NULL, remote_payload_json TEXT NOT NULL, status TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE(local_operation_id, remote_operation_id)) STRICT;
       CREATE TABLE sync_state(family_id TEXT PRIMARY KEY, server_cursor INTEGER NOT NULL DEFAULT 0) STRICT;
       CREATE TABLE private_events(id TEXT PRIMARY KEY, title TEXT NOT NULL) STRICT;
       INSERT INTO households VALUES ('family', 'Family', '2026-01-01T00:00:00Z');
+      INSERT INTO children VALUES ('child', 'family', 'Mia', 4287524079);
       INSERT INTO outbox VALUES ('operation', 'family', 'calendar', 'family_created', '{}', '{}', 'uploaded', '2026-01-01T00:00:00Z');
       INSERT INTO private_events VALUES ('event', 'Private swimming lesson');
       PRAGMA user_version = 2;
@@ -75,7 +77,7 @@ void main() {
     old.close();
 
     final migrated = SartiDatabase.open(path, key);
-    expect(migrated.raw.userVersion, 3);
+    expect(migrated.raw.userVersion, 4);
     expect(
       migrated.raw.select('SELECT title FROM private_events').single['title'],
       'Private swimming lesson',
@@ -86,6 +88,13 @@ void main() {
           .single['calendar_resource_id'],
       'calendar',
     );
+    final alias =
+        migrated.raw.select('SELECT cloud_alias FROM children WHERE id = ?', [
+              'child',
+            ]).single['cloud_alias']
+            as String;
+    expect(alias, startsWith('child-'));
+    expect(alias, isNot(contains('Mia')));
     migrated.close();
     expect(
       () => SartiDatabase.open(path, Uint8List.fromList(List.filled(32, 9))),

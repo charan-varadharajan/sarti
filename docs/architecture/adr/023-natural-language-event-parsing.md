@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-12
+- Partially superseded by: ADR-028 (cloud-assist rules 1 and 2)
 
 ## Decision
 
@@ -48,6 +49,10 @@ Sarti must not add account, profile, or database context to that request.
    layer is skipped entirely and the deterministic result is used.
 5. **Structured output only.** The model is instructed to return a JSON object
    with fixed fields. Free-form model output is rejected.
+
+Rules 1 and 2 above are retained as historical context and superseded by
+ADR-028. The current adapter pseudonymizes known child names and locations
+locally before transmission and reverses the substitution locally afterward.
 
 ## Proposal and confirmation
 

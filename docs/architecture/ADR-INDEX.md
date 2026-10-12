@@ -33,6 +33,7 @@ unresolved rather than inferred.
 | [ADR-025](adr/025-backup-and-recovery.md) | User-owned encrypted backup and recovery | Accepted |
 | [ADR-026](adr/026-push-notifications.md) | Push notifications | Accepted |
 | [ADR-027](adr/027-beta-hosting-cloud-run-neon.md) | Cloud Run and Neon Free for beta hosting | Accepted |
+| [ADR-028](adr/028-cloud-prompt-pseudonymization.md) | Local pseudonymization before optional cloud AI | Accepted; supersedes ADR-023 rules 1-2 |
 
 New records use the next three-digit number. Accepted decisions are changed only
 by an explicitly approved superseding ADR.

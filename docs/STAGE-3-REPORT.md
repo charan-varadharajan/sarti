@@ -8,12 +8,12 @@
 
 The original completion claim below is retained as implementation history, but
 it is superseded by this audit. The full local suite passes after targeted build
-and test-infrastructure repairs: 19 backend tests at 87.47% branch coverage, 46
+and test-infrastructure repairs: 19 backend tests at 87.47% branch coverage, 51
 Flutter tests, Ruff, Mypy, Bandit, Flutter analyze, Android and unsigned iOS
 builds, Docker health and migration 0003, pip-audit, OpenAPI drift, and Gitleaks.
 
 Stage 3 acceptance is blocked by missing disclosure and opt-in for the approved
-raw-text-only cloud assist, plaintext email persistence, missing encrypted email
+pseudonymized cloud assist without opt-in, plaintext email persistence, missing encrypted email
 delivery and approval flow, missing mobile integration for Stage 3 features,
 missing application quiet hours, inaccurate BIP-39 claims, and unexecuted
 provider/physical-device tests. The detailed, current list is maintained in
@@ -30,8 +30,9 @@ location (`in`/`at` proper noun), and child/guardian name tokens. Never fabricat
 missing fields. `EventProposal` model with `isActionable` and `toRecurrenceRule()`.
 
 ### Gemini cloud assist adapter (ADR-023)
-`GeminiAiProvider` wrapping `google_generative_ai 0.4.7`. Sends raw input text
-only — no family IDs, child names, or profile data. Structured JSON output.
+`GeminiAiProvider` wrapping `google_generative_ai 0.4.7`. Known child names and
+locations are replaced locally under ADR-028 before the request. No family IDs,
+real child names, alias mappings, or profile records are sent. Structured JSON output.
 Additive-only merge with the deterministic result. Never throws; returns the
 deterministic result on any failure.
 
@@ -95,14 +96,14 @@ type errors.
 
 | ADR | Decision | Outcome |
 | --- | --- | --- |
-| ADR-023 | Deterministic parser always runs; Gemini cloud assist sends raw text only; `AiProvider` seam | Accepted before implementation |
+| ADR-023 / ADR-028 | Deterministic parser always runs; Gemini cloud assist uses local child/location pseudonymization; `AiProvider` seam | Accepted before implementation/remediation |
 | ADR-024 | Cloudflare Worker → FastAPI webhook; HMAC auth; injection sanitization; 7-day TTL; 20/day rate limit | Accepted before implementation |
 | ADR-025 | PBKDF2-HMAC-SHA256 (200 k iterations) key derivation; XChaCha20-Poly1305 backup; 12-word BIP-39 phrase | Accepted; Argon2id excluded — `sodium_sumo` has no Flutter-compatible pinned package |
 | ADR-026 | FCM opaque `{"type":"sync_available"}` payload only; OS-native lock screen sensitivity; no quiet-hours logic | Accepted before implementation |
 
 Stop condition triggered during ADR-023: no stable Flutter package for Apple
 NaturalLanguage or Gemini Nano exists. Gemini cloud approved with strict
-raw-text-only rule. Implementation proceeded after explicit approval.
+pseudonymization boundary. Implementation proceeded after explicit approval.
 
 ---
 
@@ -144,7 +145,7 @@ OpenAPI regenerated and contract test passing.
 | `mobile/test/backup_service_test.dart` | 11 | Passed |
 | `backend/tests/unit/test_email_push.py` | 9 | Passed |
 | All backend unit tests | 17 | Passed |
-| All mobile tests | 46 | Passed |
+| All mobile tests | 51 | Passed |
 
 Total: 63 tests passing across backend and mobile.
 
@@ -189,7 +190,7 @@ Total: 63 tests passing across backend and mobile.
   PBKDF2-HMAC-SHA256 is used instead per ADR-025. Argon2id remains the preferred
   KDF if a compatible package becomes available.
 - Gemini Nano / Apple NaturalLanguage have no stable Flutter packages. Cloud
-  Gemini is used with the raw-text-only privacy constraint.
+  Gemini is used with the local pseudonymization privacy constraint.
 - `firebase-admin` is a runtime dependency but is imported lazily inside
   `_send_fcm`; the backend starts without FCM credentials configured.
 - The `email_suggestions` table has no consumer endpoint yet (mobile polling or
@@ -201,7 +202,7 @@ Total: 63 tests passing across backend and mobile.
 
 | Decision | Outcome |
 | --- | --- |
-| ADR-023: Gemini cloud assist with raw-text-only rule | Approved |
+| ADR-023 / ADR-028: Gemini cloud assist with local pseudonymization | Approved |
 | ADR-024: Cloudflare Email Routing → FastAPI webhook | Approved |
 | ADR-025: PBKDF2 instead of Argon2id | Approved |
 | ADR-026: FCM opaque payload, OS-native sensitivity | Approved |

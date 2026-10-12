@@ -10,7 +10,7 @@ a seven-day ciphertext relay. Mobile implements SQLCipher persistence, platform
 secret storage/user-presence gating, resource encryption, local-first outbox,
 version-vector conflicts, and generic local reminder text. Stage 3 adds parser,
 email-ingest, push-dispatch, and backup modules, but they are not release-ready:
-the approved raw-text-only cloud assist lacks disclosure and opt-in, email
+the approved pseudonymized cloud assist lacks disclosure and opt-in, email
 content is persisted as server plaintext, the mobile acceptance flows are not
 integrated, and provider and physical-device validation is outstanding.
 Account/family deletion remains unimplemented.

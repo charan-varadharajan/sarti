@@ -1,6 +1,6 @@
 # Local SQLCipher database
 
-Schema version 3 opens only after a 32-byte key is applied and
+Schema version 4 opens only after a 32-byte key is applied and
 `PRAGMA cipher_version` succeeds. Foreign keys are enabled before migrations.
 Migrations run under `BEGIN IMMEDIATE` and roll back on failure.
 
@@ -8,7 +8,7 @@ Migrations run under `BEGIN IMMEDIATE` and roll back on failure.
 | --- | --- |
 | `households` | Local family name and stable calendar resource UUID |
 | `guardians` | Local encrypted display profiles, family FK |
-| `children` | Encrypted name and ARGB calendar colour, family FK |
+| `children` | Encrypted name, cloud alias, and ARGB calendar colour; alias is unique per family |
 | `events` | Title/notes, IANA zone, local start, duration, status, recurrence, pickup/dropoff, revision, tombstone |
 | `event_versions` | Last applied version vector per event for causal edits |
 | `event_children` | Many-to-many event assignment, cascading FKs |
@@ -24,3 +24,9 @@ Migrations run under `BEGIN IMMEDIATE` and roll back on failure.
 atomically with an event. A remote event update restores these relationship rows.
 The database file contains private content but is encrypted at rest; outbox JSON
 becomes XChaCha20-Poly1305 ciphertext before leaving the device.
+
+Local migration v4 adds `children.cloud_alias`, backfills existing profiles with
+random opaque `child-<hex>` values, and creates a case-insensitive unique index
+within each household. New profiles receive a friendly random alias or a locally
+validated parent-selected alias. The alias-to-child relationship is not included
+in synchronization metadata or cloud-AI requests.

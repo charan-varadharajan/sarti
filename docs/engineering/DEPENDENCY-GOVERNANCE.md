@@ -18,7 +18,7 @@ notifications, and SHA-256 support. The backend adds the maintained Python
 locks and `mobile/pubspec.lock`.
 
 Stage 3 adds `firebase-admin` for opaque push wake-ups and
-`google_generative_ai` for an optional raw-text-only cloud adapter. The product
+`google_generative_ai` for an optional locally pseudonymized cloud adapter. The product
 owner explicitly approved this exception and reaffirmed it on 2026-10-11. It
 remains blocked from production use until the app provides clear disclosure and
 explicit opt-in and provider data handling is verified.
