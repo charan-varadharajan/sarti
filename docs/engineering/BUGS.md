@@ -101,6 +101,7 @@ in-repository record while Sarti has no external tracker.
 - Component: calendar repository/UI, authenticated sync/key exchange, resource/grant API
 - Discovered: 2026-10-11
 - Fixed: 2026-10-12
+- Fix commit: `48d3b44`
 - Fix version: Unreleased
 - Disposition: Stable per-child resources, atomic encrypted local outbox,
   explicit owner sharing intent, signed recipient-bound sealed-key exchange,

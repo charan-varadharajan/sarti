@@ -4,6 +4,8 @@ Date: 2026-10-12. Outcome: child creation/synchronization defect resolved in
 Unreleased work. Stage 3 and production release remain unaccepted. BUG-010 is a
 separate High-severity replacement-device security blocker discovered in review.
 
+Fix commit: `48d3b44` (`fix(sync): complete encrypted child sharing (closes BUG-003)`).
+
 ## Implemented behavior and approval scope
 
 - Add-child UI saves immediately with an atomic SQLCipher profile/outbox/consent
