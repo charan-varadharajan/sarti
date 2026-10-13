@@ -1,76 +1,213 @@
-class ProtectedPrompt {
-  const ProtectedPrompt(this.text, this._replacements);
+import 'dart:convert';
 
-  final String text;
+import 'package:sarti_mobile/src/core/ids.dart';
+import 'package:sarti_mobile/src/features/ai/event_parser.dart';
+
+class ProtectedPrompt {
+  ProtectedPrompt._(List<String> tokens, this._replacements)
+    : tokens = List.unmodifiable(tokens);
+
+  final List<String> tokens;
   final Map<String, String> _replacements;
 
-  Map<String, dynamic> restoreJson(Map<String, dynamic> value) =>
-      _restore(value) as Map<String, dynamic>;
+  String get text => jsonEncode({'version': 1, 'tokens': tokens});
 
-  dynamic _restore(dynamic value) {
-    if (value is String) {
-      var restored = value;
-      for (final entry in _replacements.entries) {
-        restored = restored.replaceAll(
-          RegExp(RegExp.escape(entry.key), caseSensitive: false),
-          entry.value,
+  // Exact labels only: never substitute inside unrelated model text.
+  Map<String, dynamic> restoreJson(Map<String, dynamic> value) {
+    dynamic restore(dynamic item) {
+      if (item is String) return _replacements[item] ?? item;
+      if (item is List) return item.map(restore).toList();
+      if (item is Map) {
+        return item.map(
+          (key, value) => MapEntry(key.toString(), restore(value)),
         );
       }
-      return restored;
+      return item;
     }
-    if (value is List) return value.map(_restore).toList();
-    if (value is Map) {
-      return value.map((key, item) => MapEntry(key.toString(), _restore(item)));
+
+    return restore(value) as Map<String, dynamic>;
+  }
+
+  /// Schema validation plus evidence checks; cloud output cannot invent timing.
+  Map<String, dynamic>? acceptResponse(Map<String, dynamic> value) {
+    const fields = {
+      'timeHour',
+      'timeMinute',
+      'recurrence',
+      'recurrenceWeekday',
+    };
+    if (value.keys.any((key) => !fields.contains(key))) return null;
+    final source = tokens.join(' ');
+    final parsed = const DeterministicEventParser().parse(source);
+    var time = parsed.timeOfDay;
+    if (tokens.contains('noon')) time = const ParsedTime(12, 0);
+    if (tokens.contains('midnight')) {
+      if (tokens.contains('noon')) return null;
+      time = const ParsedTime(0, 0);
+    }
+    // Multiple clock references require local clarification, not a model choice.
+    final clocks = RegExp(
+      r'\b(?:\d{1,2}(?::\d{2})?\s*(?:am|pm)|\d{1,2}:\d{2}|noon|midnight)\b',
+    ).allMatches(source).length;
+    if (value.containsKey('timeHour') || value.containsKey('timeMinute')) {
+      if (time == null ||
+          clocks != 1 ||
+          value['timeHour'] is! int ||
+          value['timeMinute'] is! int ||
+          value['timeHour'] != time.hour ||
+          value['timeMinute'] != time.minute) {
+        return null;
+      }
+    }
+    if (value.containsKey('recurrence') ||
+        value.containsKey('recurrenceWeekday')) {
+      if (parsed.recurrenceFrequency == null ||
+          value['recurrence'] != parsed.recurrenceFrequency!.name) {
+        return null;
+      }
+      if (value.containsKey('recurrenceWeekday') &&
+          (value['recurrenceWeekday'] is! int ||
+              value['recurrenceWeekday'] != parsed.recurrenceWeekday)) {
+        return null;
+      }
     }
     return value;
   }
 }
 
-/// Replaces locally known people and places before text crosses the cloud
-/// boundary. It is not anonymization: schedule shape can still be identifying.
+/// Conservative tokenization, not general-purpose anonymization or PII detection.
 class PromptPseudonymizer {
   const PromptPseudonymizer();
 
-  ProtectedPrompt protect(
+  static const _words = {
+    'has',
+    'have',
+    'is',
+    'a',
+    'an',
+    'the',
+    'for',
+    'and',
+    'at',
+    'in',
+    'on',
+    'to',
+    'remind',
+    'pick',
+    'up',
+    'pickup',
+    'drop',
+    'off',
+    'dropoff',
+    'swimming',
+    'karate',
+    'football',
+    'soccer',
+    'basketball',
+    'tennis',
+    'dance',
+    'music',
+    'piano',
+    'practice',
+    'lesson',
+    'lessons',
+    'class',
+    'birthday',
+    'school',
+    'every',
+    'day',
+    'week',
+    'daily',
+    'weekly',
+    'today',
+    'tomorrow',
+    'this',
+    'next',
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+    'sunday',
+    'am',
+    'pm',
+    'noon',
+    'midnight',
+    'hour',
+    'hours',
+    'minute',
+    'minutes',
+  };
+
+  ProtectedPrompt? protect(
     String input, {
     required Map<String, String> childAliases,
+    Iterable<String> guardianNames = const [],
     Iterable<String> sensitiveLocations = const [],
   }) {
-    var protected = input;
+    if (input.isEmpty || input.length > 1000) return null;
+    final entities = <String, String>{};
     final reverse = <String, String>{};
-
-    final names = childAliases.entries.toList()
-      ..sort((left, right) => right.key.length.compareTo(left.key.length));
-    for (final entry in names) {
-      final name = entry.key.trim();
-      final alias = entry.value.trim();
-      if (name.isEmpty || alias.isEmpty) continue;
-      protected = protected.replaceAll(
-        RegExp(
-          '(?<![A-Za-z0-9])${RegExp.escape(name)}(?![A-Za-z0-9])',
-          caseSensitive: false,
-        ),
-        alias,
-      );
-      reverse[alias] = name;
+    bool add(String name, String kind) {
+      final trimmed = name.trim();
+      if (trimmed.isEmpty) return false;
+      final key = trimmed.toLowerCase();
+      if (entities.containsKey(key)) return false; // Ambiguous local context.
+      final token = '$kind-${newId()}';
+      entities[key] = token;
+      reverse[token] = trimmed;
+      return true;
     }
 
-    final locations =
-        sensitiveLocations
-            .map((value) => value.trim())
-            .where((value) => value.isNotEmpty)
-            .toSet()
-            .toList()
-          ..sort((left, right) => right.length.compareTo(left.length));
-    for (var index = 0; index < locations.length; index++) {
-      final location = locations[index];
-      final token = 'place-${index + 1}';
-      protected = protected.replaceAll(
-        RegExp(RegExp.escape(location), caseSensitive: false),
-        token,
-      );
-      reverse[token] = location;
+    for (final name in childAliases.keys) {
+      if (!add(name, 'child')) return null;
     }
-    return ProtectedPrompt(protected, reverse);
+    for (final name in guardianNames) {
+      if (!add(name, 'guardian')) return null;
+    }
+    for (final place in sensitiveLocations.toSet()) {
+      if (!add(place, 'place')) return null;
+    }
+    final names = entities.keys.toList()
+      ..sort((a, b) => b.length.compareTo(a.length));
+    // One pass avoids reinterpreting generated labels as names or locations.
+    final matcher = RegExp(
+      [
+        if (names.isNotEmpty)
+          '(?<![\\p{L}\\p{N}_])(?:${names.map(RegExp.escape).join('|')})(?![\\p{L}\\p{N}_])',
+        r'\d+(?::\d+)?',
+        r'[\p{L}\p{N}_]+',
+        r'[\s,.]+',
+      ].join('|'),
+      caseSensitive: false,
+      unicode: true,
+    );
+    final tokens = <String>[];
+    var offset = 0;
+    while (offset < input.length) {
+      final match = matcher.matchAsPrefix(input, offset);
+      if (match == null) return null;
+      final word = match.group(0)!.toLowerCase();
+      offset = match.end;
+      if (RegExp(r'^[\s,.]+$').hasMatch(word)) continue;
+      final entity = entities[word];
+      if (entity != null) {
+        tokens.add(entity);
+      } else if (_words.contains(word)) {
+        tokens.add(word);
+      } else if (RegExp(r'^\d{1,2}(:\d{2})?$').hasMatch(word)) {
+        final parts = word.split(':').map(int.parse).toList();
+        if (parts.first > 23 || (parts.length == 2 && parts.last > 59)) {
+          return null;
+        }
+        tokens.add(word);
+      } else {
+        return null; // No raw-text escape hatch, even after partial redaction.
+      }
+      if (tokens.length > 100) return null;
+    }
+    if (tokens.isEmpty) return null;
+    return ProtectedPrompt._(tokens, reverse);
   }
 }

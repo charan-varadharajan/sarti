@@ -33,7 +33,7 @@ unresolved rather than inferred.
 | [ADR-025](adr/025-backup-and-recovery.md) | User-owned encrypted backup and recovery | Accepted; phrase/payload/restore superseded by ADR-031/032 |
 | [ADR-026](adr/026-push-notifications.md) | Push notifications | Accepted |
 | [ADR-027](adr/027-beta-hosting-cloud-run-neon.md) | Cloud Run and Neon Free for beta hosting | Accepted |
-| [ADR-028](adr/028-cloud-prompt-pseudonymization.md) | Local pseudonymization before optional cloud AI | Accepted; supersedes ADR-023 rules 1-2 |
+| [ADR-028](adr/028-cloud-prompt-pseudonymization.md) | Local pseudonymization before optional cloud AI | Accepted; transmission policy superseded by ADR-036 |
 | [ADR-029](adr/029-native-on-device-ai-bridges.md) | Apple Foundation Models and Android ML Kit on-device AI bridges | Accepted |
 | [ADR-030](adr/030-release-versioning.md) | Repository-wide SemVer and mobile build numbering | Accepted |
 | [ADR-031](adr/031-bip39-recovery-phrase-conformance.md) | BIP-39 recovery-phrase conformance | Accepted; supersedes ADR-025 phrase rules |
@@ -42,6 +42,8 @@ unresolved rather than inferred.
 | [ADR-034](adr/034-versioned-sync-metadata-encoding.md) | Versioned deterministic sync metadata with legacy preservation | Accepted; supersedes ADR-020/021 serialization detail |
 
 | [ADR-035](adr/035-guardian-invitations-and-scoped-handoff.md) | Shared/copied/QR guardian invitations and scoped encrypted initial handoff | Accepted within approved BUG-004 scope |
+
+| [ADR-036](adr/036-request-scoped-cloud-privacy.md) | Request-scoped labels, minimized cloud input and accurate privacy claims | Accepted; supersedes ADR-028 cloud transmission policy |
 
 New records use the next three-digit number. Accepted decisions are changed only
 by an explicitly approved superseding ADR.

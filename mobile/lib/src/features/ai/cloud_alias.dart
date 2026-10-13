@@ -1,7 +1,7 @@
 import 'dart:math';
 
-/// A non-secret pseudonym used only to remove a child's display name from
-/// optional cloud-AI prompts. The alias-to-child mapping remains in SQLCipher.
+/// A retained local profile alias. ADR-036 excludes this stable value from
+/// cloud requests, which use fresh labels instead. Stored in SQLCipher.
 abstract final class CloudAlias {
   static final Random _random = Random.secure();
 

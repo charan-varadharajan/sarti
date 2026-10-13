@@ -38,7 +38,10 @@ weekly planning with explicit confirmation before any generated change.
 - A generated suggestion is visibly distinct from saved family state.
 - Saving an AI suggestion requires an explicit user action.
 - Core calendar use remains available offline.
-- Private content is not sent to a cloud model.
+- Local/native AI has no cloud fallback. Optional cloud AI requires explicit
+  consent and ADR-036 minimization; limited scheduling information may leave
+  the device and is not guaranteed anonymous. Encrypted sync/backup guarantees
+  do not cover this separate opt-in disclosure.
 - Removing a device prevents future access but cannot erase data already copied
   to that device.
 

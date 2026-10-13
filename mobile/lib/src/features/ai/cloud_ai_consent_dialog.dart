@@ -28,12 +28,13 @@ class _CloudAiConsentDialog extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           const Text(
-            'Before sending text, Sarti replaces known child names with '
-            'made-up aliases and recognized locations with temporary labels. '
-            'Gemini can still receive the activity, date, time, recurrence, '
-            'and any sensitive detail Sarti did not recognize. A repeated '
-            'alias may link several requests. This is pseudonymization, not '
-            'anonymization.',
+            'When configured and enabled, Sarti sends limited scheduling '
+            'tokens to Gemini, using fresh temporary labels for known people '
+            'and places. Your saved aliases and account IDs are excluded. '
+            'Unsupported text stays local. Schedules can still be sensitive '
+            'or identifying, and network/provider metadata may link requests. '
+            'This is pseudonymization, not anonymization. It does not guarantee '
+            'that personal information never leaves your phone.',
           ),
           const SizedBox(height: 12),
           const Text(
@@ -47,7 +48,7 @@ class _CloudAiConsentDialog extends StatelessWidget {
             builder: (context, _) => SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text(
-                'Allow pseudonymized text to be sent to Gemini',
+                'Allow limited scheduling information to be sent to Gemini',
               ),
               subtitle: Text(
                 controller.enabled

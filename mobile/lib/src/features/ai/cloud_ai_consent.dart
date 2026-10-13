@@ -7,7 +7,7 @@ typedef GeminiProviderFactory = GeminiAiProvider Function(String apiKey);
 class CloudAiConsentStore {
   const CloudAiConsentStore(this.database);
 
-  static const disclosureVersion = 1;
+  static const disclosureVersion = 2;
   static const _key = 'cloud_ai_consent_v$disclosureVersion';
 
   final SartiDatabase database;

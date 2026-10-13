@@ -7,6 +7,17 @@
 
 ## Current result
 
+BUG-005 privacy controls are tightened under approved ADR-036: fresh per-request
+labels, no model-payload requester IDs, bounded supported-token submission,
+source-grounded output and renewed consent. Privacy/UI/public-copy guidance
+separates encrypted sync/backup, native AI, optional cloud disclosure and email
+plaintext processing. Cloud credential/shipping integration and live provider
+validation remain open; no cloud service is activated by this change. Analysis,
+full Flutter suite (140 pass, 2 opt-in skips), final privacy/consent tests, backend
+unit/static/dependency checks and existing local service health pass. Results:
+`testing/BUG-005-PRIVACY-VERIFICATION.md`.
+
+
 BUG-004 guardian onboarding is implemented under ADR-035: share/copy/QR,
 acceptance, verified owner approval, scoped initial encryption and read-only UI.
 Migration 0007 adds relay baselines. Backend/migration/security, dependency,

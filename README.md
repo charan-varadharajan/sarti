@@ -2,6 +2,13 @@
 
 Sarti is a privacy-first AI family organizer: **Your family's wise companion.**
 
+Calendar sync and backups use encrypted content. Native AI runs on-device;
+optional cloud AI, when configured and explicitly enabled, may receive limited
+scheduling information with temporary labels. This reduces exposure but does
+not make it anonymous. Inbound email has a separate plaintext-processing
+boundary. See [privacy disclosure](docs/PRIVACY.md). Cloud AI is not yet wired
+into the shipping app.
+
 This monorepo contains the Flutter iOS/Android app, FastAPI backend, PostgreSQL
 migrations, Docker local environment, tests, CI gates, and architecture/security
 documentation through Stage 2.

@@ -215,3 +215,18 @@ case. Its synthetic-only expiration endpoint never exists in the shipping API.
 Neither backup portability direction is selected. Physical passkeys/protected
 storage, camera decoding, cold/warm links, clipboard/share delivery and production
 networking remain independent release checks.
+
+## Optional cloud privacy — ADR-036 / BUG-005
+
+| Scenario | Prepared fixture / direct entry | Required assertion |
+| --- | --- | --- |
+| `CLOUD-PRIV-001/002` | Synthetic child/place names → protector, no UI setup | Fresh labels per invocation; same label within invocation; exact local reverse mapping; Unicode/boundary/ambiguity checks |
+| `CLOUD-PRIV-003` | Prepared local proposal → actual adapter with captured transport | Only bounded structured tokens, no raw sentence/stored alias/requester/account/device/profile metadata; additive grounded result |
+| `CLOUD-PRIV-004` | Synthetic private/injection/unsupported inputs → adapter | Zero transport calls; identical local fallback |
+| `CLOUD-PRIV-005/006` | Prepared proposal + synthetic provider responses → adapter | Strict schema/evidence, no invented time/recurrence/names/addresses; local failure fallback |
+| `CLOUD-CONSENT-002` | SQLCipher v1-enabled preference → v2 store | Fresh opt-in required; reversible choice |
+| `CLOUD-CONSENT-MOB-001` | Prepared family/calendar and consent off → Privacy & AI screen | Qualified disclosure, fresh-label/network caveats, explicit reversible opt-in; no provider call or event write |
+
+Implemented in `cloud_prompt_privacy_test.dart` and `cloud_ai_consent_test.dart`.
+Fixtures close independent databases; transport capture never contacts Gemini.
+No native plugin changes or live provider/device claims are inferred.

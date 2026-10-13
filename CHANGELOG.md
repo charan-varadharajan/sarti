@@ -67,6 +67,13 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
   harness for prepared data, direct flow entry, emulator execution, and teardown.
 
 ### Corrected
+- BUG-005: approved ADR-036 replaces transmitted stable aliases/raw sentences
+  with fresh request-scoped labels and a fail-closed scheduling-token payload;
+  only source-supported time/recurrence output may enrich a proposal. Renew
+  consent at disclosure v2 and qualify app/privacy/public-marketing claims.
+  Add captured-transport/security and consent regressions. Analysis, full
+  Flutter suite (140 pass, 2 opt-in skips) and final privacy tests pass. Credential/shipping
+  integration and live provider validation remain open.
 - BUG-004: correct the family-profile apply transaction to persist its required
   timestamp, repair guardian fixture initialization and verify rendered QR
   content through the supported painter API. Add apply-marker/repeated-refresh

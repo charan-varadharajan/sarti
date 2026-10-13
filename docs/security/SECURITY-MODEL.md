@@ -156,3 +156,21 @@ parsing cannot change the API host or permissions. Client read-only gates and
 server authorization are independent. Backend authorization/security checks pass, but mobile and cross-layer
 verification fails; BUG-004 remains unaccepted. Physical native share, clipboard,
 camera, link and passkey compatibility is not inferred.
+
+## Optional cloud AI boundary — ADR-036
+
+Encryption claims apply to specified storage/sync/backup flows. Optional cloud
+AI can disclose minimized scheduling information; it is not E2EE to the model
+provider. Fresh labels prevent exporting stable application aliases but do not
+guarantee anonymity or prevent schedule/network correlation. Unknown input is
+blocked by a conservative token grammar, not a universal PII detector. Version 2
+consent defaults off and old consent is not carried forward. Request mappings
+stay in memory; source-supported time/recurrence output alone may enrich local
+proposals. No automatic event write or cloud fallback is introduced. Backend
+credential processing is not implemented; BUG-005 remains open.
+
+`CLOUD-PRIV-001..006` capture outbound payloads, test fresh/repeated identifiers,
+Unicode/boundary/ambiguous mappings, unsupported/sensitive/injection input with
+zero calls, strict grounded output and local fallback. `CLOUD-CONSENT-002` and
+privacy widget coverage verify renewed consent and qualified claims. Provider
+handling/network anonymity are not established by these tests.

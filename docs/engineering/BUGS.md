@@ -162,8 +162,15 @@ in-repository record while Sarti has no external tracker.
   designed end to end.
 - Workaround: Cloud assist remains unavailable; deterministic and native
   on-device parsing continue without a cloud fallback.
+- Approved privacy remediation (2026-10-13): ADR-036 replaces transmitted stable
+  aliases/free-form prompts with fresh labels and a fail-closed structured token
+  grammar, evidence-bound output and disclosure-v2 consent. UI/privacy/marketing
+  guidance removes blanket “personal information never leaves your phone” claims.
+  This does not wire cloud credentials or establish live provider compatibility;
+  BUG-005 remains open for that integration. Automated results are recorded in
+  `../testing/BUG-005-PRIVACY-VERIFICATION.md`.
 - Required action: Approve a provider credential architecture that preserves
-  ADR-028 pseudonymization and explicit consent without exposing a reusable key,
+  ADR-036 minimization and explicit consent without exposing a reusable key,
   then implement and perform a live provider test.
 
 ---

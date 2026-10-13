@@ -27,6 +27,23 @@ void main() {
     expect(CloudAiConsentController(store).enabled, isFalse);
   });
 
+  test(
+    'CLOUD-CONSENT-002 old disclosure consent does not enable version 2',
+    () {
+      final database = SartiDatabase.open(':memory:', Uint8List(32));
+      addTearDown(database.close);
+      database.raw.execute(
+        "INSERT INTO app_preferences(key,value) VALUES ('cloud_ai_consent_v1','enabled')",
+      );
+      final store = CloudAiConsentStore(database);
+      expect(store.enabled, isFalse);
+      store.setEnabled(true);
+      expect(store.enabled, isTrue);
+      store.setEnabled(false);
+      expect(store.enabled, isFalse);
+    },
+  );
+
   test('cloud gate constructs Gemini only after explicit consent', () {
     final database = SartiDatabase.open(':memory:', Uint8List(32));
     addTearDown(database.close);
@@ -59,42 +76,57 @@ void main() {
     expect(gate.createProvider(), isNull);
   });
 
-  testWidgets('privacy dialog discloses cloud data and records opt-in', (
-    tester,
-  ) async {
-    final database = SartiDatabase.open(':memory:', Uint8List(32));
-    addTearDown(database.close);
-    final repository = CalendarRepository(database, deviceId: newId());
-    repository.createFamily(name: 'Family', ownerName: 'Parent');
-    final calendar = CalendarController(
-      repository,
-      timezone: 'America/Vancouver',
-    );
-    final consent = CloudAiConsentController(CloudAiConsentStore(database));
+  testWidgets(
+    'CLOUD-CONSENT-MOB-001 privacy dialog discloses cloud data and records opt-in',
+    (tester) async {
+      final database = SartiDatabase.open(':memory:', Uint8List(32));
+      addTearDown(database.close);
+      final repository = CalendarRepository(database, deviceId: newId());
+      repository.createFamily(name: 'Family', ownerName: 'Parent');
+      final calendar = CalendarController(
+        repository,
+        timezone: 'America/Vancouver',
+      );
+      final consent = CloudAiConsentController(CloudAiConsentStore(database));
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: CalendarScreen(controller: calendar, cloudAiConsent: consent),
-      ),
-    );
-    await tester.tap(find.byTooltip('Privacy & AI'));
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: CalendarScreen(controller: calendar, cloudAiConsent: consent),
+        ),
+      );
+      await tester.tap(find.byTooltip('Privacy & AI'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Privacy & AI'), findsOneWidget);
-    expect(
-      find.textContaining('pseudonymization, not anonymization'),
-      findsOneWidget,
-    );
-    expect(find.textContaining('local deterministic parser'), findsOneWidget);
-    expect(consent.enabled, isFalse);
+      expect(find.text('Privacy & AI'), findsOneWidget);
+      expect(
+        find.textContaining('pseudonymization, not anonymization'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('local deterministic parser'), findsOneWidget);
+      expect(find.textContaining('fresh temporary labels'), findsOneWidget);
+      expect(
+        find.textContaining('Schedules can still be sensitive'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('does not guarantee'), findsOneWidget);
+      expect(find.textContaining('A repeated alias may link'), findsNothing);
+      expect(consent.enabled, isFalse);
 
-    await tester.tap(find.byType(Switch));
-    await tester.pumpAndSettle();
-    expect(consent.enabled, isTrue);
-    expect(find.text('Enabled on this device'), findsOneWidget);
+      await tester.ensureVisible(find.byType(Switch));
+      await tester.tap(find.byType(Switch));
+      await tester.pumpAndSettle();
+      expect(consent.enabled, isTrue);
+      expect(find.text('Enabled on this device'), findsOneWidget);
 
-    await tester.tap(find.text('Done'));
-    await tester.pumpAndSettle();
-    expect(find.byTooltip('Privacy & AI'), findsOneWidget);
-  });
+      await tester.tap(find.byType(Switch));
+      await tester.pumpAndSettle();
+      expect(consent.enabled, isFalse);
+      expect(repository.load()!.events, isEmpty);
+      expect(database.raw.select('SELECT 1 FROM events'), isEmpty);
+
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('Privacy & AI'), findsOneWidget);
+    },
+  );
 }

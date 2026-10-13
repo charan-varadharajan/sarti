@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-12
-- Partially superseded by: ADR-028 (cloud-assist rules 1 and 2)
+- Partially superseded by: ADR-028, then ADR-036 (cloud input/privacy policy)
 
 ## Decision
 

@@ -34,7 +34,7 @@ normal OS diagnostics and vendor terms remain part of the platform trust
 boundary. The app must use runtime capability checks because OS version alone
 does not prove local model availability.
 
-The optional cloud adapter defined by ADR-028 is separate, defaults off, and
+The optional cloud adapter defined by ADR-036 is separate, defaults off, and
 requires its versioned disclosure and consent. There is no automatic transition
 from native inference to cloud inference.
 
@@ -44,3 +44,31 @@ Native source compilation, method-channel behavior, fallback, strict merge, and
 explicit-confirmation UI are automated. Actual inference latency, output quality,
 language behavior, thermal/quota behavior, and offline operation remain physical
 device release tests.
+
+## Optional cloud adapter boundary
+
+The adapter accepts local names only to replace references; it never exports
+profile records or stored aliases. Fresh cryptographically random child,
+guardian and place labels are scoped to one request, with reverse mappings in
+memory only. No requester ID is added to the model payload. A conservative
+English token grammar permits common activities/scheduling words and bounded
+clock numbers. Unknown words/characters, ambiguous mappings and large input
+block the request; there is no raw-text escape hatch. The model receives a
+versioned JSON token array, not the entered sentence or arbitrary title/notes.
+
+Only source-supported time/recurrence fields may enrich a proposal. Unexpected
+fields, invented values, malformed/oversized responses and transport failures
+return the local proposal. Dates, people, places and titles are not generated
+by this cloud path. This limits its usefulness deliberately; unsupported input
+uses the existing local/native proposal and explicit manual review.
+
+Disclosure version 2 requires renewed opt-in. Scheduling tokens may still be
+sensitive; common words can be identifiers and provider credentials/network
+metadata permit correlation. No guarantee of anonymity, universal PII removal,
+provider retention or no-training is made. See `../product/PRIVACY-MESSAGING.md`.
+
+Tests capture the adapter's outgoing prompt with an injected transport and
+verify zero calls for blocked requests. They do not establish a live Gemini
+service/model, provider terms, retention or physical-device guarantees. BUG-005
+still blocks shipping credential/inference activation; the existing SDK/model
+selection must be verified before that separate integration is released.

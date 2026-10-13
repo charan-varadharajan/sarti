@@ -33,3 +33,14 @@ no family details or encryption keys are included. Pending/revoked, foreign-fami
 changed-device, duplicate/expired/cancelled and expanded-permission requests need
 negative tests. Initial state must respect child-resource isolation, retries,
 retained data, existing conflicts and current key epochs. See GUARD-* scenarios.
+
+## Optional cloud disclosure — ADR-036
+
+Stable alias correlation is reduced with fresh per-request labels and omission
+of requester IDs from the model payload. Raw sentences and unsupported text are
+blocked by a bounded token grammar; captured-transport tests prove no call for
+synthetic names/addresses/email/phone/medical/injection cases. Scheduling tokens,
+recognized common words and provider/network metadata may still be identifying.
+Consent v2, truthful copy and strict source-supported response validation reduce
+accidental disclosure and invented changes; they do not establish anonymity,
+general PII detection, provider retention/training or production eligibility.

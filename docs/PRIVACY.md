@@ -15,9 +15,10 @@ in-app privacy notice.
 
 Sarti is a family organizer. It stores calendar events, child profiles, pickup
 assignments, and reminders. Content sent through Sarti synchronization is
-encrypted on an authorized device before leaving it. The current child-profile
-and guardian mobile sharing gaps are tracked as BUG-003 and BUG-004, so this
-draft must not claim complete end-to-end behavior until those paths pass.
+encrypted on an authorized device before leaving it. Automated child/guardian sharing checks pass; physical-device and provider
+validation remain release requirements. Optional cloud AI and inbound email
+have separate processing boundaries described below. Encryption of sync does
+not mean that personal information can never leave your phone.
 
 ---
 
@@ -33,13 +34,16 @@ draft must not claim complete end-to-end behavior until those paths pass.
 | Device private keys | Platform secure storage (Keychain / Keystore) | Protected by the configured OS secure-storage policy; hardware backing is not yet verified |
 | Session token | Platform secure storage | Yes |
 | AI cloud consent preference | SQLCipher local database | Yes |
-| Child cloud aliases (if cloud AI enabled) | SQLCipher local database | Yes |
+| Retained child aliases (excluded from cloud requests) | SQLCipher local database | Yes |
+| Per-request AI labels and reverse mapping | Temporary application memory only; not persisted | Not sent to storage |
 
 ---
 
 ## 3. Data stored on Sarti servers
 
-Sarti servers store **no plaintext family content**. The server stores only:
+Sarti application persistence stores **no plaintext private family content**.
+This describes storage, not every processing step: inbound email is temporarily
+plaintext before encryption. The server stores:
 
 | Data | Purpose | Retention |
 |---|---|---|
@@ -51,10 +55,12 @@ Sarti servers store **no plaintext family content**. The server stores only:
 | Encrypted email suggestions (ciphertext only) | Email-to-calendar proposals | 7 days |
 | FCM push token | Opaque sync wake-up | Until device revoked or token rotated |
 | Hashed email routing token | Email ingress routing | Until family deleted |
+| Encrypted owner backup snapshot | Explicit recovery relay | Until replaced, deleted or family deleted |
 
-The server cannot read calendar events, child names, event titles, or any
-family content. Sync operations and email suggestion ciphertext expire after
-seven days. Sealed resource-key grants and authorization metadata persist until
+The sync/backup services do not hold the keys needed to decrypt calendar or
+profile ciphertext. This does not cover plaintext inbound email before sealing
+or optional cloud information disclosed outside the encrypted sync flow. Sync
+operations and email suggestion ciphertext expire after seven days. Sealed resource-key grants and authorization metadata persist until
 their resource, device, family, or account lifecycle removes them.
 
 ---
@@ -68,15 +74,26 @@ their resource, device, family, or account lifecycle removes them.
 - **Provider privacy policy:** TODO — link Firebase/Google privacy policy.
 
 ### Optional cloud AI assist (Google Gemini)
-- **Requires explicit opt-in.** Defaults off.
-- **What is sent:** The raw text sentence entered by the user, with child names
-  replaced by random aliases (e.g. `happy-frog-4821`) and locations replaced
-  by `place-N` tokens before leaving the device.
-- **What is NOT sent:** Family IDs, account identifiers, profile records, keys,
-  or the reverse alias mapping.
-- **Provider privacy policy:** TODO — link Google AI / Gemini privacy policy.
-- **Residual risk:** Pseudonymization is not anonymization. Activity, time,
-  recurrence, and sentence structure are still visible to the provider.
+- **Current availability:** Not connected in the shipping bootstrap. Credential
+  delivery and live provider validation remain BUG-005; this describes the
+  approved adapter boundary, not a live-service guarantee.
+- **Requires fresh explicit opt-in.** Defaults off; disclosure version 2 does
+  not inherit earlier consent. Local parsing remains available when disabled.
+- **What may be sent:** A bounded JSON array of supported scheduling tokens,
+  with fresh random labels for known children, guardians and places for each
+  request. Repeated references within that request share one temporary label.
+  Unsupported text blocks submission; raw sentences and arbitrary notes are
+  not forwarded. This conservative English grammar limits supported requests.
+- **Excluded from the model payload:** Stored aliases, account/family/device IDs,
+  profile records, keys, requester identifiers and reverse label mappings.
+  Temporary mappings stay in phone memory; no persistent mapping is created.
+- **Residual risk:** Scheduling information can still be sensitive or identify
+  someone. Token filtering is not a universal PII detector. Network metadata,
+  provider credentials and distinctive schedules can allow correlation even
+  with fresh labels. This is pseudonymization, not anonymity.
+- **Provider handling:** Retention, training, eligibility and production terms
+  must be verified before enabling the selected service. Do not promise zero
+  retention, no training or anonymous network access. Provider policy: TODO.
 
 ### Inbound email (Cloudflare Email Routing)
 - **What is sent:** Emails forwarded to your family's Sarti address pass through
@@ -87,7 +104,8 @@ their resource, device, family, or account lifecycle removes them.
 
 ### Hosting (Google Cloud Run + Neon — beta only)
 - **What is processed:** API requests containing authentication metadata and
-  encrypted ciphertext. No plaintext family content.
+  encrypted ciphertext for sync/backup. Email ingress additionally processes
+  plaintext temporarily before sealing; storage and runtime processing differ.
 - **Provider privacy policies:** TODO — link GCP and Neon privacy policies.
 - **Note:** Beta hosting only. Production hosting requires a separate approved
   ADR covering regions, subprocessors, and data residency.
@@ -122,9 +140,12 @@ Deletion deadlines: TODO — define maximum server-side deletion SLA.
 ## 6. Children's privacy
 
 Sarti stores child profiles (names, colours, assignments) encrypted on
-authorized devices. Child data is never sent to any server in plaintext.
-When optional cloud AI is enabled, child names are replaced with random
-aliases before leaving the device.
+authorized devices. Sync and backup content is encrypted before upload.
+Optional cloud AI can receive limited scheduling information with temporary
+labels if configured and explicitly enabled. This information may still be
+sensitive or identifying. Inbound email may contain child information in
+plaintext before device-specific encryption. Do not claim that personal
+information never leaves the phone. See `product/PRIVACY-MESSAGING.md`.
 
 TODO — confirm COPPA / GDPR-K applicability and add required disclosures.
 Sarti's P0 UI is for adult guardians only. Verify the then-current Apple,

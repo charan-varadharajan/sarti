@@ -172,3 +172,14 @@ approval, resource-scoped key grants and encrypted initial state. Metadata-only
 membership baselines avoid missing-key pre-enrollment relay history. See
 [Guardian onboarding](../api/GUARDIAN-ONBOARDING.md) for trust boundaries, flow,
 permissions, rollout and physical-platform validation limits.
+
+## Optional cloud AI privacy — ADR-036
+
+The separate optional adapter uses a bounded JSON scheduling-token array and
+fresh per-request labels. Stored aliases, requester/account/family/device IDs,
+raw sentences and reverse mappings are excluded. Unsupported input remains
+local. Consent version 2 requires new opt-in. Scheduling and provider/network
+metadata can still be identifying; pseudonymization is not anonymity. The
+shipping bootstrap remains local/native; safe credential delivery and live
+provider validation are still BUG-005. No backend cloud broker is introduced.
+Public copy follows `../product/PRIVACY-MESSAGING.md`.

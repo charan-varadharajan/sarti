@@ -1,6 +1,6 @@
 # ADR-028: Local cloud-prompt pseudonymization
 
-- Status: Accepted
+- Status: Accepted; stable-alias/free-form transmission superseded by ADR-036
 - Date: 2026-10-11
 - Supersedes: ADR-023 cloud-assist rules 1 and 2
 

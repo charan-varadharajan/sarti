@@ -18,7 +18,7 @@ maintainer instruction in CONTRIBUTING.md. Backup portability is excluded.
 | `core/backup` | BIP-39 validation, PBKDF2/XChaCha20-Poly1305 v2 envelope containing SQLCipher key | 15 phrase/envelope tests |
 | `features/backup` | Encrypted consistent snapshot, owner upload/download/delete UI, staged recovery and protected-key activation | 7 SQLCipher/failure tests, 2 widget journeys; binary API transport test; `BACKUP-XPLAT-001` native portability scenario; reverse `-002` added, not run |
 | `core/database` | SQLCipher verification, schema v1-v6, transactional migrations | Native engine and repository tests |
-| `features/ai` | Deterministic parser, Apple/Android native bridge, strict proposal merge/review, local pseudonymization, versioned opt-in, and gated optional cloud adapter | Parser, native fallback/merge, approval/Undo widget, consent, and cloud-boundary tests |
+| `features/ai` | Deterministic parser, Apple/Android native bridge, strict proposal merge/review, ADR-036 request-scoped labels, fail-closed token grammar, evidence-bound cloud output, v2 opt-in, and gated optional cloud adapter | Parser, native fallback/merge, approval/Undo widget, consent, and cloud-boundary tests |
 | `features/calendar/domain` | Event, recurrence, IANA timezone/DST behavior | Recurrence unit tests |
 | `features/calendar/data` | Atomic family/child/event repository, explicit child sharing intent, safe profile placeholders, outbox, durable event conflicts, reminders | Repository/sync tests |
 | `features/calendar/presentation` | Progressive onboarding, Today/Week/Month, edit/assign/cancel/delete/conflict UI | Widget journey |

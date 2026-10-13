@@ -66,7 +66,7 @@ class EventProposal {
 /// Abstract interface — deterministic parser is the default implementation.
 /// Future AI backends (on-device LLM, cloud assist) implement this interface.
 /// External implementations must apply the local pseudonymization boundary in
-/// ADR-028 before transmitting user input.
+/// ADR-036 before transmitting minimized scheduling tokens.
 abstract interface class AiProvider {
   EventProposal parse(String input, {DateTime? now});
 }

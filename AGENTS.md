@@ -51,6 +51,14 @@ Read, in order:
   result that weakens security invariants, violates an ADR, or adds out-of-scope
   features.
 
+## Privacy claims
+
+Follow `docs/product/PRIVACY-MESSAGING.md` for public, store, pamphlet and in-app
+copy. Distinguish encrypted storage/sync/backup, native AI, optional cloud AI and
+plaintext email processing. Never claim personal information cannot leave the
+phone, that pseudonymization is anonymity, or provider retention/training
+properties without verified deployment-specific evidence.
+
 ## Completion report
 
 Every stage report must cover features, changed files, ADRs, APIs, migrations,

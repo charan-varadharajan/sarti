@@ -71,3 +71,8 @@ access, family-profile vectors/readiness and handoff progress referencing outbox
 operation IDs. `guardians` gains private names through an authenticated
 family-profile payload; no new table or plaintext database is introduced.
 Snapshots are resource-scoped outbox operations, not user event edits.
+
+ADR-036 retains stored `cloud_alias` values for profile/schema compatibility but
+excludes them from cloud payloads. Request labels/reverse mappings are temporary
+memory objects; no label table is added. Consent uses `cloud_ai_consent_v2` in
+existing encrypted preferences; v1 opt-in does not enable it. No migration.
