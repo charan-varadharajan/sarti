@@ -50,6 +50,14 @@ in-repository record while Sarti has no external tracker.
   Current natural-language save hardcodes 60 minutes without an editable duration.
   Include tests for visible defaults, independent per-proposal edits, explicit
   durations/end times and confirmation preserving the reviewed duration.
+- Additional reported case: Named clock times are not recognized by the
+  deterministic parser, which handles numeric times only. Synthetic regression:
+  "alex has swimming for 2 hours tomorrow at noon" must propose swimming for
+  the matched child tomorrow at 12:00, duration 120 minutes, ending at 14:00,
+  subject to explicit approval. Parse noon as 12:00 (not midnight), keep the
+  duration separate from the start time, and remove recognized scheduling words
+  from the event title. Add deterministic-parser and editable-preview/save
+  regressions so the case works without native AI. Not fixed or tested yet.
 
 ### BUG-012 — iOS simulator integration tests are absent from CI
 - Severity: Medium

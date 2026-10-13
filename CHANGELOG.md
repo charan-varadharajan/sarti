@@ -21,6 +21,9 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
 ## [Unreleased]
 
 ### Added
+- BUG-013 clarification: record missing deterministic "noon" recognition and
+  the two-hour swimming regression (12:00–14:00), including preview/save checks
+  without native AI. Implementation remains pending.
 - BUG-013 clarification: approved visible, editable one-hour duration defaults
   per proposal, with explicit end-time/duration handling and regression criteria;
   implementation remains pending.
