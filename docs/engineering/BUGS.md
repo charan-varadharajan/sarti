@@ -37,8 +37,20 @@ in-repository record while Sarti has no external tracker.
 - Proposed action: Make standard feedback transient (five-second Undo window),
   provide an explicit close control, and replace old feedback when another event
   is saved. Preserve screen-reader accessibility behavior rather than forcing
-  timers that make the action inaccessible. Add widget regressions for expiry,
-  immediate Undo, dismissal without deletion, consecutive saves and accessibility.
+  timers that make the action inaccessible.
+- Approved interaction (2026-10-12): Tapping Undo opens an editable preview of
+  the saved event; it must not immediately delete or modify it. The preview has
+  Delete, Cancel and Save. Delete explicitly deletes that event. Cancel closes
+  the preview and discards unsaved edits, leaving the saved event intact. Save
+  starts disabled and enables only for valid changes from the original event;
+  reverting every change disables it again. Save persists reviewed changes.
+  Dismissing the preview without saving behaves like Cancel. If the event no
+  longer exists, handle that safely rather than recreating it from stale data.
+  This supersedes the previously proposed immediate-Undo deletion behavior.
+- Required regressions: Snackbar expiry/close without mutation; Undo opens
+  preview without a write; Delete removes only the target; Cancel/dismiss
+  preserves it; Save dirty/valid/reverted state and persistence; consecutive
+  saves target the correct event; stale/deleted event and accessibility cases.
   Pending implementation; separate from BUG-013 parsing/duration work.
 
 ### BUG-013 — Multi-event natural-language input is reduced to one proposal

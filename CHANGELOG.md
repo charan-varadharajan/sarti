@@ -21,6 +21,10 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
 ## [Unreleased]
 
 ### Added
+- BUG-014 approved interaction: Undo opens an editable saved-event preview;
+  Delete removes the event, Cancel discards preview edits, and Save is enabled
+  only for valid changes. Replace the prior immediate-deletion proposal;
+  implementation and tests remain pending.
 - Record BUG-014: event-added Undo persists because action snackbars default to
   persistent in the pinned Flutter SDK; propose transient, dismissible feedback
   with accessibility and stale-action regression coverage. Not fixed yet.
