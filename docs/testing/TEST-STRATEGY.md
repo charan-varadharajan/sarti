@@ -140,3 +140,12 @@ multi-author JSONB reordering with actual libsodium and SQLCipher, keeps both
 conflict alternatives and verifies event convergence after explicit resolution.
 It is opt-in (`SARTI_RUN_MOBILE_CONTRACT=1`); default Flutter/backend runs skip
 that host-dependent test. Current results: `BUG-011-VERIFICATION.md`.
+
+ADR-035/BUG-004 adds GUARD-* prepared widget/native and unit cases for
+share/copy/QR, pending isolation, matching device code, permission-scoped initial
+state, interrupted retries and removal. The explicit HTTP/PostgreSQL/Dart host
+uses actual crypto/key transport and expires retained relay fixtures to require
+fresh handoff. Backend abuse tests cover expiry, replay, cancellation, stale
+pins, resource scope and quotas. Native share/clipboard are injected to avoid
+sending messages; physical OS camera/link/provider behavior remains unverified.
+Results are recorded in BUG-004-VERIFICATION.md after execution.

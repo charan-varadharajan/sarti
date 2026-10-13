@@ -15,6 +15,7 @@ SCENARIOS = {
     "calendar": "integration_test/calendar_add_event_scenario_test.dart",
     "child": "integration_test/child_profile_sync_test.dart",
     "grid": "integration_test/calendar_grid_scenario_test.dart",
+    "guardian": "integration_test/guardian_onboarding_scenario_test.dart",
 }
 
 

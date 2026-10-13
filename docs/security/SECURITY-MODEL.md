@@ -145,3 +145,14 @@ pass on 2026-10-13; see `../testing/BUG-011-VERIFICATION.md`.
 Already-lost legacy ordering requires authorized recovery and is not guessed.
 Physical-device claims remain separate; BUG-017 conflict-card retirement is
 still outstanding.
+
+BUG-004/ADR-035 adds expiring token-only share/copy/QR enrollment. Pending
+membership has no content/grant access. Owner review pins the current device
+and full public-key digest after both phones compare the displayed code, then
+assigns explicit resource permissions. New guardian state is delivered as
+separately encrypted family/child/calendar resources above an approval baseline;
+no owner backup or plaintext content is shared through the server. Strict link
+parsing cannot change the API host or permissions. Client read-only gates and
+server authorization are independent. Backend authorization/security checks pass, but mobile and cross-layer
+verification fails; BUG-004 remains unaccepted. Physical native share, clipboard,
+camera, link and passkey compatibility is not inferred.

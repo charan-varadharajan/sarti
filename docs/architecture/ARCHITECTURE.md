@@ -166,3 +166,9 @@ authorized public-key directory, signed sealed-box key exchange, and resource-ki
 validation before decrypted application. See
 [child profile components and flow](CHILD-PROFILE-SYNC.md). Private names, colours
 and aliases remain inside SQLCipher and child-resource ciphertext.
+
+ADR-035 connects guardian share/copy/QR invitations to explicit pinned-device
+approval, resource-scoped key grants and encrypted initial state. Metadata-only
+membership baselines avoid missing-key pre-enrollment relay history. See
+[Guardian onboarding](../api/GUARDIAN-ONBOARDING.md) for trust boundaries, flow,
+permissions, rollout and physical-platform validation limits.

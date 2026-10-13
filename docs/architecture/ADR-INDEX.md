@@ -41,5 +41,7 @@ unresolved rather than inferred.
 | [ADR-033](adr/033-kalender-calendar-presentation.md) | Kalender presentation adapter for day/week/month grids | Accepted |
 | [ADR-034](adr/034-versioned-sync-metadata-encoding.md) | Versioned deterministic sync metadata with legacy preservation | Accepted; supersedes ADR-020/021 serialization detail |
 
+| [ADR-035](adr/035-guardian-invitations-and-scoped-handoff.md) | Shared/copied/QR guardian invitations and scoped encrypted initial handoff | Accepted within approved BUG-004 scope |
+
 New records use the next three-digit number. Accepted decisions are changed only
 by an explicitly approved superseding ADR.

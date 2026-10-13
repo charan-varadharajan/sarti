@@ -70,3 +70,26 @@ explicit, reviewed changes. Execution evidence is in BUG-016-VERIFICATION.md.
 CI checks dependency vulnerabilities. Updates are explicit reviewed changes with
 tests; automated updates must not merge around failed checks. Material licensing,
 security, privacy, or compatibility concerns trigger the contract stop condition.
+
+### Guardian invitations (ADR-035)
+
+Pinned direct packages: `share_plus` 13.3.1 (BSD-3-Clause), `app_links` 7.2.2
+(Apache-2.0), `qr_flutter` 4.1.0 (BSD-3-Clause). SDK/build declared minimums meet
+current Flutter 3.47.7, Dart 3.13.5, AGP 9.1 and Gradle 9.3.1. QR Flutter's older
+stable release renders locally; no network or inference is introduced.
+
+New lock entries: app_links_linux 1.0.4, app_links_platform_interface 2.0.4,
+app_links_web 1.0.5 (Apache-2.0); cross_file 0.3.5+5, mime 2.1.0, qr 3.0.2,
+share_plus_platform_interface 7.2.0, url_launcher_linux 3.2.3,
+url_launcher_platform_interface 2.3.2, url_launcher_web 2.4.3 and
+url_launcher_windows 3.1.6 (BSD-style notices retained). Exact licenses were
+inspected in installed package sources; the lock stores checksums. OSV querybatch
+returned no listed advisories for all 14 newly added exact versions on
+2026-10-13. This is not an absence-of-defects guarantee.
+
+Native targeted link/share source was checked for incoming-URL logging/network
+telemetry: only a fixed debug-launch diagnostic was found in app_links; no token
+logging path. Sharing invokes the user's OS chooser with token-only text and a
+valid popover origin; no contacts or message/inbox access. QR uses an offline
+painter. Desktop/web transitive adapters do not add those platforms to P0.
+Physical sharing/camera/link behavior must be validated independently of mocks.

@@ -3,7 +3,7 @@
 ## Developer tooling
 
 `test` delegates to `scripts/run_tests.py`: Flutter unit/widget execution or
-explicit prepared native calendar/child/grid scenarios, automatic simulated-device
+explicit prepared native calendar/child/grid/guardian scenarios, automatic simulated-device
 selection/startup, streamed logs and failure exit codes. No dependencies beyond
 Python standard library and installed platform tools. Regression coverage is in
 `scripts/test_run_tests.py`. Assistant test execution follows the latest
@@ -53,3 +53,16 @@ unchanged legacy encoder. Sync envelope persistence and HTTP transport carry the
 version; backend relay models and migration 0006 persist it without plaintext
 family content. `sync_metadata_test.dart` and the explicit
 `test_sync_postgres_mobile.py` host cover legacy/security and real JSONB ordering.
+
+## Guardian onboarding (BUG-004)
+
+`features/guardians` owns strict memory-only invitation parsing/inbox,
+coordinator state, device-code/resource review, share/copy/QR UI and retry/remove
+flows. Authenticated bootstrap attaches one authorized local family, persists
+read-only access, refreshes membership and wires the normal sync runtime.
+`CalendarRepository` queues scoped handoff state and validates encrypted family
+profiles; `ResourceKeySync` includes initial family-profile grant establishment.
+Backend household APIs list/cancel/review invitations and enforce approval pins,
+resource subsets, expiry and idempotency; sync reads enforce migration-0007
+baselines. Prepared tests and real HTTP/PostgreSQL tests are listed in
+TEST-SCENARIOS.md; no physical-provider behavior is inferred from test adapters.

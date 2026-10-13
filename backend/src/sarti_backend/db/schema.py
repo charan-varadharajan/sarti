@@ -81,6 +81,8 @@ families = sa.Table(
 memberships = sa.Table(
     "memberships",
     metadata,
+    sa.Column("sync_start_cursor", sa.BigInteger(), nullable=False, server_default="0"),
+    sa.CheckConstraint("sync_start_cursor >= 0", name="ck_membership_sync_start"),
     sa.Column("family_id", postgresql.UUID(as_uuid=True), primary_key=True),
     sa.Column("adult_id", postgresql.UUID(as_uuid=True), primary_key=True),
     sa.Column("role", sa.Text(), nullable=False),

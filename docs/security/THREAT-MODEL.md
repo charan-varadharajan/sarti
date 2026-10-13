@@ -20,3 +20,16 @@ The server observes bounded relationship/timing metadata and ciphertext sizes.
 Physical OS behavior, production TLS/RP configuration, snapshot recovery after
 seven offline days, live email/provider delivery, backup recovery, and deletion
 remain residual risks.
+
+## Guardian onboarding (ADR-035 / BUG-004)
+
+Forwarded/stolen invitation links can create pending requests but cannot grant
+content access: expiry/single use, owner recognition, matching out-of-band device
+code, full key/device pinning and signed scoped grants gate approval. Unknown
+schemes/hosts/paths/query-bearing links are rejected; a QR cannot override
+permissions or API routing. Tokens are not sent to API URLs or operational logs.
+Owner-selected messaging/clipboard apps necessarily receive the expiring token;
+no family details or encryption keys are included. Pending/revoked, foreign-family,
+changed-device, duplicate/expired/cancelled and expanded-permission requests need
+negative tests. Initial state must respect child-resource isolation, retries,
+retained data, existing conflicts and current key epochs. See GUARD-* scenarios.

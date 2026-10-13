@@ -166,6 +166,256 @@ class CalendarRepository {
     return load()!;
   }
 
+  /// Owner-confirmed, resource-scoped initial handoff. No event is edited.
+  void queueGuardianHandoff({
+    required String invitationId,
+    required String profileResourceId,
+    required Set<String> childResourceIds,
+    required String guardianId,
+    required String guardianName,
+  }) {
+    final family = load() ?? (throw StateError('No local family.'));
+    if (family.openConflicts != 0) {
+      throw StateError(
+        'Resolve calendar conflicts before sharing an initial state.',
+      );
+    }
+    if (!isResourceId(guardianId) ||
+        guardianName.trim().isEmpty ||
+        guardianName.length > 120) {
+      throw ArgumentError('Invalid guardian profile.');
+    }
+    final marker = 'guardian-handoff-$invitationId';
+    final prior = database.raw.select(
+      'SELECT value FROM app_preferences WHERE key=?',
+      [marker],
+    );
+    if (prior.isNotEmpty) {
+      final ids = (jsonDecode(prior.single['value'] as String) as List)
+          .cast<String>();
+      if (ids.isNotEmpty &&
+          ids.every(
+            (id) => database.raw.select(
+              'SELECT 1 FROM outbox WHERE operation_id=?',
+              [id],
+            ).isNotEmpty,
+          ))
+        return;
+      // Recovery clears the old identity's outbox. Explicit retry must publish
+      // a fresh scoped handoff, rather than trusting an orphaned progress flag.
+    }
+    final queuedIds = <String>[];
+    final base = DateTime.now().toUtc();
+    var order = 0;
+    void queue(
+      String resource,
+      String kind,
+      Object payload,
+      Map<String, int> vector,
+    ) {
+      final operationId = newId();
+      queuedIds.add(operationId);
+      database.raw.execute(
+        'INSERT INTO outbox(operation_id, family_id, resource_id, kind, payload_json, vector_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [
+          operationId,
+          family.householdId,
+          resource,
+          kind,
+          jsonEncode(payload),
+          jsonEncode(vector),
+          base.add(Duration(microseconds: order++)).toIso8601String(),
+        ],
+      );
+    }
+
+    database.transaction(() {
+      final existing = database.raw.select(
+        'SELECT household_id FROM guardians WHERE id = ?',
+        [guardianId],
+      );
+      if (existing.isNotEmpty &&
+          existing.single['household_id'] != family.householdId) {
+        throw StateError('Guardian scope mismatch.');
+      }
+      database.raw.execute(
+        'INSERT INTO guardians(id, household_id, display_name) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET display_name=excluded.display_name',
+        [guardianId, family.householdId, guardianName.trim()],
+      );
+      for (final child in family.children.where(
+        (c) => childResourceIds.contains(c.id),
+      )) {
+        queue(
+          child.id,
+          'child_created',
+          {
+            'id': child.id,
+            'householdId': family.householdId,
+            'name': child.name,
+            'colorArgb': child.colorArgb,
+            'cloudAlias': child.cloudAlias,
+          },
+          {deviceId: 1},
+        );
+      }
+      for (final row in database.raw.select(
+        'SELECT * FROM events WHERE household_id = ?',
+        [family.householdId],
+      )) {
+        final event = _eventFromRow(row);
+        final version = database.raw.select(
+          'SELECT vector_json FROM event_versions WHERE event_id = ?',
+          [event.id],
+        );
+        if (version.isEmpty) {
+          throw StateError('The event version is unavailable.');
+        }
+        queue(
+          family.calendarResourceId,
+          event.deleted ? 'event_deleted' : 'event_upserted',
+          event.toJson(),
+          Map<String, int>.from(
+            jsonDecode(version.single['vector_json'] as String) as Map,
+          ),
+        );
+      }
+      final vectorKey = 'household-vector-${family.householdId}';
+      final stored = database.raw.select(
+        'SELECT value FROM app_preferences WHERE key = ?',
+        [vectorKey],
+      );
+      final vector = stored.isEmpty
+          ? <String, int>{}
+          : Map<String, int>.from(
+              jsonDecode(stored.single['value'] as String) as Map,
+            );
+      vector[deviceId] = (vector[deviceId] ?? 0) + 1;
+      queue(profileResourceId, 'household_shared', {
+        'householdId': family.householdId,
+        'name': family.name,
+        'guardians': [
+          for (final row in database.raw.select(
+            'SELECT id, display_name FROM guardians WHERE household_id = ?',
+            [family.householdId],
+          ))
+            {'id': row['id'], 'name': row['display_name']},
+        ],
+      }, vector);
+      database.raw.execute(
+        'INSERT OR REPLACE INTO app_preferences(key,value) VALUES (?,?)',
+        [vectorKey, jsonEncode(vector)],
+      );
+      database.raw.execute(
+        'INSERT OR REPLACE INTO app_preferences(key,value) VALUES (?,?)',
+        [marker, jsonEncode(queuedIds)],
+      );
+    });
+  }
+
+  RemoteApplyResult applySharedHousehold({
+    required String operationId,
+    required String familyId,
+    required String resourceId,
+    required Map<String, int> vector,
+    required Map<String, Object?> payload,
+  }) {
+    if (vector.isEmpty ||
+        vector.length > 16 ||
+        !vector.entries.every((e) => isResourceId(e.key) && e.value >= 0)) {
+      throw StateError('Invalid family profile version.');
+    }
+    final catalog = database.raw.select(
+      "SELECT 1 FROM resource_catalog WHERE resource_id=? AND family_id=? AND kind='family_profile'",
+      [resourceId, familyId],
+    );
+    if (catalog.isEmpty ||
+        payload.length != 3 ||
+        payload['householdId'] != familyId ||
+        payload['name'] is! String ||
+        (payload['name'] as String).trim().isEmpty ||
+        (payload['name'] as String).length > 120 ||
+        payload['guardians'] is! List) {
+      throw StateError('Invalid family profile.');
+    }
+    final guardians = payload['guardians'] as List;
+    final ids = <String>{};
+    if (guardians.length > 64) throw StateError('Too many guardian profiles.');
+    for (final value in guardians) {
+      if (value is! Map ||
+          value.length != 2 ||
+          value['id'] is! String ||
+          !isResourceId(value['id'] as String) ||
+          !ids.add(value['id'] as String) ||
+          value['name'] is! String ||
+          (value['name'] as String).trim().isEmpty ||
+          (value['name'] as String).length > 120) {
+        throw StateError('Invalid guardian profile.');
+      }
+      final existing = database.raw.select(
+        'SELECT household_id FROM guardians WHERE id=?',
+        [value['id']],
+      );
+      if (existing.isNotEmpty && existing.single['household_id'] != familyId) {
+        throw StateError('Guardian scope mismatch.');
+      }
+    }
+    if (database.raw.select('SELECT 1 FROM households WHERE id=?', [
+      familyId,
+    ]).isEmpty) {
+      throw StateError('Family scope mismatch.');
+    }
+    if (database.raw.select(
+      'SELECT 1 FROM applied_operations WHERE operation_id=?',
+      [operationId],
+    ).isNotEmpty) {
+      return RemoteApplyResult.duplicate;
+    }
+    final vectorKey = 'household-vector-$familyId';
+    final stored = database.raw.select(
+      'SELECT value FROM app_preferences WHERE key=?',
+      [vectorKey],
+    );
+    if (stored.isNotEmpty) {
+      final relation = compareVectors(
+        Map<String, int>.from(
+          jsonDecode(stored.single['value'] as String) as Map,
+        ),
+        vector,
+      );
+      if (relation == VectorRelation.concurrent) {
+        throw StateError('Concurrent family profiles require review.');
+      }
+      if (relation == VectorRelation.after ||
+          relation == VectorRelation.equal) {
+        return RemoteApplyResult.stale;
+      }
+    }
+    database.transaction(() {
+      database.raw.execute('UPDATE households SET display_name=? WHERE id=?', [
+        payload['name'],
+        familyId,
+      ]);
+      for (final value in guardians) {
+        database.raw.execute(
+          'INSERT INTO guardians(id, household_id, display_name) VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET display_name=excluded.display_name',
+          [value['id'], familyId, value['name']],
+        );
+      }
+      database.raw.execute(
+        'INSERT OR REPLACE INTO app_preferences(key,value) VALUES (?,?)',
+        [vectorKey, jsonEncode(vector)],
+      );
+      database.raw.execute(
+        'INSERT OR REPLACE INTO app_preferences(key,value) VALUES (?,?)',
+        ['guardian-ready-$familyId', 'true'],
+      );
+      database.raw.execute('INSERT INTO applied_operations VALUES (?)', [
+        operationId,
+      ]);
+    });
+    return RemoteApplyResult.applied;
+  }
+
   ChildProfile addChild(
     String name,
     int colorArgb, {

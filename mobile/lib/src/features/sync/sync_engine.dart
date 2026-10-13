@@ -229,6 +229,17 @@ class SyncEngine {
         final decoded = Map<String, Object?>.from(
           jsonDecode(utf8.decode(plaintext)) as Map,
         );
+        if (decoded['kind'] == 'household_shared') {
+          final result = repository.applySharedHousehold(
+            operationId: envelope.operationId,
+            familyId: familyId,
+            resourceId: envelope.resourceId,
+            vector: envelope.logicalVersion,
+            payload: Map<String, Object?>.from(decoded['payload']! as Map),
+          );
+          if (result == RemoteApplyResult.applied) applied++;
+          continue;
+        }
         if (decoded['kind'] == 'child_created') {
           final resource = database.raw.select(
             "SELECT 1 FROM resource_catalog WHERE resource_id = ? AND family_id = ? AND kind = 'child_profile'",

@@ -7,6 +7,15 @@
 
 ## Current result
 
+BUG-004 guardian onboarding is implemented under ADR-035: share/copy/QR,
+acceptance, verified owner approval, scoped initial encryption and read-only UI.
+Migration 0007 adds relay baselines. Backend/migration/security, dependency,
+tooling, Docker health and shipping iOS/Android builds pass. Flutter analysis/
+full tests, real HTTP guardian test and both native journey commands fail;
+logs uninspected and bug remains open. See `testing/BUG-004-VERIFICATION.md`.
+Physical camera/share/link/passkey behavior requires separate validation.
+
+
 BUG-011 is resolved under approved ADR-034, with migration 0006 and legacy
 ciphertext preservation. Full backend/PostgreSQL and Flutter suites, the real
 HTTP/PostgreSQL/Dart regression, static/security/dependency checks, Docker
@@ -94,7 +103,7 @@ remain acceptance gaps. No Stage 4 work is authorized.
 | Check | Result |
 | --- | --- |
 | Backend Pytest unit + PostgreSQL integration | PASS on 2026-10-13; full coverage gate, see BUG-011 report |
-| Alembic upgrade to head | PASS on 2026-10-13; schema version 6 |
+| Alembic upgrade to head | PASS on 2026-10-13; schema version 7 (BUG-004 upgrade passed on 2026-10-13) |
 | Ruff / strict Mypy / Bandit | Passed |
 | OpenAPI contract | Passed |
 | Docker current-source smoke | Passed using cached runtime + current source/migrations; clean rebuild not rerun after prior Docker Hub timeout |

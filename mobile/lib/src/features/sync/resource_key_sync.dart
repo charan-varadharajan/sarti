@@ -99,7 +99,11 @@ class ResourceKeySync {
     }
     final grants = await api.keyGrants();
     for (final resource in resources.values) {
-      if (resource.kind != 'child_profile' && resource.kind != 'calendar') {
+      if (!{
+        'child_profile',
+        'calendar',
+        'family_profile',
+      }.contains(resource.kind)) {
         continue;
       }
       List<ResourceDevice> devices;
@@ -127,7 +131,12 @@ class ResourceKeySync {
           !devices.any((device) => device.hasCurrentGrant);
       if (key == null &&
           self.permission == 'admin' &&
-          (hasPreviousKey || unclaimedRecoveryEpoch)) {
+          (hasPreviousKey ||
+              unclaimedRecoveryEpoch ||
+              (resource.kind == 'family_profile' &&
+                  family.role == 'owner' &&
+                  resource.keyEpoch == 1 &&
+                  !devices.any((d) => d.hasCurrentGrant)))) {
         final candidate = sodium.randombytes.buf(32);
         try {
           // The first self-grant claims this epoch under the server resource

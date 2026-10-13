@@ -19,6 +19,7 @@ class FamilyCalendarView extends StatefulWidget {
     required this.onCancel,
     required this.onDelete,
     this.initialDate,
+    this.readOnly = false,
   });
 
   final FamilyCalendar family;
@@ -28,6 +29,7 @@ class FamilyCalendarView extends StatefulWidget {
   final ValueChanged<CalendarEvent> onCancel;
   final ValueChanged<CalendarEvent> onDelete;
   final DateTime? initialDate;
+  final bool readOnly;
 
   @override
   State<FamilyCalendarView> createState() => _FamilyCalendarViewState();
@@ -424,21 +426,23 @@ class _FamilyCalendarViewState extends State<FamilyCalendarView> {
                       '${date.month}/${date.day} ${_description(occurrence)}',
                     ),
                     onTap: () => widget.onEdit(occurrence.event),
-                    trailing: PopupMenuButton<String>(
-                      onSelected: (action) => action == 'delete'
-                          ? widget.onDelete(occurrence.event)
-                          : widget.onCancel(occurrence.event),
-                      itemBuilder: (_) => const [
-                        PopupMenuItem(
-                          value: 'cancel',
-                          child: Text('Cancel event'),
-                        ),
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: Text('Delete event'),
-                        ),
-                      ],
-                    ),
+                    trailing: widget.readOnly
+                        ? null
+                        : PopupMenuButton<String>(
+                            onSelected: (action) => action == 'delete'
+                                ? widget.onDelete(occurrence.event)
+                                : widget.onCancel(occurrence.event),
+                            itemBuilder: (_) => const [
+                              PopupMenuItem(
+                                value: 'cancel',
+                                child: Text('Cancel event'),
+                              ),
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: Text('Delete event'),
+                              ),
+                            ],
+                          ),
                   );
                 },
               ),

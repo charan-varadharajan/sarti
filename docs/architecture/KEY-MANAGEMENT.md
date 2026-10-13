@@ -67,3 +67,14 @@ race. An initial missing key or already established epoch is never fabricated.
 Without a current key, writes remain pending. Historical content still needs
 its appropriate snapshot/key; fresh grants do not recreate expired relay data.
 No server plaintext key custody or backup decryption is introduced.
+
+## Guardian initial handoff (ADR-035)
+
+After explicit pinned-device approval, current resource keys are wrapped only
+for the active recipients allowed by each resource's permission. The family
+profile's first owner key uses an unclaimed-epoch signed self-grant; an already
+established key is never fabricated/replaced. Current events/tombstones retain
+IDs/vectors and are encrypted under the calendar key; child names remain under
+individual child keys; family/guardian names use the family-profile key. New
+members read above the captured approval baseline. Key rotation on removal
+still protects future updates and cannot erase historical copies.

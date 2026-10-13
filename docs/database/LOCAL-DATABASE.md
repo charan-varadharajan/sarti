@@ -65,3 +65,9 @@ BUG-011 requires no local schema migration (still v6). Persisted envelope JSON
 now includes `protocolVersion`. An absent value means legacy 1; already-encrypted
 pending bytes remain unchanged. New payloads use protocol 2. Old unknown-order
 ciphertext is retained and cannot be silently applied/skipped.
+
+BUG-004 retains schema v6. `app_preferences` stores encrypted role/calendar
+access, family-profile vectors/readiness and handoff progress referencing outbox
+operation IDs. `guardians` gains private names through an authenticated
+family-profile payload; no new table or plaintext database is introduced.
+Snapshots are resource-scoped outbox operations, not user event edits.

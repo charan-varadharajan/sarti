@@ -27,6 +27,9 @@ only WebAuthn output and 32-byte device public keys. Protected endpoints require
 
 ## Families and authorization
 
+The complete mobile sharing/QR, review, permission and initial-state protocol is
+in [Guardian onboarding](GUARDIAN-ONBOARDING.md) (ADR-035/BUG-004).
+
 - `POST/GET /v1/families` creates/lists families and opaque resources. Creation
   optionally accepts a client-generated `family_id` and
   `calendar_resource_id` together so an offline-first family can be provisioned

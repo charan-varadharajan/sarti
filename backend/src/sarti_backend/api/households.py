@@ -1,16 +1,26 @@
+import base64
 import hashlib
 import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any, Literal, Protocol
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, Request
-from pydantic import BaseModel, ConfigDict, model_validator
-from sqlalchemy import and_, delete, func, select, update
+from fastapi import APIRouter, Depends, Request, Response
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+from sqlalchemy import Connection, and_, delete, func, select, update
 
 from sarti_backend.core.auth import AuthenticatedDevice, require_device
 from sarti_backend.core.errors import ConflictDetected, PermissionDenied, TenantAccessDenied
-from sarti_backend.db.schema import families, invitations, memberships, permissions, resources
+from sarti_backend.db.schema import (
+    adults,
+    devices,
+    families,
+    invitations,
+    memberships,
+    permissions,
+    resources,
+    sync_operations,
+)
 from sarti_backend.households.authorization import require_owner
 
 
@@ -26,6 +36,7 @@ class ResourceResponse(BaseModel):
     id: UUID
     kind: Literal["family_profile", "child_profile", "calendar"]
     key_epoch: int
+    permission: Literal["read", "write", "admin"] | None = None
 
 
 class FamilyResponse(BaseModel):
@@ -35,6 +46,7 @@ class FamilyResponse(BaseModel):
     role: Literal["owner", "guardian"]
     status: Literal["pending", "active", "revoked"]
     resources: list[ResourceResponse]
+    sync_start_cursor: int = 0
 
 
 class FamilyCreate(BaseModel):
@@ -87,10 +99,25 @@ class PermissionAssignment(BaseModel):
     permission: Literal["read", "write", "admin"]
 
 
+class InvitationReview(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: UUID
+    status: str
+    expires_at: datetime
+    adult_id: UUID | None = None
+    device_id: UUID | None = None
+    encryption_public_key: str | None = None
+    signing_public_key: str | None = None
+    member_status: str | None = None
+    permissions: dict[UUID, str] = Field(default_factory=dict)
+
+
 class InvitationApproval(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     permissions: list[PermissionAssignment]
+    expected_device_id: UUID | None = None
+    expected_key_digest: str | None = Field(default=None, pattern="^[0-9a-f]{64}$")
 
 
 class MembershipResponse(BaseModel):
@@ -104,6 +131,19 @@ class MembershipResponse(BaseModel):
 
 router = APIRouter(prefix="/v1", tags=["households"])
 Authenticated = Annotated[AuthenticatedDevice, Depends(require_device)]
+
+
+def _lock_active_actor(connection: Connection, actor: AuthenticatedDevice) -> None:
+    connection.execute(select(adults.c.id).where(adults.c.id == actor.adult_id).with_for_update())
+    if (
+        connection.execute(
+            select(devices.c.id).where(
+                and_(devices.c.id == actor.device_id, devices.c.state == "active")
+            )
+        ).first()
+        is None
+    ):
+        raise PermissionDenied
 
 
 @router.post("/families", response_model=FamilyResponse, status_code=201)
@@ -201,12 +241,24 @@ def list_families(request: Request, actor: Authenticated) -> list[FamilyResponse
     database: TransactionalDatabase = request.app.state.database
     with database.connect() as connection:
         member_rows = connection.execute(
-            select(memberships.c.family_id, memberships.c.role, memberships.c.status).where(
+            select(
+                memberships.c.family_id,
+                memberships.c.role,
+                memberships.c.status,
+                memberships.c.sync_start_cursor,
+            ).where(
                 and_(memberships.c.adult_id == actor.adult_id, memberships.c.status != "revoked")
             )
         ).all()
         result: list[FamilyResponse] = []
         for membership in member_rows:
+            allowed = dict(
+                connection.execute(
+                    select(permissions.c.resource_id, permissions.c.permission).where(
+                        permissions.c.adult_id == actor.adult_id
+                    )
+                ).all()
+            )
             resource_rows = connection.execute(
                 select(resources.c.id, resources.c.kind, resources.c.key_epoch).where(
                     and_(
@@ -220,16 +272,29 @@ def list_families(request: Request, actor: Authenticated) -> list[FamilyResponse
                     id=membership.family_id,
                     role=membership.role,
                     status=membership.status,
+                    sync_start_cursor=membership.sync_start_cursor,
                     resources=[
-                        ResourceResponse(id=row.id, kind=row.kind, key_epoch=row.key_epoch)
+                        ResourceResponse(
+                            id=row.id,
+                            kind=row.kind,
+                            key_epoch=row.key_epoch,
+                            permission="admin" if membership.role == "owner" else allowed[row.id],
+                        )
                         for row in resource_rows
+                        if membership.status == "active"
+                        and (membership.role == "owner" or row.id in allowed)
                     ],
                 )
             )
     return result
 
 
-@router.post("/families/{family_id}/resources", response_model=ResourceResponse, status_code=201)
+@router.post(
+    "/families/{family_id}/resources",
+    response_model=ResourceResponse,
+    status_code=201,
+    response_model_exclude_none=True,
+)
 def create_resource(
     family_id: UUID,
     payload: ResourceCreate,
@@ -308,6 +373,10 @@ def create_invitation(
     expires_at = datetime.now(UTC) + timedelta(hours=48)
     with database.transaction() as connection:
         require_owner(connection, family_id, actor.adult_id)
+        connection.execute(
+            select(families.c.id).where(families.c.id == family_id).with_for_update()
+        )
+        _lock_active_actor(connection, actor)
         open_invitations = connection.execute(
             select(func.count())
             .select_from(invitations)
@@ -347,11 +416,22 @@ def accept_invitation(
     digest = hashlib.sha256(payload.token.encode("ascii")).digest()
     with database.transaction() as connection:
         invitation = (
+            connection.execute(select(invitations).where(invitations.c.token_digest == digest))
+            .mappings()
+            .one_or_none()
+        )
+        if invitation is None:
+            raise TenantAccessDenied
+        connection.execute(
+            select(families.c.id).where(families.c.id == invitation["family_id"]).with_for_update()
+        )
+        _lock_active_actor(connection, actor)
+        invitation = (
             connection.execute(
                 select(invitations).where(invitations.c.token_digest == digest).with_for_update()
             )
             .mappings()
-            .one_or_none()
+            .one()
         )
         if (
             invitation is None
@@ -368,18 +448,56 @@ def accept_invitation(
                 )
             )
         ).scalar_one_or_none()
-        if existing is not None:
+        if existing == "active":
             raise ConflictDetected("A membership already exists for this family.")
-        connection.execute(
-            memberships.insert().values(
-                family_id=invitation["family_id"],
-                adult_id=actor.adult_id,
-                role="guardian",
-                status="pending",
-                created_at=datetime.now(UTC),
-                revoked_at=None,
+        if existing == "pending":
+            live_pending = connection.execute(
+                select(invitations.c.id).where(
+                    and_(
+                        invitations.c.family_id == invitation["family_id"],
+                        invitations.c.accepted_by == actor.adult_id,
+                        invitations.c.status == "pending",
+                        invitations.c.expires_at > datetime.now(UTC),
+                    )
+                )
+            ).first()
+            if live_pending is not None:
+                raise ConflictDetected("An invitation is already awaiting approval.")
+        if existing == "pending":
+            connection.execute(
+                update(invitations)
+                .where(
+                    and_(
+                        invitations.c.family_id == invitation["family_id"],
+                        invitations.c.accepted_by == actor.adult_id,
+                        invitations.c.status == "pending",
+                        invitations.c.expires_at <= datetime.now(UTC),
+                    )
+                )
+                .values(status="revoked")
             )
-        )
+        if existing is not None:
+            connection.execute(
+                update(memberships)
+                .where(
+                    and_(
+                        memberships.c.family_id == invitation["family_id"],
+                        memberships.c.adult_id == actor.adult_id,
+                    )
+                )
+                .values(status="pending", revoked_at=None, sync_start_cursor=0)
+            )
+        else:
+            connection.execute(
+                memberships.insert().values(
+                    family_id=invitation["family_id"],
+                    adult_id=actor.adult_id,
+                    role="guardian",
+                    status="pending",
+                    created_at=datetime.now(UTC),
+                    revoked_at=None,
+                )
+            )
         connection.execute(
             update(invitations)
             .where(invitations.c.id == invitation["id"])
@@ -392,9 +510,127 @@ def accept_invitation(
         )
 
 
+@router.get("/families/{family_id}/invitations", response_model=list[InvitationReview])
+def list_invitations(
+    family_id: UUID, request: Request, actor: Authenticated
+) -> list[InvitationReview]:
+    database: TransactionalDatabase = request.app.state.database
+    with database.connect() as connection:
+        require_owner(connection, family_id, actor.adult_id)
+        rows = connection.execute(
+            select(invitations)
+            .where(invitations.c.family_id == family_id)
+            .order_by(invitations.c.created_at.desc())
+            .limit(100)
+        ).mappings()
+        result = []
+        for row in rows:
+            device = None
+            member_status = None
+            if row["accepted_by"] is not None:
+                device = (
+                    connection.execute(
+                        select(devices).where(
+                            and_(
+                                devices.c.adult_id == row["accepted_by"],
+                                devices.c.state == "active",
+                            )
+                        )
+                    )
+                    .mappings()
+                    .one_or_none()
+                )
+                member_status = connection.execute(
+                    select(memberships.c.status).where(
+                        and_(
+                            memberships.c.family_id == family_id,
+                            memberships.c.adult_id == row["accepted_by"],
+                        )
+                    )
+                ).scalar_one_or_none()
+            result.append(
+                InvitationReview(
+                    id=row["id"],
+                    status=row["status"],
+                    expires_at=row["expires_at"],
+                    adult_id=row["accepted_by"],
+                    device_id=device["id"] if device else None,
+                    member_status=member_status,
+                    permissions=dict(
+                        connection.execute(
+                            select(permissions.c.resource_id, permissions.c.permission)
+                            .join(resources, resources.c.id == permissions.c.resource_id)
+                            .where(
+                                and_(
+                                    permissions.c.adult_id == row["accepted_by"],
+                                    resources.c.family_id == family_id,
+                                )
+                            )
+                        ).all()
+                    )
+                    if row["accepted_by"] is not None
+                    else {},
+                    encryption_public_key=base64.urlsafe_b64encode(device["encryption_public_key"])
+                    .decode()
+                    .rstrip("=")
+                    if device
+                    else None,
+                    signing_public_key=base64.urlsafe_b64encode(device["signing_public_key"])
+                    .decode()
+                    .rstrip("=")
+                    if device
+                    else None,
+                )
+            )
+        return result
+
+
+@router.delete("/families/{family_id}/invitations/{invitation_id}", status_code=204)
+def cancel_invitation(
+    family_id: UUID, invitation_id: UUID, request: Request, actor: Authenticated
+) -> Response:
+    database: TransactionalDatabase = request.app.state.database
+    with database.transaction() as connection:
+        require_owner(connection, family_id, actor.adult_id)
+        connection.execute(
+            select(families.c.id).where(families.c.id == family_id).with_for_update()
+        )
+        _lock_active_actor(connection, actor)
+        row = (
+            connection.execute(
+                select(invitations)
+                .where(
+                    and_(invitations.c.id == invitation_id, invitations.c.family_id == family_id)
+                )
+                .with_for_update()
+            )
+            .mappings()
+            .one_or_none()
+        )
+        if row is None or row["status"] == "approved":
+            raise ConflictDetected("This invitation cannot be cancelled.")
+        if row["status"] == "revoked":
+            return Response(status_code=204)
+        connection.execute(
+            update(invitations).where(invitations.c.id == invitation_id).values(status="revoked")
+        )
+        if row["accepted_by"] is not None:
+            connection.execute(
+                update(memberships)
+                .where(
+                    and_(
+                        memberships.c.family_id == family_id,
+                        memberships.c.adult_id == row["accepted_by"],
+                        memberships.c.status == "pending",
+                    )
+                )
+                .values(status="revoked", revoked_at=datetime.now(UTC))
+            )
+    return Response(status_code=204)
+
+
 @router.post(
-    "/families/{family_id}/invitations/{invitation_id}/approve",
-    response_model=MembershipResponse,
+    "/families/{family_id}/invitations/{invitation_id}/approve", response_model=MembershipResponse
 )
 def approve_invitation(
     family_id: UUID,
@@ -406,6 +642,9 @@ def approve_invitation(
     database: TransactionalDatabase = request.app.state.database
     with database.transaction() as connection:
         require_owner(connection, family_id, actor.adult_id)
+        connection.execute(
+            select(families.c.id).where(families.c.id == family_id).with_for_update()
+        )
         invitation = (
             connection.execute(
                 select(invitations)
@@ -419,49 +658,108 @@ def approve_invitation(
         )
         if (
             invitation is None
-            or invitation["status"] != "pending"
             or invitation["accepted_by"] is None
+            or invitation["status"] not in ("pending", "approved")
         ):
             raise ConflictDetected("The invitation is not awaiting approval.")
-        allowed_resources = {
-            row.id
-            for row in connection.execute(
-                select(resources.c.id).where(
-                    and_(resources.c.family_id == family_id, resources.c.deleted_at.is_(None))
+        recipient_id = invitation["accepted_by"]
+        # Same adult-before-resource ordering as device replacement. A pending
+        # recipient cannot replace its phone halfway through approval/pinning.
+        connection.execute(
+            select(adults.c.id)
+            .where(adults.c.id.in_((actor.adult_id, recipient_id)))
+            .order_by(adults.c.id)
+            .with_for_update()
+        ).all()
+        allowed = set(
+            connection.execute(
+                select(resources.c.id)
+                .where(and_(resources.c.family_id == family_id, resources.c.deleted_at.is_(None)))
+                .order_by(resources.c.id)
+                .with_for_update()
+            ).scalars()
+        )
+        requested = {p.resource_id: p.permission for p in payload.permissions}
+        if (
+            not requested
+            or len(requested) != len(payload.permissions)
+            or not set(requested).issubset(allowed)
+        ):
+            raise PermissionDenied
+        if (
+            connection.execute(
+                select(devices.c.id).where(
+                    and_(devices.c.id == actor.device_id, devices.c.state == "active")
+                )
+            ).first()
+            is None
+        ):
+            raise PermissionDenied
+        recipient = (
+            connection.execute(
+                select(devices).where(
+                    and_(devices.c.adult_id == recipient_id, devices.c.state == "active")
                 )
             )
-        }
-        requested = {item.resource_id for item in payload.permissions}
-        if requested != allowed_resources:
-            raise PermissionDenied
+            .mappings()
+            .one_or_none()
+        )
+        if recipient is None:
+            raise ConflictDetected("The guardian must authenticate on an active phone.")
+        digest = hashlib.sha256(
+            recipient["signing_public_key"] + recipient["encryption_public_key"]
+        ).hexdigest()
+        if (
+            payload.expected_device_id is not None and payload.expected_device_id != recipient["id"]
+        ) or (
+            payload.expected_key_digest is not None
+            and not secrets.compare_digest(payload.expected_key_digest, digest)
+        ):
+            raise ConflictDetected(
+                "The guardian device changed. Review its verification code again."
+            )
+        status = connection.execute(
+            select(memberships.c.status).where(
+                and_(memberships.c.family_id == family_id, memberships.c.adult_id == recipient_id)
+            )
+        ).scalar_one_or_none()
+        if invitation["status"] == "approved":
+            current = dict(
+                connection.execute(
+                    select(permissions.c.resource_id, permissions.c.permission).where(
+                        and_(
+                            permissions.c.adult_id == recipient_id,
+                            permissions.c.resource_id.in_(allowed),
+                        )
+                    )
+                ).all()
+            )
+            if status != "active" or current != requested:
+                raise ConflictDetected("Approval no longer matches this guardian's access.")
+            return MembershipResponse(adult_id=recipient_id, family_id=family_id, status="active")
+        if invitation["expires_at"] <= datetime.now(UTC) or status != "pending":
+            raise ConflictDetected("The invitation expired or is no longer pending.")
+        floor = connection.execute(
+            select(func.coalesce(func.max(sync_operations.c.server_sequence), 0))
+        ).scalar_one()
         connection.execute(
             update(memberships)
             .where(
-                and_(
-                    memberships.c.family_id == family_id,
-                    memberships.c.adult_id == invitation["accepted_by"],
-                    memberships.c.status == "pending",
-                )
+                and_(memberships.c.family_id == family_id, memberships.c.adult_id == recipient_id)
             )
-            .values(status="active")
+            .values(status="active", sync_start_cursor=floor)
         )
         connection.execute(
             permissions.insert(),
             [
-                {
-                    "resource_id": item.resource_id,
-                    "adult_id": invitation["accepted_by"],
-                    "permission": item.permission,
-                }
-                for item in payload.permissions
+                {"resource_id": r, "adult_id": recipient_id, "permission": permission}
+                for r, permission in requested.items()
             ],
         )
         connection.execute(
             update(invitations).where(invitations.c.id == invitation_id).values(status="approved")
         )
-        return MembershipResponse(
-            adult_id=invitation["accepted_by"], family_id=family_id, status="active"
-        )
+        return MembershipResponse(adult_id=recipient_id, family_id=family_id, status="active")
 
 
 @router.delete("/families/{family_id}/guardians/{guardian_id}", response_model=MembershipResponse)
@@ -472,6 +770,16 @@ def revoke_guardian(
     now = datetime.now(UTC)
     with database.transaction() as connection:
         require_owner(connection, family_id, actor.adult_id)
+        connection.execute(
+            select(families.c.id).where(families.c.id == family_id).with_for_update()
+        )
+        _lock_active_actor(connection, actor)
+        connection.execute(
+            select(resources.c.id)
+            .where(resources.c.family_id == family_id)
+            .order_by(resources.c.id)
+            .with_for_update()
+        ).all()
         changed = connection.execute(
             update(memberships)
             .where(
@@ -486,6 +794,17 @@ def revoke_guardian(
         )
         if changed.rowcount != 1:
             raise TenantAccessDenied
+        connection.execute(
+            update(invitations)
+            .where(
+                and_(
+                    invitations.c.family_id == family_id,
+                    invitations.c.accepted_by == guardian_id,
+                    invitations.c.status.in_(("pending", "approved")),
+                )
+            )
+            .values(status="revoked")
+        )
         resource_ids = select(resources.c.id).where(resources.c.family_id == family_id)
         connection.execute(
             delete(permissions).where(

@@ -30,8 +30,10 @@ class RemoteResource {
     required this.id,
     required this.kind,
     required this.keyEpoch,
+    this.permission,
   });
 
+  final String? permission;
   final String id;
   final String kind;
   final int keyEpoch;
@@ -43,12 +45,14 @@ class RemoteFamily {
     required this.role,
     required this.status,
     required this.resources,
+    this.syncStartCursor = 0,
   });
 
   final String id;
   final String role;
   final String status;
   final List<RemoteResource> resources;
+  final int syncStartCursor;
 }
 
 class EncryptedEmailDelivery {
@@ -112,13 +116,146 @@ abstract interface class ResourceKeyApi {
   Future<void> uploadKeyGrant(String familyId, ResourceKeyGrant grant);
 }
 
-class SartiApiClient implements EncryptedRelay, ResourceKeyApi {
+class GuardianInvitation {
+  const GuardianInvitation(this.id, this.token, this.expiresAt);
+  final String id, token;
+  final DateTime expiresAt;
+}
+
+class GuardianReview {
+  const GuardianReview({
+    required this.id,
+    required this.status,
+    required this.expiresAt,
+    this.adultId,
+    this.deviceId,
+    this.encryptionPublicKey,
+    this.signingPublicKey,
+    this.memberStatus,
+    this.permissions = const {},
+  });
+  final String id, status;
+  final Map<String, String> permissions;
+  final DateTime expiresAt;
+  final String? adultId, deviceId, memberStatus;
+  final Uint8List? encryptionPublicKey, signingPublicKey;
+}
+
+abstract interface class GuardianApi {
+  Future<List<RemoteFamily>> listFamilies();
+  Future<GuardianInvitation> createInvitation(String familyId);
+  Future<List<GuardianReview>> listInvitations(String familyId);
+  Future<String> acceptInvitation(String token);
+  Future<void> approveInvitation(
+    String familyId,
+    GuardianReview review,
+    Map<String, String> permissions,
+    String keyDigest,
+  );
+  Future<void> cancelInvitation(String familyId, String invitationId);
+  Future<void> revokeGuardian(String familyId, String adultId);
+}
+
+class SartiApiClient implements EncryptedRelay, ResourceKeyApi, GuardianApi {
   SartiApiClient(this.baseUri, {HttpClient? httpClient, this.sessionToken})
     : _http = httpClient ?? HttpClient();
 
   final Uri baseUri;
   final HttpClient _http;
   String? sessionToken;
+
+  @override
+  Future<GuardianInvitation> createInvitation(String familyId) async {
+    final value = await _json(
+      'POST',
+      '/v1/families/$familyId/invitations',
+      authenticated: true,
+    );
+    return GuardianInvitation(
+      value['id'] as String,
+      value['token'] as String,
+      DateTime.parse(value['expires_at'] as String),
+    );
+  }
+
+  @override
+  Future<List<GuardianReview>> listInvitations(String familyId) async =>
+      (await _jsonList(
+            'GET',
+            '/v1/families/$familyId/invitations',
+            authenticated: true,
+          ))
+          .map(
+            (v) => GuardianReview(
+              id: v['id'] as String,
+              status: v['status'] as String,
+              expiresAt: DateTime.parse(v['expires_at'] as String),
+              permissions: Map<String, String>.from(
+                v['permissions'] as Map? ?? {},
+              ),
+              adultId: v['adult_id'] as String?,
+              deviceId: v['device_id'] as String?,
+              memberStatus: v['member_status'] as String?,
+              encryptionPublicKey: v['encryption_public_key'] == null
+                  ? null
+                  : _decode(v['encryption_public_key'] as String),
+              signingPublicKey: v['signing_public_key'] == null
+                  ? null
+                  : _decode(v['signing_public_key'] as String),
+            ),
+          )
+          .toList();
+
+  @override
+  Future<String> acceptInvitation(String token) async {
+    final value = await _json(
+      'POST',
+      '/v1/invitations/accept',
+      authenticated: true,
+      body: {'token': token},
+    );
+    return value['family_id'] as String;
+  }
+
+  @override
+  Future<void> approveInvitation(
+    String familyId,
+    GuardianReview review,
+    Map<String, String> permissions,
+    String keyDigest,
+  ) async {
+    await _json(
+      'POST',
+      '/v1/families/$familyId/invitations/${review.id}/approve',
+      authenticated: true,
+      body: {
+        'permissions': [
+          for (final item in permissions.entries)
+            {'resource_id': item.key, 'permission': item.value},
+        ],
+        'expected_device_id': review.deviceId,
+        'expected_key_digest': keyDigest,
+      },
+    );
+  }
+
+  @override
+  Future<void> cancelInvitation(String familyId, String invitationId) async {
+    await _json(
+      'DELETE',
+      '/v1/families/$familyId/invitations/$invitationId',
+      authenticated: true,
+    );
+  }
+
+  @override
+  Future<void> revokeGuardian(String familyId, String adultId) async {
+    await _json(
+      'DELETE',
+      '/v1/families/$familyId/guardians/$adultId',
+      authenticated: true,
+    );
+  }
 
   Future<AuthenticatedSession> registerPasskey(
     NativePasskeyAdapter passkeys,
@@ -504,6 +641,7 @@ class SartiApiClient implements EncryptedRelay, ResourceKeyApi {
     id: value['id'] as String,
     role: value['role'] as String,
     status: value['status'] as String,
+    syncStartCursor: value['sync_start_cursor'] as int? ?? 0,
     resources: (value['resources'] as List<Object?>)
         .map((item) {
           final resource = Map<String, dynamic>.from(item! as Map);
@@ -511,6 +649,7 @@ class SartiApiClient implements EncryptedRelay, ResourceKeyApi {
             id: resource['id'] as String,
             kind: resource['kind'] as String,
             keyEpoch: resource['key_epoch'] as int,
+            permission: resource['permission'] as String?,
           );
         })
         .toList(growable: false),

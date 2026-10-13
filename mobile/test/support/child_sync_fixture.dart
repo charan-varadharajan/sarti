@@ -47,6 +47,8 @@ class ChildSyncFixture {
   final List<RelayEnvelope> operations = [];
   final Set<String> denied = {};
   final Map<String, String> childPermissions = {};
+  int nextServerSequence = 0;
+  String calendarGuardianPermission = 'admin';
   bool loseNextReceipt = false;
   bool loseNextGrantReceipt = false;
   bool offline = false;
@@ -159,8 +161,10 @@ class ChildSyncDevice implements ResourceKeyApi, EncryptedRelay {
             deviceId: d.id,
             encryptionPublicKey: d.keys.encryptionPublicKey,
             signingPublicKey: d.keys.signingPublicKey,
-            permission: d.id == fixture.a.id || resourceId == fixture.calendarId
+            permission: d.id == fixture.a.id
                 ? 'admin'
+                : resourceId == fixture.calendarId
+                ? fixture.calendarGuardianPermission
                 : fixture.childPermissions[resourceId]!,
             hasCurrentGrant: fixture.grants.any(
               (g) =>
@@ -228,7 +232,7 @@ class ChildSyncDevice implements ResourceKeyApi, EncryptedRelay {
         throw RelayConflict();
       }
       fixture.operations.add(
-        copyEnvelope(envelope, serverSequence: fixture.operations.length + 1),
+        copyEnvelope(envelope, serverSequence: ++fixture.nextServerSequence),
       );
     }
     if (fixture.loseNextReceipt) {

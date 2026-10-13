@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:sarti_mobile/src/core/auth/native_passkey_adapter.dart';
@@ -22,6 +23,10 @@ import 'package:sodium/sodium.dart';
 import 'package:sarti_mobile/src/core/backup/backup_service.dart';
 import 'package:sarti_mobile/src/features/backup/backup_recovery.dart';
 import 'package:sarti_mobile/src/features/backup/backup_screen.dart';
+
+import 'package:sarti_mobile/src/features/guardians/guardian_coordinator.dart';
+import 'package:sarti_mobile/src/features/guardians/guardian_screen.dart';
+import 'package:sarti_mobile/src/features/guardians/invitation_links.dart';
 
 class AuthenticatedCalendarBootstrap extends StatefulWidget {
   const AuthenticatedCalendarBootstrap({
@@ -56,6 +61,8 @@ class _AuthenticatedCalendarBootstrapState
   SartiApiClient? _api;
   AuthenticatedSyncRuntime? _runtime;
   CalendarController? _controller;
+  GuardianCoordinator? _guardians;
+  bool _guardianRouteOpen = false;
   EmailSuggestionInbox? _emailInbox;
   late final SessionStore _sessions = SessionStore(widget.secrets);
   bool _loading = true;
@@ -67,7 +74,68 @@ class _AuthenticatedCalendarBootstrapState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    InvitationLinks.token.addListener(_invitationReceived);
     unawaited(_initialize());
+  }
+
+  void _invitationReceived() {
+    if (!mounted || InvitationLinks.token.value == null) return;
+    if (_api?.sessionToken != null && _guardians != null) {
+      unawaited(_openGuardians());
+    } else {
+      setState(() {});
+    }
+  }
+
+  void _guardianChanged() {
+    if (mounted) setState(() {});
+  }
+
+  bool get _canWriteCalendar {
+    final local = _controller?.family;
+    if (local == null) return false;
+    final rows = widget.database.raw.select(
+      'SELECT value FROM app_preferences WHERE key=?',
+      ['family-access-${local.householdId}'],
+    );
+    if (rows.isEmpty) {
+      return true; // Existing/offline owner before provisioning.
+    }
+    final access = jsonDecode(rows.single['value'] as String) as Map;
+    return access['role'] == 'owner' ||
+        {'write', 'admin'}.contains(access['permission']);
+  }
+
+  bool get _canManageFamily {
+    final local = _controller?.family;
+    if (local == null) return false;
+    final rows = widget.database.raw.select(
+      'SELECT value FROM app_preferences WHERE key=?',
+      ['family-access-${local.householdId}'],
+    );
+    return rows.isEmpty ||
+        (jsonDecode(rows.single['value'] as String) as Map)['role'] == 'owner';
+  }
+
+  Future<void> _openGuardians() async {
+    final guardians = _guardians;
+    if (guardians == null || _guardianRouteOpen || !mounted) return;
+    _guardianRouteOpen = true;
+    try {
+      await guardians.refresh();
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (context) => GuardianScreen(
+            coordinator: guardians,
+            initialInvitation: InvitationLinks.token.value,
+            onOpenCalendar: () => Navigator.of(context).pop(),
+          ),
+        ),
+      );
+    } finally {
+      _guardianRouteOpen = false;
+    }
   }
 
   Future<void> _initialize() async {
@@ -226,6 +294,16 @@ class _AuthenticatedCalendarBootstrapState
       reportPushFailure: (_) => _showSyncIssue(),
       refreshSuggestions: emailInbox.refresh,
     );
+    _guardians?.removeListener(_guardianChanged);
+    _guardians?.dispose();
+    _guardians = GuardianCoordinator(
+      database: widget.database,
+      repository: controller.repository,
+      api: api,
+      keys: widget.keys,
+      synchronize: runtime.synchronize,
+      onLocalChanged: controller.refresh,
+    )..addListener(_guardianChanged);
     await _runtime?.dispose();
     _emailInbox?.dispose();
     _runtime = runtime;
@@ -239,11 +317,17 @@ class _AuthenticatedCalendarBootstrapState
       _message = null;
     });
     unawaited(runtime.start().catchError((Object _) => _showSyncIssue()));
-    if (controller.family == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) unawaited(_openBackup(discover: true));
-      });
-    }
+    unawaited(
+      _guardians!.refresh().then((_) {
+        if (!mounted) return;
+        if (InvitationLinks.token.value != null ||
+            _guardians?.family?.role == 'guardian' && !_guardians!.ready) {
+          unawaited(_openGuardians());
+        } else if (controller.family == null) {
+          unawaited(_openBackup(discover: true));
+        }
+      }),
+    );
   }
 
   Future<void> _openBackup({bool discover = false}) async {
@@ -326,6 +410,9 @@ class _AuthenticatedCalendarBootstrapState
   }
 
   Future<void> _expireSession() async {
+    _guardians?.removeListener(_guardianChanged);
+    _guardians?.dispose();
+    _guardians = null;
     await _sessions.clear();
     await _runtime?.dispose();
     _runtime = null;
@@ -342,6 +429,7 @@ class _AuthenticatedCalendarBootstrapState
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      unawaited(_guardians?.refresh());
       _runtime?.applicationForegrounded();
     }
   }
@@ -349,6 +437,9 @@ class _AuthenticatedCalendarBootstrapState
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    InvitationLinks.token.removeListener(_invitationReceived);
+    _guardians?.removeListener(_guardianChanged);
+    _guardians?.dispose();
     unawaited(_runtime?.dispose());
     _emailInbox?.dispose();
     _api?.close();
@@ -366,15 +457,32 @@ class _AuthenticatedCalendarBootstrapState
         children: [
           CalendarScreen(
             controller: controller,
+            canWrite: _canWriteCalendar,
+            canManageChildren: _canManageFamily,
+            onGuardians: _api?.sessionToken == null
+                ? null
+                : () => unawaited(_openGuardians()),
             nativeAi: NativeEventAiProvider(),
             cloudAiConsent: CloudAiConsentController(
               CloudAiConsentStore(widget.database),
             ),
             emailInbox: _emailInbox,
-            onBackup: _api?.sessionToken == null
+            onBackup: _api?.sessionToken == null || !_canManageFamily
                 ? null
                 : () => unawaited(_openBackup()),
           ),
+          if (_api?.sessionToken != null &&
+              (controller.family == null ||
+                  _guardians?.family?.role == 'guardian' && !_guardians!.ready))
+            Positioned(
+              bottom: MediaQuery.paddingOf(context).bottom + 16,
+              left: 16,
+              right: 16,
+              child: FilledButton.tonal(
+                onPressed: () => unawaited(_openGuardians()),
+                child: const Text('Join or review family invitation'),
+              ),
+            ),
           if (controller.family == null && _api?.sessionToken != null)
             Positioned(
               top: MediaQuery.paddingOf(context).top,
@@ -436,6 +544,13 @@ class _AuthenticatedCalendarBootstrapState
                 const SizedBox(height: 12),
                 Text(message, textAlign: TextAlign.center),
               ],
+              if (InvitationLinks.token.value != null)
+                const Padding(
+                  padding: EdgeInsets.only(top: 12),
+                  child: Text(
+                    'Your invitation is ready. Sign in to review and accept it.',
+                  ),
+                ),
               const SizedBox(height: 24),
               FilledButton(
                 onPressed: _authenticating

@@ -283,12 +283,18 @@ def download_operations(
     with database.transaction() as connection:
         delete_expired_operations(connection, now)
         require_active_member(connection, family_id, actor.adult_id)
+        floor = connection.execute(
+            select(memberships.c.sync_start_cursor).where(
+                and_(memberships.c.family_id == family_id, memberships.c.adult_id == actor.adult_id)
+            )
+        ).scalar_one()
+        next_cursor = max(cursor, floor)
         rows = connection.execute(
             select(sync_operations)
             .where(
                 and_(
                     sync_operations.c.family_id == family_id,
-                    sync_operations.c.server_sequence > cursor,
+                    sync_operations.c.server_sequence > next_cursor,
                     sync_operations.c.expires_at > now,
                 )
             )

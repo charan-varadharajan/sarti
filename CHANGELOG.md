@@ -67,6 +67,13 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
   harness for prepared data, direct flow entry, emulator execution, and teardown.
 
 ### Corrected
+- BUG-004: add native share/copy and local QR invitations, explicit acceptance,
+  device-code/permission approval, cancellation/retry/removal and read-only
+  guardian UI. Add resource-scoped encrypted current-state handoff and metadata
+  migration 0007 under ADR-035. New prepared UI/native, security and real
+  PostgreSQL/HTTP/Dart regressions. Backend/migration/security, Docker health and
+  shipping iOS/Android builds pass; Flutter analysis/tests, real HTTP handoff and
+  prepared native journeys fail. Logs retained without diagnosis; BUG-004 open.
 - BUG-011: add approved ADR-034 protocol-2 deterministic authenticated metadata,
   persisted relay version, exact legacy retry compatibility, migration 0006 and
   real Dart/HTTP/PostgreSQL regressions. Existing ambiguous legacy ciphertext is

@@ -20,7 +20,7 @@ columns and adds `email_suggestion_deliveries`, which contains a recipient devic
 ID, libsodium sealed-box ciphertext, delivery state, and timestamps. The server
 cannot decrypt these per-device payloads.
 
-The migration suite upgrades a real PostgreSQL database, asserts schema version 6
+The migration suite upgrades a real PostgreSQL database, asserts schema version 7
 and required tables, and exercises the constraints through the full API flow.
 
 Migration `0005` adds `family_backups` (family UUID primary/foreign key, positive
@@ -82,4 +82,23 @@ erDiagram
         bytea content_digest
         timestamp expires_at
     }
+```
+
+Migration `0007` adds `memberships.sync_start_cursor` (nonnegative bigint,
+non-null/default zero). Owner approval captures a relay baseline while ordered
+resource locks serialize uploads; new guardian reads exclude earlier history.
+Existing memberships retain zero and ciphertext is unchanged. Downgrade refuses
+nonzero baselines. Destructive migration fixtures reset only synthetic test
+baselines before teardown. No plaintext profile or invitation token is added.
+
+```mermaid
+erDiagram
+    memberships {
+        uuid family_id PK,FK
+        uuid adult_id PK,FK
+        text role
+        text status
+        bigint sync_start_cursor
+    }
+    families ||--o{ memberships : authorizes
 ```

@@ -17,6 +17,9 @@ class CalendarScreen extends StatelessWidget {
     this.nativeAi,
     this.emailInbox,
     this.onBackup,
+    this.onGuardians,
+    this.canWrite = true,
+    this.canManageChildren = true,
   });
 
   final CalendarController controller;
@@ -24,6 +27,8 @@ class CalendarScreen extends StatelessWidget {
   final NativeEventAiProvider? nativeAi;
   final EmailSuggestionInbox? emailInbox;
   final VoidCallback? onBackup;
+  final VoidCallback? onGuardians;
+  final bool canWrite, canManageChildren;
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
@@ -35,13 +40,19 @@ class CalendarScreen extends StatelessWidget {
         appBar: AppBar(
           title: Text(family.name),
           actions: [
+            if (onGuardians != null)
+              IconButton(
+                tooltip: "Family guardians",
+                onPressed: onGuardians,
+                icon: const Icon(Icons.group_outlined),
+              ),
             if (onBackup != null)
               IconButton(
                 tooltip: 'Encrypted backup',
                 onPressed: onBackup,
                 icon: const Icon(Icons.backup_outlined),
               ),
-            if (emailInbox != null)
+            if (emailInbox != null && canWrite)
               ListenableBuilder(
                 listenable: emailInbox!,
                 builder: (context, _) => IconButton(
@@ -54,7 +65,7 @@ class CalendarScreen extends StatelessWidget {
                   ),
                 ),
               ),
-            if (nativeAi != null)
+            if (nativeAi != null && canWrite)
               IconButton(
                 tooltip: 'Add with natural language',
                 onPressed: () => _addWithNaturalLanguage(context),
@@ -74,7 +85,7 @@ class CalendarScreen extends StatelessWidget {
                   ),
                 ),
               ),
-            if (family.openConflicts > 0)
+            if (family.openConflicts > 0 && canWrite)
               IconButton(
                 tooltip: 'Resolve conflicts',
                 onPressed: () => _showConflicts(context),
@@ -83,18 +94,21 @@ class CalendarScreen extends StatelessWidget {
                   child: const Icon(Icons.merge_type),
                 ),
               ),
-            IconButton(
-              tooltip: 'Add child',
-              onPressed: () => _addChild(context),
-              icon: const Icon(Icons.person_add_alt_1),
-            ),
+            if (canManageChildren)
+              IconButton(
+                tooltip: 'Add child',
+                onPressed: () => _addChild(context),
+                icon: const Icon(Icons.person_add_alt_1),
+              ),
           ],
         ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () => _editEvent(context),
-          icon: const Icon(Icons.add),
-          label: const Text('Event'),
-        ),
+        floatingActionButton: !canWrite
+            ? null
+            : FloatingActionButton.extended(
+                onPressed: () => _editEvent(context),
+                icon: const Icon(Icons.add),
+                label: const Text('Event'),
+              ),
         body: Column(
           children: [
             Padding(
@@ -121,9 +135,16 @@ class CalendarScreen extends StatelessWidget {
                 family: family,
                 range: controller.range,
                 timezone: controller.timezone,
-                onEdit: (event) => _editEvent(context, event),
-                onCancel: controller.cancel,
-                onDelete: controller.delete,
+                readOnly: !canWrite,
+                onEdit: (event) => canWrite
+                    ? _editEvent(context, event)
+                    : _viewEvent(context, event),
+                onCancel: (event) {
+                  if (canWrite) controller.cancel(event);
+                },
+                onDelete: (event) {
+                  if (canWrite) controller.delete(event);
+                },
               ),
             ),
           ],
@@ -131,6 +152,32 @@ class CalendarScreen extends StatelessWidget {
       );
     },
   );
+
+  Future<void> _viewEvent(BuildContext context, CalendarEvent event) async {
+    final start = tz.TZDateTime.from(
+      event.localStart,
+      tz.getLocation(event.timezone),
+    );
+    final end = tz.TZDateTime.from(
+      start.toUtc().add(Duration(minutes: event.durationMinutes)),
+      tz.getLocation(event.timezone),
+    );
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(event.title),
+        content: Text(
+          '$start – $end${event.notes == null ? "" : "\n${event.notes}"}',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Done'),
+          ),
+        ],
+      ),
+    );
+  }
 
   Future<void> _addWithNaturalLanguage(BuildContext context) async {
     final saved = await showNaturalLanguageEventDialog(

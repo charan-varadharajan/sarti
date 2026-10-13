@@ -159,6 +159,15 @@ in-repository record while Sarti has no external tracker.
   guardian cannot be added through the app.
 - Root cause: Mobile UI for invitation flow was not implemented in Stage 2/3.
 - Workaround: Single-guardian families are unaffected.
+- Implementation update (2026-10-13): Share sheet/copy/QR links, explicit
+  acceptance, pinned-device owner review, resource permissions, cancellation,
+  retries/removal, read-only UI and encrypted initial handoff implemented under
+  ADR-035. Migration 0007 records guardian relay baselines. Prepared unit/widget/
+  native and real HTTP/PostgreSQL/Dart tests added. Backend/migration/security,
+  tooling, dependency, Docker health and shipping iOS/Android builds PASS.
+  Flutter analysis/full suite, real HTTP guardian host and both prepared native
+  commands FAIL. Logs uninspected; remains open. See
+  `../testing/BUG-004-VERIFICATION.md`.
 - Required action: Complete and verify the Stage 2 mobile invitation, approval,
   resource-permission, and key-grant journey before Stage 3 can be accepted.
 

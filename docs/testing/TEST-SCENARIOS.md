@@ -90,11 +90,12 @@ From the repository root:
 
 ```sh
 ./test                     # all Flutter unit/widget tests; no device
-./test --ios               # calendar + child + grid UI journeys; iOS simulator
+./test --ios               # calendar + child + grid + guardian UI journeys; iOS simulator
 ./test --android           # same journeys; Android emulator
 ./test --ios --scenario calendar  # only CAL-MOB-001
 ./test --ios --scenario child     # only CHILD-NATIVE-001
 ./test --ios --scenario grid      # only CAL-GRID-MOB-001/002/003
+./test --ios --scenario guardian  # only GUARD-MOB-001/002/003
 ```
 
 The runner selects a running supported simulator/emulator automatically, or
@@ -108,7 +109,7 @@ own database/key teardown. First builds can take several minutes.
 Watch UI actions in Simulator/Android Emulator. Terminal prints PASS/FAIL and
 the full log path under ignored `test-results/`. The command returns nonzero
 on setup/test failure and stops at the first failed scenario. Native mode uses
-an explicit calendar/child/grid allowlist, not the whole integration directory: neither
+an explicit calendar/child/grid/guardian allowlist, not the whole integration directory: neither
 backup portability direction is run. These commands do not run backend tests,
 production-provider checks or the complete CI quality gates. BUG-012 remains
 pending; this helper does not change CI.
@@ -183,3 +184,34 @@ It never passes family keys to the backend. Logs are ignored under
 not real passkeys, protected storage or production networking. BUG-017 tracks
 remote conflict-card retirement separately. Neither backup portability direction
 is included.
+
+## Guardian sharing and initial handoff (BUG-004)
+
+| Scenario | Prepared fixture and direct target | Evidence |
+| --- | --- | --- |
+| `GUARD-MOB-001` | Owner family/child/event plus empty independent guardian → sharing screen → QR/share/copy → acceptance → owner code/permission review → decrypted read-only calendar | `guardian_screen_test.dart`, shared `support/guardian_scenarios.dart`, native `guardian_onboarding_scenario_test.dart` |
+| `GUARD-MOB-002` | Empty guardian → malformed pasted invitation | Same widget/native suite: bounded error, no request |
+| `GUARD-MOB-003` | Prepared owner invitation → failed share / expired QR | Same suite: copy fallback remains, expired QR removed |
+| `GUARD-SEC-001/002` | Strict URI inputs / real encrypted family-profile adapter | `guardian_onboarding_test.dart`: foreign routes/query/invalid tokens rejected; wrong resource/malformed guardian leaves data unchanged |
+| `GUARD-SYNC-001` | Prepared independent SQLCipher/libsodium devices, prior relay expired → approval and scoped handoff | Same unit suite: current events/durations/guardians survive; unshared child remains nameless and has no key |
+| `GUARD-SYNC-002` | Prepared pending guardian → lost approval response / retry / removal | Same suite: one handoff, stable operation IDs, no future key for revoked guardian |
+| `GUARD-SYNC-003` | Approved handoff with old-identity outbox cleared → explicit retry | Same suite: orphaned progress cannot suppress a new scoped handoff |
+| `GUARD-API-001` | PostgreSQL owner/guardian/outsider and prior ciphertext → accept/review/approve | `test_guardian_onboarding_api.py`: pending/cross-family/changed-device/permission/expiry/replay/cancel/quota abuse, exact approvals, baseline filtering, removed re-enrollment |
+| `GUARD-MIG-001` | Existing metadata and nonzero approved baseline | Full migration suite + guardian API journey: upgrade defaults and safe downgrade refusal |
+| `GUARD-HTTP-001` | Empty real Dart installations → loopback HTTP/PostgreSQL with stubbed WebAuthn → expired relay → actual signed sealed keys/current state | `guardian_postgres_roundtrip_test.dart`, explicit host `test_guardian_postgres_mobile.py`: real crypto/HTTP/profile isolation, idempotent handoff and revocation |
+
+All prerequisites are seeded directly unless creation/acceptance/approval is the
+behavior under test. Widget/native fixtures close databases, keys, controllers
+and timers. Share/copy adapters capture only synthetic invitation text in tests;
+they never send messages or replace a user's clipboard. QR rendering executes
+in the widget/native engine. Scanning and OS routing/share apps require physical
+validation; these tests do not establish them. No native passcode prompt is used.
+
+`./test --ios --scenario guardian` and `./test --android --scenario guardian`
+run the prepared native journeys; default native allowlists now include them.
+The real HTTP host is opt-in (`SARTI_RUN_GUARDIAN_CONTRACT=1`) against an isolated
+migrated PostgreSQL DB; ordinary full suites skip only its host-dependent Dart
+case. Its synthetic-only expiration endpoint never exists in the shipping API.
+Neither backup portability direction is selected. Physical passkeys/protected
+storage, camera decoding, cold/warm links, clipboard/share delivery and production
+networking remain independent release checks.

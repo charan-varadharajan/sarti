@@ -220,6 +220,11 @@
             ],
             "title": "Status",
             "type": "string"
+          },
+          "sync_start_cursor": {
+            "default": 0,
+            "title": "Sync Start Cursor",
+            "type": "integer"
           }
         },
         "required": [
@@ -307,6 +312,30 @@
       "InvitationApproval": {
         "additionalProperties": false,
         "properties": {
+          "expected_device_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Device Id"
+          },
+          "expected_key_digest": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Key Digest"
+          },
           "permissions": {
             "items": {
               "$ref": "#/components/schemas/PermissionAssignment"
@@ -345,6 +374,99 @@
           "expires_at"
         ],
         "title": "InvitationResponse",
+        "type": "object"
+      },
+      "InvitationReview": {
+        "additionalProperties": false,
+        "properties": {
+          "adult_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Adult Id"
+          },
+          "device_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Id"
+          },
+          "encryption_public_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Encryption Public Key"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "member_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Member Status"
+          },
+          "permissions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "format": "uuid"
+            },
+            "title": "Permissions",
+            "type": "object"
+          },
+          "signing_public_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signing Public Key"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "expires_at"
+        ],
+        "title": "InvitationReview",
         "type": "object"
       },
       "KeyGrantResponse": {
@@ -842,6 +964,22 @@
             ],
             "title": "Kind",
             "type": "string"
+          },
+          "permission": {
+            "anyOf": [
+              {
+                "enum": [
+                  "read",
+                  "write",
+                  "admin"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Permission"
           }
         },
         "required": [
@@ -1620,6 +1758,67 @@
       }
     },
     "/v1/families/{family_id}/invitations": {
+      "get": {
+        "operationId": "list_invitations_v1_families__family_id__invitations_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "family_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Family Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/InvitationReview"
+                  },
+                  "title": "Response List Invitations V1 Families  Family Id  Invitations Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Invitations",
+        "tags": [
+          "households"
+        ]
+      },
       "post": {
         "operationId": "create_invitation_v1_families__family_id__invitations_post",
         "parameters": [
@@ -1673,6 +1872,68 @@
           }
         },
         "summary": "Create Invitation",
+        "tags": [
+          "households"
+        ]
+      }
+    },
+    "/v1/families/{family_id}/invitations/{invitation_id}": {
+      "delete": {
+        "operationId": "cancel_invitation_v1_families__family_id__invitations__invitation_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "family_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Family Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "invitation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Invitation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Invitation",
         "tags": [
           "households"
         ]
