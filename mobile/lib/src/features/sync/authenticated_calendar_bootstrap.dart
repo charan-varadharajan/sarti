@@ -106,16 +106,7 @@ class _AuthenticatedCalendarBootstrapState
         {'write', 'admin'}.contains(access['permission']);
   }
 
-  bool get _canManageFamily {
-    final local = _controller?.family;
-    if (local == null) return false;
-    final rows = widget.database.raw.select(
-      'SELECT value FROM app_preferences WHERE key=?',
-      ['family-access-${local.householdId}'],
-    );
-    return rows.isEmpty ||
-        (jsonDecode(rows.single['value'] as String) as Map)['role'] == 'owner';
-  }
+  bool get _canManageFamily => _controller?.canManageFamily ?? false;
 
   Future<void> _openGuardians() async {
     final guardians = _guardians;

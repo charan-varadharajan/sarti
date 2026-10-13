@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:sarti_mobile/src/features/calendar/data/calendar_repository.dart';
 import 'package:sarti_mobile/src/features/calendar/data/reminder_scheduler.dart';
@@ -28,6 +30,24 @@ class CalendarController extends ChangeNotifier {
   final ReminderScheduler? reminders;
   FamilyCalendar? family;
   CalendarRange range = CalendarRange.today;
+
+  bool get canManageFamily {
+    final local = family;
+    if (local == null) return false;
+    final rows = repository.database.raw.select(
+      'SELECT value FROM app_preferences WHERE key=?',
+      ['family-access-${local.householdId}'],
+    );
+    if (rows.isEmpty) {
+      return true; // Existing/offline owner before provisioning.
+    }
+    try {
+      final access = jsonDecode(rows.single['value'] as String);
+      return access is Map && access['role'] == 'owner';
+    } on FormatException {
+      return false;
+    }
+  }
 
   void createFamily(String name, String ownerName) {
     family = repository.createFamily(name: name, ownerName: ownerName);

@@ -7,6 +7,16 @@
 
 ## Current result
 
+BUG-020 optional family setup is implemented as a verification candidate:
+optional names/Skip setup, optional child additions and a shared colour/profile
+editor. Existing sharing and owner checks are preserved; no API/schema/crypto/
+dependency change. Analysis PASS, full Flutter suite FAIL with four reported
+family scenarios; failure traces remain uninspected. Native calendar/child
+commands also FAIL on both iOS and Android. BUG-020 and associated BUG-015 work
+remain open. See
+`testing/BUG-020-VERIFICATION.md`; interaction: `product/FAMILY-SETUP-FLOW.md`.
+
+
 BUG-018 Today navigation is resolved for automated scope:
 repeatable day-mode action, current date in the configured display timezone,
 retained agenda state and unchanged week/month toolbar behavior. Seven prepared

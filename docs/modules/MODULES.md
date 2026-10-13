@@ -81,3 +81,12 @@ injectable clock, without reconstructing agenda state. The toolbar icon still
 keeps the chosen week/month layout. Navigation does not invoke local mutation,
 reminders, synchronization or persistence. Shared Today scenarios run in the
 widget and existing native grid suites.
+
+BUG-020 implementation candidate: FamilySetupScreen owns optional name drafts and
+an optional post-creation children step. ChildProfileEditor is shared with the
+calendar action; it provides named colour choices, unused defaults, explicit
+palette reuse, existing alias validation and opt-in profile sharing. It binds
+saves to its starting family and the shared CalendarController.canManageFamily
+predicate (the existing owner-cache policy, also used by bootstrap). Invalid
+cache data fails closed. No resource/API/schema policy changes. Prepared family
+and encrypted-delivery regressions are added; verification failures remain open.

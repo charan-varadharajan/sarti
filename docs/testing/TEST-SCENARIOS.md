@@ -260,3 +260,25 @@ cases alongside the three grid scenarios: `./test --ios --scenario grid` or
 Android counterpart. Fixtures inject a clock and seed prerequisites without UI;
 widgets/controllers/databases are torn down. No native clock, passkey, provider,
 backup or physical-phone compatibility is inferred from controlled fixtures.
+
+## Optional family setup — BUG-020
+
+| Scenario | Prepared fixture / target | Assertion |
+| --- | --- | --- |
+| `ONB-MOB-001` / `BOOT-PERM-001` | Empty logical device → Create family → Skip setup | Calendar and owner creation controls, no mandatory details/children |
+| `FAMILY-MOB-001` | Empty SQLCipher fixture → setup name drafts → Back | No family/outbox write before explicit Continue |
+| `FAMILY-MOB-002` | Same fixture → named family → two child additions with custom/default colours → calendar | Names/colours retained; distinct defaults; sharing off; one family/two child operations; no event write |
+| `FAMILY-MOB-003` | Empty fixture → defaults → one explicit child save → Back | Saved family/child survive leaving optional setup |
+| `FAMILY-MOB-004` | Prepared created family → child form with invalid alias | Retained draft/error; no child/outbox writes; cancellation and empty calendar allowed |
+| `FAMILY-MOB-005` | Prepared family with six used palette colours → child form | No implicit duplicate default; explicit reuse required |
+| `FAMILY-SEC-001` | Prepared owner child form → cached access revoked while open | Save disabled; no child write |
+| `FAMILY-SYNC-001` | Prepared owner/guardian SQLCipher + libsodium devices → shared editor custom colour → controlled encrypted relay | Authorized receiver preserves selected colour/name; ciphertext operations |
+
+`family_setup_test.dart` registers shared `support/family_setup_scenarios.dart`.
+The seven new scenarios also run in the existing native calendar entry point:
+`./test --ios --scenario calendar` / Android counterpart (plus its existing event
+journey). Fixtures seed prerequisites directly except creation actions themselves
+under test. Widgets/controllers/database/key material are torn down. The existing
+child native suite separately checks shared-editor compatibility with encrypted
+profile delivery. Passkeys, platform secret stores and real transport are not
+established by the controlled relay. Results: BUG-020-VERIFICATION.md.

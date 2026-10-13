@@ -1,3 +1,6 @@
+import 'family_setup_screen.dart';
+import 'child_profile_editor.dart';
+
 import 'package:flutter/material.dart';
 import 'package:sarti_mobile/src/features/ai/cloud_ai_consent.dart';
 import 'package:sarti_mobile/src/features/ai/cloud_ai_consent_dialog.dart';
@@ -272,76 +275,7 @@ class CalendarScreen extends StatelessWidget {
   }
 
   Future<void> _addChild(BuildContext context) async {
-    final name = TextEditingController();
-    final cloudAlias = TextEditingController();
-    var shareProfile = false;
-    final accepted = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add a child'),
-        content: StatefulBuilder(
-          builder: (context, setState) => Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: name,
-                autofocus: true,
-                decoration: const InputDecoration(labelText: 'Name'),
-              ),
-              TextField(
-                controller: cloudAlias,
-                decoration: const InputDecoration(
-                  labelText: 'Private AI alias (optional)',
-                  hintText: 'Example: happy-frog-4821',
-                  helperText: 'Stored and synchronized encrypted',
-                ),
-              ),
-              CheckboxListTile(
-                key: const Key('share-child-profile'),
-                contentPadding: EdgeInsets.zero,
-                title: const Text(
-                  'Share profile with current calendar guardians',
-                ),
-                subtitle: const Text(
-                  'Grants read access when this child first syncs.',
-                ),
-                value: shareProfile,
-                onChanged: (value) =>
-                    setState(() => shareProfile = value ?? false),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
-    if (accepted == true && name.text.trim().isNotEmpty) {
-      try {
-        controller.addChild(
-          name.text,
-          0xFF8E6CEF,
-          cloudAlias: cloudAlias.text,
-          shareWithCalendarGuardians: shareProfile,
-        );
-      } on ArgumentError catch (error) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(error.message?.toString() ?? 'Invalid alias'),
-            ),
-          );
-        }
-      }
-    }
+    await showAddChildProfileDialog(context, controller);
   }
 
   Future<void> _editEvent(BuildContext context, [CalendarEvent? event]) async {
@@ -536,7 +470,11 @@ class _FamilyOnboarding extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             FilledButton(
-              onPressed: () => controller.createFamily('My family', 'Me'),
+              onPressed: () => Navigator.of(context).push<void>(
+                MaterialPageRoute(
+                  builder: (_) => FamilySetupScreen(controller: controller),
+                ),
+              ),
               child: const Text('Create family'),
             ),
           ],

@@ -554,6 +554,7 @@ void main() {
       await tester.tap(find.byTooltip('Add child'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField).first, 'Lina');
+      await tester.ensureVisible(find.byKey(const Key('share-child-profile')));
       await tester.tap(find.byKey(const Key('share-child-profile')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Add'));

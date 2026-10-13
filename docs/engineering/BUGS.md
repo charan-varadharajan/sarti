@@ -34,8 +34,17 @@ in-repository record while Sarti has no external tracker.
 - Required action: Offer a concise optional setup flow with clear skip/continue
   choices. Preserve ADR-022 progressive onboarding: adding all children/details
   must not be mandatory before using the calendar. Coordinate colour selection
-  with existing BUG-015; do not duplicate that fix. Pending design/implementation.
-- Workaround: Add children later through the owner control once BUG-019 is fixed;
+  with existing BUG-015; do not duplicate that fix.
+- Implementation update (2026-10-13): Optional draft names/Skip setup and optional
+  child step implemented; common child editor adds named colour choices and
+  unused defaults with explicit palette reuse. Profile sharing remains opt-in;
+  family/owner checks are revalidated at save. No API/schema/ADR change.
+- Verification: Analysis PASS; full Flutter suite FAIL. Runner summary lists
+  FAMILY-MOB-002/003/005 and FAMILY-SYNC-001. Failure traces uninspected; native
+  calendar/child commands also FAIL on both iOS and Android. BUG-020 remains
+  open. See
+  `../testing/BUG-020-VERIFICATION.md`.
+- Workaround: Add children later through the owner control (BUG-019 is fixed);
   current colour-selection limitation remains BUG-015.
 
 ### BUG-021 — No complete, discoverable family management hub
@@ -80,6 +89,10 @@ in-repository record while Sarti has no external tracker.
   there is no colour selection or distinct default assignment.
 - Workaround: None through the shipping child UI; review child assignments
   explicitly rather than relying on colour.
+- Related implementation candidate (2026-10-13, BUG-020): Shared new-child form
+  includes named palette choices, unused defaults and explicit reuse when full.
+  Custom-colour/multiple-child verification is failing; creation portion is not
+  yet accepted. Existing colour edits and shared-event indicators remain pending.
 - Proposed action: Choose distinct defaults from an accessible palette using
   existing household colours, and let parents choose a colour before creation.
   Keep names/labels alongside colour; handle palette exhaustion explicitly.

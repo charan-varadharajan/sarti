@@ -67,6 +67,13 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
   harness for prepared data, direct flow entry, emulator execution, and teardown.
 
 ### Corrected
+- BUG-020: add optional family/display-name drafts, Skip setup and an optional
+  child step. Reuse a named-colour/profile editor with distinct defaults,
+  explicit palette reuse and existing opt-in sharing; recheck owner/family at
+  save. Add prepared widget/native and real-crypto relay scenarios. Analysis
+  passes; Flutter family cases and iOS/Android calendar/child commands fail,
+  with traces uninspected. BUG-020 stays open;
+  associated BUG-015 creation/remaining editing work is not claimed complete.
 - BUG-018: make Today a repeatable current-date navigation action, including
   when day mode is already selected. Use the calendar display timezone, preserve
   agenda mode and keep toolbar week/month behavior. Add prepared past/future,

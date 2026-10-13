@@ -66,6 +66,8 @@ void main() {
       // (encrypted storage, device keys, offline bootstrap) are prepared directly.
       await tester.tap(find.text('Create family'));
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('setup-skip')));
+      await tester.pumpAndSettle();
       expect(
         find.widgetWithText(FloatingActionButton, 'Event'),
         findsOneWidget,

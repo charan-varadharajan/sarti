@@ -23,6 +23,8 @@ void main() {
     );
     await tester.tap(find.text('Create family'));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('setup-skip')));
+    await tester.pumpAndSettle();
     expect(find.text('Today'), findsOneWidget);
     expect(find.text('Week'), findsOneWidget);
     expect(find.text('Month'), findsOneWidget);

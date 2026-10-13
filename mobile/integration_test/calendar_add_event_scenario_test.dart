@@ -4,10 +4,12 @@ import 'package:integration_test/integration_test.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 
 import '../test/support/sarti_test_harness.dart';
+import '../test/support/family_setup_scenarios.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(tz_data.initializeTimeZones);
+  familySetupScenarios();
 
   testWidgets('CAL-MOB-001 adds an event from a prepared calendar', (
     tester,
