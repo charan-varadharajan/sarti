@@ -21,6 +21,9 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
 ## [Unreleased]
 
 ### Added
+- BUG-013 clarification: calendar entries omit end times and manual editing lacks
+  duration controls; record start/end display and editable-duration requirements,
+  preserving existing durations and handling overnight/DST ranges.
 - BUG-013 clarification: record missing deterministic "noon" recognition and
   the two-hour swimming regression (12:00–14:00), including preview/save checks
   without native AI. Implementation remains pending.

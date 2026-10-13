@@ -58,6 +58,15 @@ in-repository record while Sarti has no external tracker.
   duration separate from the start time, and remove recognized scheduling words
   from the event title. Add deterministic-parser and editable-preview/save
   regressions so the case works without native AI. Not fixed or tested yet.
+- Calendar display gap: Event subtitles display only the start time even though
+  events persist `durationMinutes`; the manual event editor also has no duration
+  control. Show start and end in calendar entries and review/edit flows, with
+  editable duration/end time for manual as well as natural-language creation.
+  Derive the displayed end from the stored start, event timezone and duration;
+  handle crossing midnight with an end-date indication and cover DST boundaries.
+  Preserve existing event durations on edit. Add prepared widget/native
+  regressions for one-hour defaults, two-hour entries, edits and overnight/DST
+  ranges. No implementation or test execution yet.
 
 ### BUG-012 — iOS simulator integration tests are absent from CI
 - Severity: Medium
