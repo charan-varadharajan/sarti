@@ -169,7 +169,9 @@ in-repository record while Sarti has no external tracker.
   fail-closed legacy recovery. New unit/security/migration and explicit real
   HTTP/PostgreSQL/Dart conflict tests added. Backend/migration/security checks,
   explicit real HTTP/PostgreSQL/Dart contract and Docker health checks PASS.
-  Flutter analyze and full unit/widget suite FAIL; logs uninspected. Remains open;
+  Follow-up fixes the analyzer braces issue and the add-event test's midnight
+  assumption. Analysis and the single failed widget test now PASS. Full suite
+  not rerun in the targeted follow-up; remains open pending full verification;
   see `../testing/BUG-011-VERIFICATION.md`.
 - Required action: Specify canonical AAD and legacy/version compatibility,
   obtain any necessary protocol/ADR approval, add a real HTTP/PostgreSQL mobile

@@ -10,7 +10,8 @@
 BUG-011 protocol-2 metadata ordering remediation is implemented under approved
 ADR-034 with migration 0006 and legacy preservation. Backend/migration/security,
 real HTTP/PostgreSQL/Dart and Docker startup/health checks pass. Flutter analysis
-and full unit/widget tests fail; logs are uninspected and BUG-011 remains open.
+and full unit/widget tests initially failed. Authorized spot fixes now pass
+analysis and the failed widget test; full rerun pending, BUG-011 remains open.
 See `testing/BUG-011-VERIFICATION.md` for evidence and limits.
 BUG-017 remote conflict-card retirement was identified and deferred
 separately; no other behavior was fixed.

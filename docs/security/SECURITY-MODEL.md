@@ -146,5 +146,6 @@ BUG-011 remediation under approved ADR-034 uses versioned deterministic metadata
 for new operations and retains all existing encrypted data. There is no
 cross-version authentication fallback. Unknown versions and changed fields fail
 closed. Backend and real HTTP/PostgreSQL/Dart crypto verification pass, but
-Flutter analysis/full tests fail; BUG-011 remains open pending remediation.
+the initial Flutter failures needed test/style corrections. Targeted analysis
+and failed-test reruns now pass; full verification is pending for BUG-011.
 No physical-device claim is made.

@@ -1,6 +1,6 @@
 # BUG-011 — Versioned deterministic sync metadata verification
 
-Date: 2026-10-12. Status: **Implemented; Flutter checks fail, remains open.**
+Date: 2026-10-12. Status: **Targeted Flutter fixes pass; full-suite rerun pending.**
 
 ## Approval and implementation
 
@@ -43,7 +43,7 @@ of ADR-020/021. No new primitive, dependency, service, key custody or UI added.
 - Stable AAD-* scenarios are in TEST-SCENARIOS.md. BUG-017 separately records
   remote conflict-card retirement; its behavior was not changed here.
 
-## Executed results
+## Initial executed results
 
 Only exit statuses were reviewed. Failure logs were not read, diagnoses were
 not attempted and failing checks were not retried. Logs are ignored under
@@ -70,10 +70,29 @@ The first host-launch attempt used system Python without SQLAlchemy and exited
 before executing any tests. It was invoked with the repository Python environment;
 the actual explicit contract check then ran once and passed.
 
+## Authorized spot-fix follow-up
+
+The maintainer authorized extracting only the failure details and fixing them.
+Analysis reported one missing-braces style issue in `resourceAdditionalData`;
+braces were added without changing encoding. The only failed widget test was
+`CAL-MOB-001`, which expected its saved event in today's agenda. The editor's
+one-hour-ahead default can fall on tomorrow. The test now navigates at most one
+day to the saved event date and asserts that date before the unchanged event,
+recurrence, child and reminder assertions. App calendar behavior is unchanged.
+
+- `flutter analyze`: **PASS**, `bug011-spot-analyze.log`.
+- Only failed widget test (`flutter test test/foundation_screen_test.dart
+  --plain-name CAL-MOB-001 --reporter expanded`): **PASS**,
+  `bug011-spot-widget.log`.
+- Dart formatting for both edited files and `git diff --check`: **PASS**.
+- Full Flutter, backend, real HTTP/PostgreSQL and native suites were not rerun
+  in this targeted follow-up. Earlier backend/HTTP successes remain evidence;
+  a corrected full-suite pass is not inferred. BUG-011 remains open pending it.
+
 ## Limits and remaining action
 
-Flutter failures prevent closure. Maintainer follow-up is required before their
-logs are diagnosed/retried. No native simulator/emulator suite or store build
+The identified Flutter failures are corrected and their targeted reruns pass.
+A full Flutter suite rerun is still required for closure. No native simulator/emulator suite or store build
 was run: no native bridge or UI changed. Neither backup portability direction
 ran; Android-to-iOS remains explicitly deferred. Physical passkeys, protected
 storage, two physical phones, background delivery and production transport

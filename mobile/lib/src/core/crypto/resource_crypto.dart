@@ -7,8 +7,9 @@ import 'package:sodium/sodium.dart';
 /// Legacy encoding is intentionally unchanged; never try it after a v2 failure.
 Uint8List resourceAdditionalData(Map<String, Object> metadata) {
   final protocol = metadata['protocol'] ?? 1;
-  if (protocol == 1)
+  if (protocol == 1) {
     return Uint8List.fromList(utf8.encode(jsonEncode(metadata)));
+  }
   if (protocol != 2) throw StateError('Unsupported sync protocol.');
   const fields = [
     'protocol',

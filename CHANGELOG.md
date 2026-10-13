@@ -71,8 +71,9 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
   persisted relay version, exact legacy retry compatibility, migration 0006 and
   real Dart/HTTP/PostgreSQL regressions. Existing ambiguous legacy ciphertext is
   preserved and rejected safely. Backend/migration/security, real HTTP/
-  PostgreSQL/Dart and Docker health checks pass; Flutter analysis/tests fail.
-  BUG-011 remains open; failure logs uninspected.
+  PostgreSQL/Dart and Docker health checks pass. Spot fixes add required braces
+  and navigate the add-event test to its saved date across midnight. Analysis
+  and the failed widget test pass; BUG-011 awaits the full Flutter rerun.
 - Record BUG-017: a received resolution can leave an obsolete remote conflict
   card open. Deferred separately; alternatives remain preserved.
 - BUG-010: atomically advance accessible resource epochs during active-phone

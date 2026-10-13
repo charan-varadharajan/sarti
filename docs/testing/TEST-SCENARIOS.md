@@ -44,7 +44,7 @@ scenario's setup helper.
 | ID | Behavior | Fixture and target | Automation |
 | --- | --- | --- | --- |
 | `ONB-MOB-001` | A new parent can create a family and reach the calendar | `blankDevice` → onboarding | `mobile/test/foundation_screen_test.dart` |
-| `CAL-MOB-001` | A parent adds a recurring event and assigns a child | `calendarReady` → add-event editor | Widget test plus `mobile/integration_test/calendar_add_event_scenario_test.dart` |
+| `CAL-MOB-001` | A parent adds a recurring event and assigns a child | `calendarReady` → add-event editor → saved-date agenda (widget handles midnight rollover) | Widget test plus `mobile/integration_test/calendar_add_event_scenario_test.dart` |
 | `CAL-GRID-MOB-001` | Prepared day/week/month, proportional duration, navigation/agenda and tap-without-write | `calendarReady` + two events → grid directly; dispose DB/controllers | `mobile/test/calendar_grid_test.dart`, `mobile/integration_test/calendar_grid_scenario_test.dart` via shared support scenarios |
 | `CAL-GRID-MOB-002` | Overlapping events remain separate; empty dates retain grid axes | Prepared overlapping events → day grid | Same widget/native suite |
 | `CAL-GRID-MOB-003` | Narrow month and large text preserve accessible shared-child agenda in repository name order | Prepared shared event, 390×844 layout → month/agenda | Same widget/native suite; physical VoiceOver/TalkBack unverified |

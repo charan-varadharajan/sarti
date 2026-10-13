@@ -54,6 +54,16 @@ void main() {
     await tester.tap(find.byTooltip('Show agenda'));
     await tester.pumpAndSettle();
 
+    // The editor defaults to one hour from now, which can be tomorrow.
+    // Navigate to the saved date instead of assuming it is still visible today.
+    final period = find.byKey(const Key('calendar-period'));
+    final savedDate = MaterialLocalizations.of(tester.element(period))
+        .formatFullDate(harness.controller.family!.events.single.localStart);
+    if (tester.widget<Text>(period).data != savedDate) {
+      await tester.tap(find.byTooltip('Next period'));
+      await tester.pumpAndSettle();
+    }
+    expect(tester.widget<Text>(period).data, savedDate);
     expect(find.text('Swimming'), findsOneWidget);
     expect(find.textContaining('weekly'), findsOneWidget);
     expect(harness.controller.family!.events.single.childIds, hasLength(1));
