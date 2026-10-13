@@ -23,6 +23,20 @@ in-repository record while Sarti has no external tracker.
 
 ## Open defects
 
+### BUG-017 — Remote resolution leaves an obsolete conflict card open
+- Severity: Medium
+- Component: calendar repository conflict lifecycle
+- Discovered: 2026-10-12 during BUG-011 source review
+- Blocking: Complete cross-device conflict-resolution UI acceptance
+- Summary: Receiving a causally newer resolution updates the event but does not
+  retire the receiver's earlier conflict row. Its alternatives remain preserved,
+  but the old conflict can still be offered for action.
+- Evidence: `_saveRemote` writes event/version/applied-operation state without
+  updating `conflicts`; only the locally invoked `resolveConflict` retires a row.
+- Workaround: Review the latest event before acting on an old conflict card.
+- Required action: Define causal retirement of superseded conflict rows and test
+  remote resolution/stale-card actions. Deferred from BUG-011; no fix included.
+
 ### BUG-015 — Every child added through the app receives the same colour
 - Severity: Medium
 - Component: `features/calendar/presentation/calendar_screen.dart`, child profiles
@@ -149,6 +163,14 @@ in-repository record while Sarti has no external tracker.
   Existing memory-relay conflict tests preserve map order and miss this boundary.
 - Workaround: Single-writer calendar operation vectors avoid this ordering case;
   do not treat concurrent editing as accepted against the real backend.
+- Implementation update (2026-10-12): Approved ADR-034 adds protocol 2 with
+  fixed metadata fields and sorted version-map keys, additive migration 0006,
+  version-aware retries, unchanged legacy ciphertext/pending envelopes and
+  fail-closed legacy recovery. New unit/security/migration and explicit real
+  HTTP/PostgreSQL/Dart conflict tests added. Backend/migration/security checks,
+  explicit real HTTP/PostgreSQL/Dart contract and Docker health checks PASS.
+  Flutter analyze and full unit/widget suite FAIL; logs uninspected. Remains open;
+  see `../testing/BUG-011-VERIFICATION.md`.
 - Required action: Specify canonical AAD and legacy/version compatibility,
   obtain any necessary protocol/ADR approval, add a real HTTP/PostgreSQL mobile
   ciphertext round-trip regression, and preserve conflict alternatives. This is

@@ -67,6 +67,14 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
   harness for prepared data, direct flow entry, emulator execution, and teardown.
 
 ### Corrected
+- BUG-011: add approved ADR-034 protocol-2 deterministic authenticated metadata,
+  persisted relay version, exact legacy retry compatibility, migration 0006 and
+  real Dart/HTTP/PostgreSQL regressions. Existing ambiguous legacy ciphertext is
+  preserved and rejected safely. Backend/migration/security, real HTTP/
+  PostgreSQL/Dart and Docker health checks pass; Flutter analysis/tests fail.
+  BUG-011 remains open; failure logs uninspected.
+- Record BUG-017: a received resolution can leave an obsolete remote conflict
+  card open. Deferred separately; alternatives remain preserved.
 - BUG-010: atomically advance accessible resource epochs during active-phone
   replacement, serialize concurrent transitions and stale uploads/grants, and
   allow restored admins to establish an unclaimed advanced epoch without old

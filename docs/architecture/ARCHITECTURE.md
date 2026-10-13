@@ -86,6 +86,8 @@ recovery from interrupted migrations.
 
 ADR-020 and ADR-021 define the envelope, authenticated metadata, algorithms,
 rotation, replay protection, ordering, and explicit conflict semantics.
+ADR-034 versions metadata encoding: new operations use deterministic protocol 2,
+while legacy ciphertext remains unchanged and decoding fails closed.
 
 ### AI suggestion
 

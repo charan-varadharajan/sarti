@@ -73,3 +73,16 @@ payload under the current epoch, retaining operation ID and device sequence.
 `CHILD-SYNC-006` tests both interruption cases. Missing historical keys still fail
 closed; a newly enrolled/recovered device needs a suitable encrypted snapshot
 rather than silently skipping unknown-epoch operations.
+
+## Versioned metadata (BUG-011 / ADR-034)
+
+New envelopes authenticate protocol 2 using the fixed field order and sorted
+logical-version keys specified in ADR-034. Relay `protocol_version` is stored
+and included in exact-retry comparison. Protocol 1 remains insertion ordered;
+existing ciphertext and pending envelope bytes are never relabeled. New local
+payloads are encrypted with protocol 2; stored legacy envelopes without a
+version retry as protocol 1. Unknown versions/tampering fail without fallback.
+An already reordered legacy multi-author envelope cannot safely be reconstructed;
+retain local content/cursor and recover from authorized snapshot/original author
+data. Migration 0006 preserves existing ciphertext with version 1; downgrade
+refuses to remove version tags while protocol-2 rows exist. Deploy backend first.

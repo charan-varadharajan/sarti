@@ -47,3 +47,9 @@ replacement; encrypted-sync writers share resource locks. Mobile
 `ResourceKeySync` owns fresh keys and signed sealed grants, including unclaimed
 advanced-epoch initialization after recovery. See KEY-MANAGEMENT.md and the
 REPLACE scenario entries; no cryptographic primitive or wire format changed.
+
+BUG-011/ADR-034 adds `resourceAdditionalData` as the shared deterministic v2 /
+unchanged legacy encoder. Sync envelope persistence and HTTP transport carry the
+version; backend relay models and migration 0006 persist it without plaintext
+family content. `sync_metadata_test.dart` and the explicit
+`test_sync_postgres_mobile.py` host cover legacy/security and real JSONB ordering.

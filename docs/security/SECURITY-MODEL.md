@@ -141,3 +141,10 @@ PostgreSQL JSONB round trip can reorder multi-author vectors in insertion-ordere
 AAD, causing legitimate ciphertext to fail authentication. No authentication
 bypass was observed; the decoder fails closed. Concurrent calendar editing
 against the real backend remains unaccepted pending canonical compatible AAD.
+
+BUG-011 remediation under approved ADR-034 uses versioned deterministic metadata
+for new operations and retains all existing encrypted data. There is no
+cross-version authentication fallback. Unknown versions and changed fields fail
+closed. Backend and real HTTP/PostgreSQL/Dart crypto verification pass, but
+Flutter analysis/full tests fail; BUG-011 remains open pending remediation.
+No physical-device claim is made.

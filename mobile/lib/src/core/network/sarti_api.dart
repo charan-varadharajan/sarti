@@ -402,6 +402,8 @@ class SartiApiClient implements EncryptedRelay, ResourceKeyApi {
           'resource_id': envelope.resourceId,
           'device_sequence': envelope.deviceSequence,
           'key_epoch': envelope.keyEpoch,
+          if (envelope.protocolVersion != 1)
+            'protocol_version': envelope.protocolVersion,
           'logical_version': envelope.logicalVersion,
           'nonce': _encode(envelope.nonce),
           'ciphertext': _encode(envelope.ciphertext),
@@ -424,6 +426,7 @@ class SartiApiClient implements EncryptedRelay, ResourceKeyApi {
     final operations = (response['operations'] as List<Object?>).map((value) {
       final item = Map<String, dynamic>.from(value! as Map);
       return RelayEnvelope(
+        protocolVersion: item['protocol_version'] as int? ?? 1,
         serverSequence: item['server_sequence'] as int,
         operationId: item['operation_id'] as String,
         familyId: item['family_id'] as String,

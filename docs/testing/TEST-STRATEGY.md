@@ -132,3 +132,11 @@ isolation, filtered paging, grant uniqueness, current authorization and epoch
 initialization. `CHILD-NATIVE-001` repeats the prepared UI journey on each native
 platform with two logical devices and a controlled relay; it does not establish
 physical cross-phone transport. See `BUG-003-VERIFICATION.md` for exact results.
+
+ADR-034/BUG-011 adds exact metadata byte vectors, all-field tampering,
+legacy-envelope retry/decoding, unchanged migration ciphertext and version-aware
+idempotency tests. The explicit loopback HTTP/PostgreSQL/Dart host executes
+multi-author JSONB reordering with actual libsodium and SQLCipher, keeps both
+conflict alternatives and verifies event convergence after explicit resolution.
+It is opt-in (`SARTI_RUN_MOBILE_CONTRACT=1`); default Flutter/backend runs skip
+that host-dependent test. Current results: `BUG-011-VERIFICATION.md`.

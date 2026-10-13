@@ -259,6 +259,7 @@ RelayEnvelope copyEnvelope(
   Uint8List? ciphertext,
   Uint8List? digest,
 }) => RelayEnvelope(
+  protocolVersion: e.protocolVersion,
   serverSequence: serverSequence ?? e.serverSequence,
   operationId: e.operationId,
   familyId: familyId ?? e.familyId,

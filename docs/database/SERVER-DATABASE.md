@@ -20,7 +20,7 @@ columns and adds `email_suggestion_deliveries`, which contains a recipient devic
 ID, libsodium sealed-box ciphertext, delivery state, and timestamps. The server
 cannot decrypt these per-device payloads.
 
-The migration suite upgrades a real PostgreSQL database, asserts schema version 5
+The migration suite upgrades a real PostgreSQL database, asserts schema version 6
 and required tables, and exercises the constraints through the full API flow.
 
 Migration `0005` adds `family_backups` (family UUID primary/foreign key, positive
@@ -57,3 +57,29 @@ expand those permissions to later guardians.
 BUG-010 uses existing rows/columns; no migration. Adult-row and ordered resource
 locks serialize replacement, scoped epoch increments and sync publication in
 one transaction with device/session revocation. Resource keys remain absent.
+
+Migration `0006` adds `sync_operations.protocol_version`, non-null/default 1,
+constrained to 1 or 2. Existing nonce/ciphertext/digest/identity/sequence fields
+are unchanged. Version participates in idempotency comparison. Downgrade is
+blocked while version-2 ciphertext exists to prevent silent mislabeling.
+Migration fixtures verify legacy bytes survive downgrade/upgrade and reject
+unsafe removal. The destructive base-migration fixture explicitly discards its
+test operations before teardown; production migration never discards ciphertext.
+
+```mermaid
+erDiagram
+    resources ||--o{ sync_operations : routes
+    sync_operations {
+        bigint server_sequence PK
+        uuid operation_id UK
+        uuid family_id FK
+        uuid resource_id FK
+        integer protocol_version "1 legacy, 2 deterministic AAD"
+        integer key_epoch
+        jsonb logical_version
+        bytea nonce
+        bytea ciphertext
+        bytea content_digest
+        timestamp expires_at
+    }
+```

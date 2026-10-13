@@ -10,6 +10,7 @@ import 'package:sodium/sodium.dart';
 
 class RelayEnvelope {
   const RelayEnvelope({
+    this.protocolVersion = 1,
     required this.serverSequence,
     required this.operationId,
     required this.familyId,
@@ -23,6 +24,7 @@ class RelayEnvelope {
     required this.contentDigest,
   });
 
+  final int protocolVersion;
   final int serverSequence;
   final String operationId;
   final String familyId;
@@ -111,7 +113,7 @@ class SyncEngine {
       } else {
         final keyEpoch = _latestKeyEpoch(row['resource_id'] as String);
         final metadata = <String, Object>{
-          'protocol': 1,
+          'protocol': 2,
           'familyId': familyId,
           'resourceId': row['resource_id'] as String,
           'keyEpoch': keyEpoch,
@@ -137,6 +139,7 @@ class SyncEngine {
             metadata: metadata,
           );
           envelope = RelayEnvelope(
+            protocolVersion: 2,
             serverSequence: 0,
             operationId: row['operation_id'] as String,
             familyId: familyId,
@@ -204,7 +207,7 @@ class SyncEngine {
       if (envelope.authorDeviceId == deviceId) continue;
       _verifyDigest(envelope);
       final metadata = <String, Object>{
-        'protocol': 1,
+        'protocol': envelope.protocolVersion,
         'familyId': envelope.familyId,
         'resourceId': envelope.resourceId,
         'keyEpoch': envelope.keyEpoch,
@@ -219,9 +222,7 @@ class SyncEngine {
           EncryptedResourcePayload(
             nonce: envelope.nonce,
             ciphertext: envelope.ciphertext,
-            additionalData: Uint8List.fromList(
-              utf8.encode(jsonEncode(metadata)),
-            ),
+            additionalData: resourceAdditionalData(metadata),
           ),
           key,
         );
@@ -295,6 +296,7 @@ class SyncEngine {
   }
 
   String _storeEnvelope(RelayEnvelope e) => jsonEncode({
+    'protocolVersion': e.protocolVersion,
     'operationId': e.operationId,
     'familyId': e.familyId,
     'resourceId': e.resourceId,
@@ -310,6 +312,7 @@ class SyncEngine {
   RelayEnvelope _restoreEnvelope(String value) {
     final e = jsonDecode(value) as Map<String, dynamic>;
     return RelayEnvelope(
+      protocolVersion: e['protocolVersion'] as int? ?? 1,
       serverSequence: 0,
       operationId: e['operationId'] as String,
       familyId: e['familyId'] as String,

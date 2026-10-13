@@ -138,6 +138,8 @@ key_grants = sa.Table(
 sync_operations = sa.Table(
     "sync_operations",
     metadata,
+    sa.CheckConstraint("protocol_version IN (1, 2)", name="ck_sync_protocol_version"),
+    sa.Column("protocol_version", sa.Integer(), nullable=False, server_default="1"),
     sa.Column("server_sequence", sa.BigInteger(), primary_key=True),
     sa.Column("operation_id", postgresql.UUID(as_uuid=True), nullable=False),
     sa.Column("family_id", postgresql.UUID(as_uuid=True), nullable=False),

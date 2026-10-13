@@ -565,6 +565,15 @@
             "title": "Operation Id",
             "type": "string"
           },
+          "protocol_version": {
+            "default": 1,
+            "enum": [
+              1,
+              2
+            ],
+            "title": "Protocol Version",
+            "type": "integer"
+          },
           "resource_id": {
             "format": "uuid",
             "title": "Resource Id",
@@ -687,6 +696,15 @@
             "format": "uuid",
             "title": "Operation Id",
             "type": "string"
+          },
+          "protocol_version": {
+            "default": 1,
+            "enum": [
+              1,
+              2
+            ],
+            "title": "Protocol Version",
+            "type": "integer"
           },
           "resource_id": {
             "format": "uuid",

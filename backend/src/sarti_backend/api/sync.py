@@ -2,7 +2,7 @@ import base64
 import binascii
 import hashlib
 from datetime import UTC, datetime, timedelta
-from typing import Annotated, Any, Protocol
+from typing import Annotated, Any, Literal, Protocol
 from uuid import UUID, uuid4
 
 from cryptography.exceptions import InvalidSignature
@@ -56,6 +56,7 @@ def _encode(value: bytes) -> str:
 class OperationUpload(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    protocol_version: Literal[1, 2] = 1
     operation_id: UUID
     family_id: UUID
     resource_id: UUID
@@ -90,6 +91,7 @@ class OperationReceipt(BaseModel):
 class RelayOperation(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    protocol_version: Literal[1, 2] = 1
     server_sequence: int
     operation_id: UUID
     family_id: UUID
@@ -203,6 +205,7 @@ def upload_operation(
                 and existing["logical_version"] == payload.logical_version
                 and existing["nonce"] == nonce
                 and existing["ciphertext"] == ciphertext
+                and existing["protocol_version"] == payload.protocol_version
             ):
                 return OperationReceipt(
                     operation_id=payload.operation_id,
@@ -237,6 +240,7 @@ def upload_operation(
             sync_operations.insert()
             .values(
                 operation_id=payload.operation_id,
+                protocol_version=payload.protocol_version,
                 family_id=payload.family_id,
                 resource_id=payload.resource_id,
                 author_device_id=actor.device_id,
@@ -305,6 +309,7 @@ def download_operations(
                 continue
             operations.append(
                 RelayOperation(
+                    protocol_version=row["protocol_version"],
                     server_sequence=row["server_sequence"],
                     operation_id=row["operation_id"],
                     family_id=row["family_id"],

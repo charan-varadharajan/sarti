@@ -236,6 +236,7 @@ class _MemoryRelay implements EncryptedRelay {
     }
     operations.add(
       RelayEnvelope(
+        protocolVersion: envelope.protocolVersion,
         serverSequence: operations.length + 1,
         operationId: envelope.operationId,
         familyId: envelope.familyId,

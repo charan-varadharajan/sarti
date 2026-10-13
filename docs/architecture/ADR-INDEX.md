@@ -39,6 +39,7 @@ unresolved rather than inferred.
 | [ADR-031](adr/031-bip39-recovery-phrase-conformance.md) | BIP-39 recovery-phrase conformance | Accepted; supersedes ADR-025 phrase rules |
 | [ADR-032](adr/032-portable-encrypted-backup-relay.md) | Portable encrypted snapshot and owner-authorized recovery relay | Accepted; supersedes ADR-025 payload, restore and destinations |
 | [ADR-033](adr/033-kalender-calendar-presentation.md) | Kalender presentation adapter for day/week/month grids | Accepted |
+| [ADR-034](adr/034-versioned-sync-metadata-encoding.md) | Versioned deterministic sync metadata with legacy preservation | Accepted; supersedes ADR-020/021 serialization detail |
 
 New records use the next three-digit number. Accepted decisions are changed only
 by an explicitly approved superseding ADR.

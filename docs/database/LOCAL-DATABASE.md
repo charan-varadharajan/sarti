@@ -60,3 +60,8 @@ erDiagram
 
 `resource_catalog` relationships are logical validation relationships; they are
 not SQL foreign keys. All of these tables remain inside SQLCipher.
+
+BUG-011 requires no local schema migration (still v6). Persisted envelope JSON
+now includes `protocolVersion`. An absent value means legacy 1; already-encrypted
+pending bytes remain unchanged. New payloads use protocol 2. Old unknown-order
+ciphertext is retained and cannot be silently applied/skipped.

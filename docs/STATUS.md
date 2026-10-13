@@ -2,10 +2,19 @@
 
 - Current stage: Stage 3 — AI proposals, email intake, push notifications, and backup/recovery
 - Updated: 2026-10-12
-- Stage state: remediation in progress; BUG-001/002/003 remediation delivered; provider/device validation and BUG-004/005/011/012/013/014/015 outstanding
+- Stage state: remediation in progress; BUG-001/002/003 remediation delivered; provider/device validation and BUG-004/005/011/012/013/014/015/017 outstanding
 - Repository version: `0.1.0+1`; no public release tag
 
 ## Current result
+
+BUG-011 protocol-2 metadata ordering remediation is implemented under approved
+ADR-034 with migration 0006 and legacy preservation. Backend/migration/security,
+real HTTP/PostgreSQL/Dart and Docker startup/health checks pass. Flutter analysis
+and full unit/widget tests fail; logs are uninspected and BUG-011 remains open.
+See `testing/BUG-011-VERIFICATION.md` for evidence and limits.
+BUG-017 remote conflict-card retirement was identified and deferred
+separately; no other behavior was fixed.
+
 
 BUG-010 is resolved. Full PostgreSQL/backend and Flutter regression suites,
 migrations, static/security/dependency checks, offline pinned secret scan,

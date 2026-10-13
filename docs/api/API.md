@@ -48,6 +48,15 @@ content and are absent from these requests.
 
 ## Encrypted relay and grants
 
+ADR-034 adds `protocol_version` to operation uploads/downloads. Allowed values
+are 1 and 2; omission means 1 for legacy clients. New clients encrypt protocol 2
+with fixed top-level fields and sorted version-map keys. The server stores the
+version with ciphertext and compares it during exact retry validation; changing
+only the version for an existing operation returns 409. Unknown versions return
+422. The server cannot reinterpret or decrypt family content. Deploy migration/
+backend first, then updated clients; legacy clients cannot decode protocol 2.
+No automatic downgrade fallback is permitted.
+
 - `POST /v1/sync/operations` accepts one bounded encrypted operation. An exact
   retry is idempotent; sequence gaps/replays and digest mismatches are 409. New
   stale-epoch writes are rejected. An exact already-accepted old-epoch retry may

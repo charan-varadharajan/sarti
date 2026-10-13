@@ -161,3 +161,25 @@ PostgreSQL API tests stub WebAuthn verification, not database transactions or
 crypto libraries. Mobile tests use real SQLCipher/libsodium with a controlled
 relay. They do not establish physical passkeys, protected storage, OS recovery
 or production two-phone compatibility. No backup portability direction is run.
+
+## Metadata ordering and compatibility (BUG-011)
+
+| Scenario | Prepared direct entry | Evidence |
+| --- | --- | --- |
+| `AAD-UNIT-001` | Fixed metadata plus reversed top-level/vector order → encoder | `mobile/test/sync_metadata_test.dart`: exact known bytes, unchanged legacy encoding |
+| `AAD-SEC-001` | Real libsodium ciphertext → mutate each metadata field/version | Same suite: authentication failure, unknown version and extra-field rejection |
+| `AAD-SYNC-001` | Prepared SQLCipher v1 pending envelope → lost receipt and retry | Same suite: exact bytes/identity/version retained and legacy delivery accepted |
+| `AAD-SEC-002` | Prepared old multi-author v1 ciphertext → reordered vector | Same suite: no application/cursor advancement, ciphertext preserved |
+| `AAD-API-001` | Prepared owner/family → v1/v2 uploads and retries | `backend/tests/integration/test_sync_protocol.py`: version tag round-trip, mismatch/unknown rejection |
+| `AAD-MIG-001` | Legacy fixture ciphertext → 0005/0006 upgrade/downgrade | Same backend suite: byte preservation and safe downgrade refusal with v2 rows |
+| `AAD-HTTP-001` | Two prepared logical devices → real loopback HTTP/PostgreSQL/Dart encryption/sync | `mobile/test/postgres_sync_roundtrip_test.dart`, hosted by `backend/tests/integration/test_sync_postgres_mobile.py`: forced reverse vector order, real JSONB reorder, exact retry, conflicting alternatives, explicit resolution/event convergence |
+
+The full Flutter suite skips only `AAD-HTTP-001` without its explicit host config.
+Enable `SARTI_RUN_MOBILE_CONTRACT=1` and run the host test against an isolated
+migrated PostgreSQL test DB. The host seeds credentials/membership, starts a
+loopback API, generates ephemeral test config, invokes Flutter and tears down.
+It never passes family keys to the backend. Logs are ignored under
+`test-results/bug011-http-mobile.log`. These are synthetic local fixtures,
+not real passkeys, protected storage or production networking. BUG-017 tracks
+remote conflict-card retirement separately. Neither backup portability direction
+is included.
