@@ -21,6 +21,9 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
 ## [Unreleased]
 
 ### Added
+- Record BUG-016: Today/Week/Month currently share a filtered agenda list;
+  capture day time-axis, week time/date grid and month-grid requirements with
+  prepared layout/accessibility regression coverage. Implementation pending.
 - Record BUG-015: add-child UI hardcodes one colour for every child; document
   distinct defaults, parent selection and encrypted existing-profile correction
   requirements. Implementation remains pending.

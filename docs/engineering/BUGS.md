@@ -23,6 +23,33 @@ in-repository record while Sarti has no external tracker.
 
 ## Open defects
 
+### BUG-016 — Day/week/month controls reuse one agenda list without calendar grids
+- Severity: Medium
+- Component: `features/calendar/presentation/calendar_screen.dart`
+- Discovered: 2026-10-12 during maintainer simulator testing
+- Blocking: P0 day/week/month calendar presentation acceptance
+- Summary: Today, Week and Month all render the same `ListView.builder`; the
+  range controls filter occurrences but do not provide distinct calendar layouts.
+  Parents cannot visually assess event duration, gaps or overlaps.
+- Root cause: Initial presentation implemented a filtered agenda only.
+- Workaround: Read event dates/times in the agenda; no spatial time-grid view.
+- Proposed design from maintainer feedback: Day uses a left time axis with event
+  blocks positioned by start and sized by duration. Week uses dates as columns
+  and time as rows, with readable navigation/scrolling on narrow phones. Month
+  uses a seven-column date grid with bounded event indicators and a selected-day
+  agenda. Keep an agenda option for accessibility and dense schedules.
+  Include current-time/today cues, previous/next period and Today navigation,
+  distinct child colours plus text labels (BUG-015), start/end display (BUG-013),
+  side-by-side overlaps, overnight events, recurrence and timezone/DST cases.
+  Tapping an event opens its editor; empty grids must still show dates/time axes.
+  Use the supplied image as layout guidance, without adding decorative image
+  services or unrelated features. No new dependency/provider selected.
+- Required tests: Prepared day/week/month widget/native scenarios covering
+  positioning, duration, overlap, date navigation, empty/dense schedules, shared
+  child assignments, text scaling/accessibility, overnight and DST behavior.
+  Pending design/implementation; no tests run. This is a P0 presentation gap,
+  not a deferred Stage 4 feature.
+
 ### BUG-015 — Every child added through the app receives the same colour
 - Severity: Medium
 - Component: `features/calendar/presentation/calendar_screen.dart`, child profiles
