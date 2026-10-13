@@ -67,6 +67,12 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
   harness for prepared data, direct flow entry, emulator execution, and teardown.
 
 ### Corrected
+- BUG-018: make Today a repeatable current-date navigation action, including
+  when day mode is already selected. Use the calendar display timezone, preserve
+  agenda mode and keep toolbar week/month behavior. Add prepared past/future,
+  view-transition, timezone-boundary and DST widget/native regressions. Analysis,
+  full Flutter suite (151 pass, 2 opt-in skips) and iOS/Android grid/Today suites
+  (10 each) PASS; BUG-018 resolved for automated scope, physical retest pending.
 - BUG-019: refresh bootstrap permission presentation immediately after first
   family creation so owners see Event and Add child without restarting. Preserve
   restricted role checks. Add four prepared bootstrap regressions; analysis and

@@ -20,6 +20,8 @@ class FamilyCalendarView extends StatefulWidget {
     required this.onDelete,
     this.initialDate,
     this.readOnly = false,
+    this.todayRequest = 0,
+    this.clock = DateTime.now,
   });
 
   final FamilyCalendar family;
@@ -30,6 +32,8 @@ class FamilyCalendarView extends StatefulWidget {
   final ValueChanged<CalendarEvent> onDelete;
   final DateTime? initialDate;
   final bool readOnly;
+  final int todayRequest;
+  final DateTime Function() clock;
 
   @override
   State<FamilyCalendarView> createState() => _FamilyCalendarViewState();
@@ -47,7 +51,8 @@ class _FamilyCalendarViewState extends State<FamilyCalendarView> {
   @override
   void initState() {
     super.initState();
-    _selectedDay = widget.initialDate ?? tz.TZDateTime.now(_location);
+    _selectedDay =
+        widget.initialDate ?? tz.TZDateTime.from(widget.clock(), _location);
     _events = k.DefaultEventsController(locations: [_location]);
     _calendar = k.KalenderController(
       viewConfiguration: _configuration(),
@@ -80,8 +85,14 @@ class _FamilyCalendarViewState extends State<FamilyCalendarView> {
     if (oldWidget.timezone != widget.timezone) {
       _calendar.location = _location;
     }
+    final todayRequested = oldWidget.todayRequest != widget.todayRequest;
+    if (todayRequested) {
+      _selectedDay = tz.TZDateTime.from(widget.clock(), _location);
+    }
     if (oldWidget.range != widget.range) {
       _calendar.viewConfiguration = _configuration();
+    }
+    if (todayRequested || oldWidget.range != widget.range) {
       _calendar.jumpToDate(_selectedDay);
     }
     _reload();
@@ -153,7 +164,7 @@ class _FamilyCalendarViewState extends State<FamilyCalendarView> {
 
   void _today() {
     setState(() {
-      _selectedDay = tz.TZDateTime.now(_location);
+      _selectedDay = tz.TZDateTime.from(widget.clock(), _location);
       _calendar.jumpToDate(_selectedDay);
       _reload();
     });

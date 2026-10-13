@@ -244,3 +244,19 @@ creation is deliberately exercised through UI only in -001 because it is the
 transition under test. Other prerequisites are seeded directly. Widgets unmount
 before database/key teardown. Secret storage/reminders are injected; real
 SQLCipher/libsodium execute, but physical passkeys/storage/network are not proven.
+
+## Today navigation — BUG-018
+
+| Scenario | Prepared fixture / direct entry | Required assertions |
+| --- | --- | --- |
+| `CAL-TODAY-MOB-001` | Prepared yesterday/today/tomorrow events and fixed clock → 390×844 calendar | Repeated selected Today taps return from past/future; selection stays valid; records/outbox unchanged |
+| `CAL-TODAY-MOB-002` | Same prepared calendar → Week/Month, navigate away, agenda → Today | Current date/day layout; agenda retained; only today's events; no writes |
+| `CAL-TODAY-MOB-003` | Prepared calendar → Week/Month, navigate away → Go to today icon | Current period restored without changing layout or outbox |
+| `CAL-TODAY-TZ-001` | Fixed UTC instants with UTC-ahead/behind and Vancouver spring/fall DST display zones → calendar | Today uses configured IANA-zone date rather than host/UTC date; visible range covers that instant; no writes |
+
+`calendar_today_test.dart` registers shared `support/calendar_today_scenarios.dart`.
+The existing native `calendar_grid_scenario_test.dart` includes these seven
+cases alongside the three grid scenarios: `./test --ios --scenario grid` or
+Android counterpart. Fixtures inject a clock and seed prerequisites without UI;
+widgets/controllers/databases are torn down. No native clock, passkey, provider,
+backup or physical-phone compatibility is inferred from controlled fixtures.

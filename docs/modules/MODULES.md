@@ -73,3 +73,11 @@ family-dependent banners. First family creation no longer leaves cached false
 permission properties on the child screen. Server authorization and encrypted
 cached role checks are unchanged; prepared owner/read-only/revoked widget tests
 cover the transition and no-write editor cancellation.
+
+BUG-018: CalendarController issues repeatable, memory-only Today navigation
+requests; CalendarScreen handles both new and already-selected Today activation.
+FamilyCalendarView consumes requests in the configured timezone using an
+injectable clock, without reconstructing agenda state. The toolbar icon still
+keeps the chosen week/month layout. Navigation does not invoke local mutation,
+reminders, synchronization or persistence. Shared Today scenarios run in the
+widget and existing native grid suites.

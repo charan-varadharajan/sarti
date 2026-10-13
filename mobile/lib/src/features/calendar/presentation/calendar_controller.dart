@@ -13,12 +13,16 @@ class CalendarController extends ChangeNotifier {
     this.onFamilyCreated,
     this.onLocalMutation,
     this.reminders,
+    this.clock = DateTime.now,
   }) {
     family = repository.load();
   }
 
   final CalendarRepository repository;
   final String timezone;
+  final DateTime Function() clock;
+  int _todayRequest = 0;
+  int get todayRequest => _todayRequest;
   final void Function(FamilyCalendar family)? onFamilyCreated;
   final void Function()? onLocalMutation;
   final ReminderScheduler? reminders;
@@ -46,6 +50,12 @@ class CalendarController extends ChangeNotifier {
     );
     refresh();
     onLocalMutation?.call();
+  }
+
+  void goToToday() {
+    range = CalendarRange.today;
+    _todayRequest++; // Repeated taps are navigation intents, not range changes.
+    notifyListeners();
   }
 
   void setRange(CalendarRange value) {

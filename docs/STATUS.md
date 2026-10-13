@@ -2,10 +2,19 @@
 
 - Current stage: Stage 3 — AI proposals, email intake, push notifications, and backup/recovery
 - Updated: 2026-10-13
-- Stage state: remediation in progress; BUG-001/002/003/004 remediation delivered; provider/device validation and BUG-005/012/013/014/015/017/018/020/021 outstanding
+- Stage state: remediation in progress; BUG-001/002/003/004 remediation delivered; provider/device validation and BUG-005/012/013/014/015/017/020/021 outstanding
 - Repository version: `0.1.0+1`; no public release tag
 
 ## Current result
+
+BUG-018 Today navigation is resolved for automated scope:
+repeatable day-mode action, current date in the configured display timezone,
+retained agenda state and unchanged week/month toolbar behavior. Seven prepared
+regressions are shared by widget/native grid suites. Analysis, full Flutter suite
+(151 pass, 2 opt-in skips) and iOS/Android native suites (10 each) PASS. Physical
+iPhone rebuild/retest remains pending. No server/database/crypto/dependency
+change; local signing edits remain untouched. See `testing/BUG-018-VERIFICATION.md`.
+
 
 Physical-iPhone testing reported Today navigation (BUG-018), first-family hidden
 creation controls (BUG-019), missing optional guided setup (BUG-020) and no

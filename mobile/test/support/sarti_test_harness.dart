@@ -35,13 +35,16 @@ class SartiTestHarness {
 
   static SartiTestHarness create({
     SartiTestFixture fixture = SartiTestFixture.calendarReady,
+    DateTime Function()? clock,
+    String displayTimezone = timezone,
   }) {
     final database = SartiDatabase.open(':memory:', Uint8List(32));
     final repository = CalendarRepository(database, deviceId: deviceId);
     final reminders = TestReminderScheduler();
     final controller = CalendarController(
       repository,
-      timezone: timezone,
+      timezone: displayTimezone,
+      clock: clock ?? DateTime.now,
       reminders: reminders,
     );
     final harness = SartiTestHarness._(

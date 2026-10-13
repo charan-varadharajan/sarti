@@ -23,19 +23,6 @@ in-repository record while Sarti has no external tracker.
 
 ## Open defects
 
-### BUG-018 — Today segment does not return to the current date
-- Severity: Medium
-- Component: Calendar range selector / Kalender navigation
-- Discovered: 2026-10-13, maintainer physical-iPhone testing
-- Blocking: Expected Today navigation
-- Summary: Tapping Today does not jump back to the current day.
-- Evidence: The Today segment selects the single-day layout; range changes keep
-  `_selectedDay`. A separate Go to today icon owns current-date navigation.
-- Workaround: Use the Go to today calendar icon; physical result unverified.
-- Required action: Make Today reliably navigate to the current date even when
-  already in day mode; preserve explicit week/month navigation and timezone
-  semantics. Add prepared past/future navigation regressions. Pending.
-
 ### BUG-020 — Create family bypasses optional guided profile setup
 - Severity: Medium
 - Component: Family onboarding
@@ -228,6 +215,22 @@ in-repository record while Sarti has no external tracker.
 ---
 
 ## Resolved defects
+
+### BUG-018 — Today segment does not return to the current date
+- Severity: Medium
+- Component: Calendar range selector / Kalender navigation
+- Discovered: 2026-10-13, maintainer physical-iPhone testing
+- Fixed: 2026-10-13 — Unreleased
+- Disposition: Repeatable Today intent jumps to the current configured-zone date,
+  including when already selected; agenda state is retained. Toolbar navigation
+  keeps Week/Month layouts. No persistence or permission policy changes.
+- Verification: Analysis, full Flutter suite (151 passed, 2 opt-in skips) and
+  iOS/Android native grid + Today suites (10 each) PASS. Physical retest pending.
+  See `../testing/BUG-018-VERIFICATION.md`.
+- Summary: Tapping Today does not jump back to the current day.
+- Evidence: The Today segment selects the single-day layout; range changes keep
+  `_selectedDay`. A separate Go to today icon owns current-date navigation.
+- Workaround: Use the Go to today calendar icon; physical result unverified.
 
 ### BUG-019 — First family creation leaves event/child controls hidden
 - Severity: High

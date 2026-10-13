@@ -126,8 +126,16 @@ class CalendarScreen extends StatelessWidget {
                   ),
                 ],
                 selected: {controller.range},
-                onSelectionChanged: (value) =>
-                    controller.setRange(value.single),
+                // Flutter otherwise ignores pressing an already-selected segment.
+                // Treat that request as navigation; selection always remains set.
+                emptySelectionAllowed: controller.range == CalendarRange.today,
+                onSelectionChanged: (value) {
+                  if (value.isEmpty || value.single == CalendarRange.today) {
+                    controller.goToToday();
+                  } else {
+                    controller.setRange(value.single);
+                  }
+                },
               ),
             ),
             Expanded(
@@ -135,6 +143,8 @@ class CalendarScreen extends StatelessWidget {
                 family: family,
                 range: controller.range,
                 timezone: controller.timezone,
+                todayRequest: controller.todayRequest,
+                clock: controller.clock,
                 readOnly: !canWrite,
                 onEdit: (event) => canWrite
                     ? _editEvent(context, event)
