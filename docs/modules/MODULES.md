@@ -66,3 +66,10 @@ Backend household APIs list/cancel/review invitations and enforce approval pins,
 resource subsets, expiry and idempotency; sync reads enforce migration-0007
 baselines. Prepared tests and real HTTP/PostgreSQL tests are listed in
 TEST-SCENARIOS.md; no physical-provider behavior is inferred from test adapters.
+
+BUG-019: `AuthenticatedCalendarBootstrap` listens to its calendar controller for
+all controller-dependent presentation, including owner mutation controls and
+family-dependent banners. First family creation no longer leaves cached false
+permission properties on the child screen. Server authorization and encrypted
+cached role checks are unchanged; prepared owner/read-only/revoked widget tests
+cover the transition and no-write editor cancellation.

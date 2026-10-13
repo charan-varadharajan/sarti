@@ -230,3 +230,17 @@ networking remain independent release checks.
 Implemented in `cloud_prompt_privacy_test.dart` and `cloud_ai_consent_test.dart`.
 Fixtures close independent databases; transport capture never contacts Gemini.
 No native plugin changes or live provider/device claims are inferred.
+
+## First-family permission refresh — BUG-019
+
+| Scenario | Prepared fixture / target | Assertion |
+| --- | --- | --- |
+| `BOOT-PERM-001` | Empty SQLCipher household, prepared device keys/offline bootstrap → Create family | Event and Add child controls appear immediately without restart; opening/cancelling event editor writes no event |
+| `BOOT-PERM-002` | Prepared existing owner family → offline bootstrap | Owner retains creation controls |
+| `BOOT-PERM-003` | Prepared family with encrypted read-only guardian or revoked access cache → bootstrap/range change | Neither role gains event/child mutation controls on rebuild |
+
+Implemented in `mobile/test/bootstrap_permission_refresh_test.dart`. Family
+creation is deliberately exercised through UI only in -001 because it is the
+transition under test. Other prerequisites are seeded directly. Widgets unmount
+before database/key teardown. Secret storage/reminders are injected; real
+SQLCipher/libsodium execute, but physical passkeys/storage/network are not proven.

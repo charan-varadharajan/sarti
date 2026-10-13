@@ -67,6 +67,13 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
   harness for prepared data, direct flow entry, emulator execution, and teardown.
 
 ### Corrected
+- BUG-019: refresh bootstrap permission presentation immediately after first
+  family creation so owners see Event and Add child without restarting. Preserve
+  restricted role checks. Add four prepared bootstrap regressions; analysis and
+  full Flutter suite PASS (144 passed, 2 opt-in skips). Physical retest pending.
+- Record physical-iPhone reports BUG-018 (Today navigation), BUG-019 (first-family
+  hidden event/child controls), BUG-020 (optional guided setup) and BUG-021
+  (discoverable family management). Prioritize BUG-019 without changing signing.
 - BUG-005: record verified Gemini unpaid-service restrictions and paid-service
   retention limits. Draft ADR-037 for a disabled server credential broker,
   explicit processing boundary and usage caps; implementation awaits approval.

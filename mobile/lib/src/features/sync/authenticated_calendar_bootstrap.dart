@@ -453,74 +453,78 @@ class _AuthenticatedCalendarBootstrapState
     }
     final controller = _controller;
     if (controller != null) {
-      return Stack(
-        children: [
-          CalendarScreen(
-            controller: controller,
-            canWrite: _canWriteCalendar,
-            canManageChildren: _canManageFamily,
-            onGuardians: _api?.sessionToken == null
-                ? null
-                : () => unawaited(_openGuardians()),
-            nativeAi: NativeEventAiProvider(),
-            cloudAiConsent: CloudAiConsentController(
-              CloudAiConsentStore(widget.database),
-            ),
-            emailInbox: _emailInbox,
-            onBackup: _api?.sessionToken == null || !_canManageFamily
-                ? null
-                : () => unawaited(_openBackup()),
-          ),
-          if (_api?.sessionToken != null &&
-              (controller.family == null ||
-                  _guardians?.family?.role == 'guardian' && !_guardians!.ready))
-            Positioned(
-              bottom: MediaQuery.paddingOf(context).bottom + 16,
-              left: 16,
-              right: 16,
-              child: FilledButton.tonal(
-                onPressed: () => unawaited(_openGuardians()),
-                child: const Text('Join or review family invitation'),
+      return ListenableBuilder(
+        listenable: controller,
+        builder: (context, _) => Stack(
+          children: [
+            CalendarScreen(
+              controller: controller,
+              canWrite: _canWriteCalendar,
+              canManageChildren: _canManageFamily,
+              onGuardians: _api?.sessionToken == null
+                  ? null
+                  : () => unawaited(_openGuardians()),
+              nativeAi: NativeEventAiProvider(),
+              cloudAiConsent: CloudAiConsentController(
+                CloudAiConsentStore(widget.database),
               ),
+              emailInbox: _emailInbox,
+              onBackup: _api?.sessionToken == null || !_canManageFamily
+                  ? null
+                  : () => unawaited(_openBackup()),
             ),
-          if (controller.family == null && _api?.sessionToken != null)
-            Positioned(
-              top: MediaQuery.paddingOf(context).top,
-              right: 16,
-              child: TextButton(
-                onPressed: () => unawaited(_openBackup(discover: true)),
-                child: const Text('Restore encrypted backup'),
+            if (_api?.sessionToken != null &&
+                (controller.family == null ||
+                    _guardians?.family?.role == 'guardian' &&
+                        !_guardians!.ready))
+              Positioned(
+                bottom: MediaQuery.paddingOf(context).bottom + 16,
+                left: 16,
+                right: 16,
+                child: FilledButton.tonal(
+                  onPressed: () => unawaited(_openGuardians()),
+                  child: const Text('Join or review family invitation'),
+                ),
               ),
-            ),
-          if (_message case final message?)
-            Positioned(
-              left: 16,
-              right: 16,
-              bottom: 16,
-              child: Material(
-                color: Theme.of(context).colorScheme.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(12),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(message, textAlign: TextAlign.center),
-                      if (_needsAuthentication) ...[
-                        const SizedBox(height: 8),
-                        FilledButton.tonal(
-                          onPressed: _authenticating
-                              ? null
-                              : () => _authenticate(register: false),
-                          child: const Text('Authenticate to sync'),
-                        ),
+            if (controller.family == null && _api?.sessionToken != null)
+              Positioned(
+                top: MediaQuery.paddingOf(context).top,
+                right: 16,
+                child: TextButton(
+                  onPressed: () => unawaited(_openBackup(discover: true)),
+                  child: const Text('Restore encrypted backup'),
+                ),
+              ),
+            if (_message case final message?)
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: 16,
+                child: Material(
+                  color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(message, textAlign: TextAlign.center),
+                        if (_needsAuthentication) ...[
+                          const SizedBox(height: 8),
+                          FilledButton.tonal(
+                            onPressed: _authenticating
+                                ? null
+                                : () => _authenticate(register: false),
+                            child: const Text('Authenticate to sync'),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       );
     }
     return Scaffold(

@@ -23,6 +23,52 @@ in-repository record while Sarti has no external tracker.
 
 ## Open defects
 
+### BUG-018 — Today segment does not return to the current date
+- Severity: Medium
+- Component: Calendar range selector / Kalender navigation
+- Discovered: 2026-10-13, maintainer physical-iPhone testing
+- Blocking: Expected Today navigation
+- Summary: Tapping Today does not jump back to the current day.
+- Evidence: The Today segment selects the single-day layout; range changes keep
+  `_selectedDay`. A separate Go to today icon owns current-date navigation.
+- Workaround: Use the Go to today calendar icon; physical result unverified.
+- Required action: Make Today reliably navigate to the current date even when
+  already in day mode; preserve explicit week/month navigation and timezone
+  semantics. Add prepared past/future navigation regressions. Pending.
+
+### BUG-020 — Create family bypasses optional guided profile setup
+- Severity: Medium
+- Component: Family onboarding
+- Discovered: 2026-10-13, maintainer physical-iPhone testing
+- Blocking: Clear progressive family setup
+- Summary: Create family immediately opens a default My family/Me calendar;
+  there is no guided opportunity to name the family, add children or choose colours.
+- Evidence: Onboarding invokes createFamily('My family', 'Me') directly.
+- Required action: Offer a concise optional setup flow with clear skip/continue
+  choices. Preserve ADR-022 progressive onboarding: adding all children/details
+  must not be mandatory before using the calendar. Coordinate colour selection
+  with existing BUG-015; do not duplicate that fix. Pending design/implementation.
+- Workaround: Add children later through the owner control once BUG-019 is fixed;
+  current colour-selection limitation remains BUG-015.
+
+### BUG-021 — No complete, discoverable family management hub
+- Severity: Medium
+- Component: Family/profile management and guardian entry points
+- Discovered: 2026-10-13, maintainer physical-iPhone testing
+- Blocking: Maintaining family details and finding authorized adult actions
+- Summary: No unified screen for family/profile edits, children/colours and adults.
+- Evidence: Child creation and authenticated guardian management are separate
+  calendar actions; no general family/profile editing screen exists. BUG-004
+  implemented guardian invitations/removal for configured authenticated builds,
+  not a full household-management hub. Missing device entry point needs checking
+  against that build's backend/session configuration and owner permissions.
+- Required action: Design an owner-aware Family screen with existing invite/
+  removal routes, clearly explained offline/unconfigured actions and explicit
+  profile-edit synchronization semantics. No permissions or key revocation
+  controls may be bypassed. Coordinate BUG-015 and BUG-020. Pending.
+- Workaround: Existing Family guardians action when signed in to a configured
+  service; it is unavailable in an offline-only build.
+
 ### BUG-017 — Remote resolution leaves an obsolete conflict card open
 - Severity: Medium
 - Component: calendar repository conflict lifecycle
@@ -182,6 +228,24 @@ in-repository record while Sarti has no external tracker.
 ---
 
 ## Resolved defects
+
+### BUG-019 — First family creation leaves event/child controls hidden
+- Severity: High
+- Component: Authenticated calendar bootstrap / permission presentation
+- Discovered: 2026-10-13, maintainer physical-iPhone testing
+- Fixed: 2026-10-13 — Unreleased
+- Disposition: Bootstrap listens to calendar controller changes and recomputes
+  existing role checks after family creation; no permission policy change.
+- Verification: Analysis and full Flutter suite PASS (144 passed, 2 opt-in skips).
+  Four prepared bootstrap regressions cover fresh/existing owners, read-only and
+  revoked guardians. Physical-phone rebuild/retest remains unexecuted.
+  See `../testing/BUG-019-VERIFICATION.md`.
+- Summary: Calendar opens after Create family but Add Event is absent.
+- Evidence: Bootstrap computes canWrite/canManageChildren before a family exists;
+  only the nested CalendarScreen listens to controller notifications. The outer
+  permission properties are not recomputed when the first family is created.
+- Workaround: Restart the app after creating the family, allowing fresh permission
+  evaluation. This is source-derived and not physically verified.
 
 ### BUG-004 — Guardian invitation/approval not connected to shipping mobile journey
 - Severity: Medium

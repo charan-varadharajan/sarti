@@ -2,10 +2,21 @@
 
 - Current stage: Stage 3 — AI proposals, email intake, push notifications, and backup/recovery
 - Updated: 2026-10-13
-- Stage state: remediation in progress; BUG-001/002/003/004 remediation delivered; provider/device validation and BUG-005/012/013/014/015/017 outstanding
+- Stage state: remediation in progress; BUG-001/002/003/004 remediation delivered; provider/device validation and BUG-005/012/013/014/015/017/018/020/021 outstanding
 - Repository version: `0.1.0+1`; no public release tag
 
 ## Current result
+
+Physical-iPhone testing reported Today navigation (BUG-018), first-family hidden
+creation controls (BUG-019), missing optional guided setup (BUG-020) and no
+unified family-management hub (BUG-021). BUG-019 is prioritized in isolation:
+bootstrap presentation now observes controller changes and reevaluates existing
+permission checks immediately after family creation. Analysis and full Flutter
+suite PASS (144 passed, 2 opt-in skips), including prepared owner/read-only/revoked
+regressions. BUG-019 is resolved for automated scope; physical retest is pending.
+See `testing/BUG-019-VERIFICATION.md`. Other reports remain pending, with child colour
+selection linked to existing BUG-015. Local Xcode signing changes are preserved.
+
 
 Remaining BUG-005 integration has a reviewable proposal in
 `architecture/adr/037-server-managed-cloud-assist.md`: disabled billing-backed
