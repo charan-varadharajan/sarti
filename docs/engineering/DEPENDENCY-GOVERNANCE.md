@@ -54,16 +54,18 @@ and `unorm_dart` as resolver-locked transitive dependencies.
 
 ## Ongoing controls
 
-### Pending approved calendar selection
+### Calendar presentation selection
 
-On 2026-10-12 the maintainer selected `kalender` for BUG-016 day/week/month
-presentation. This records approval of the package choice, not completed
-adoption or compatibility verification. Before integration, complete the
-selection review above, record the SDK decision in an ADR, pin the exact version
-and update `mobile/pubspec.lock`. Preserve Sarti domain recurrence/timezone rules
-and encrypted local storage/sync boundaries behind a presentation adapter.
-Tests are added by the assistant and executed/reviewed by the maintainer unless
-separately authorized, per CONTRIBUTING.md. No package added in this change.
+ADR-033 integrates maintainer-selected `kalender` 0.33.0 for BUG-016, pinned
+exactly with its resolver lock. New transitive dependencies are linked_pageview
+1.1.5 (Apache-2.0), scrollable_positioned_list 0.3.8 (BSD-3-Clause), and
+universal_platform 1.1.0 (MIT); Kalender is MIT. SDK constraints, licenses and
+source paths were reviewed; no calendar-content network/telemetry/persistence
+path was found in the new UI packages. OSV reported no listed vulnerabilities
+for those four exact versions on 2026-10-12. Preserve Sarti domain
+recurrence/timezone rules and encrypted local storage/sync boundaries behind
+the presentation adapter. Pre-1.0 minor upgrades may break APIs and must remain
+explicit, reviewed changes. Execution evidence is in BUG-016-VERIFICATION.md.
 
 CI checks dependency vulnerabilities. Updates are explicit reviewed changes with
 tests; automated updates must not merge around failed checks. Material licensing,

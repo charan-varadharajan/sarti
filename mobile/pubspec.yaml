@@ -23,6 +23,7 @@ dependencies:
   sqlite3: 3.7.0
   timezone: 0.11.1
   bip39_mnemonic: 4.1.0
+  kalender: 0.33.0
 
 dev_dependencies:
   flutter_test:

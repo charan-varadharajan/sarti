@@ -26,16 +26,17 @@ Use direct commits/pushes to `main` for authorized remediation; a separate
 branch is not required for each fix. CI runs after each main push. A failed
 run does not revert the commit automatically.
 
-The maintainer owns test execution and pass/fail review to conserve assistant
-usage. Assistants add/update tests and provide commands, but do not run tests
-or inspect their logs unless explicitly asked or authorized to investigate a
-reported failure. Report unexecuted tests as not run and do not claim CI passed
-without evidence. The maintainer supplies failing logs or requests investigation.
+Updated instruction (2026-10-12): Assistants implement fixes and run applicable
+tests, saving output to ignored logs. Report suite pass/fail and failed test
+names when available from the test runner's result summary. Do not analyze
+failure logs, diagnose or retry failures without a follow-up request from the
+maintainer. Report unexecuted tests as not run and do not claim CI passed without
+evidence. The maintainer reviews failures and authorizes the next investigation.
 Required quality gates still apply; implementation completion and verified
 acceptance must be reported separately.
 
 For simple local Flutter execution use `./test` (unit/widgets), `./test --ios`
-or `./test --android` (prepared calendar/child UI journeys). Logs are saved in
+or `./test --android` (prepared calendar/child/grid UI journeys). Logs are saved in
 ignored `test-results/`. See `../testing/TEST-SCENARIOS.md` for selection and
 coverage limits. These shortcuts do not replace the full gates below.
 

@@ -7,6 +7,12 @@
 
 ## Current result
 
+BUG-016 Kalender 0.33.0 presentation integration is implemented under ADR-033,
+but remains open: static analysis/tooling checks pass and the Flutter unit/widget
+suite plus iOS/Android native grid commands failed. Logs are retained without diagnosis under the maintainer's current
+instruction. See `testing/BUG-016-VERIFICATION.md` for all execution results.
+This does not close BUG-013/014/015 or the existing security/release blockers.
+
 The software-only privacy remediation now connects the shipping mobile app to
 authenticated API sessions, encrypted synchronization, opaque push lifecycle,
 and device-addressed encrypted email suggestions. The backend no longer stores

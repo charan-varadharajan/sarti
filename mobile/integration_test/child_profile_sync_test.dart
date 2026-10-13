@@ -65,6 +65,8 @@ void main() {
         MaterialApp(home: CalendarScreen(controller: receiving)),
       );
       await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Show agenda'));
+      await tester.pumpAndSettle();
       expect(find.text('Swimming'), findsOneWidget);
       expect(find.textContaining('Mia'), findsOneWidget);
       expect(

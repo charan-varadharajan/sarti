@@ -27,6 +27,17 @@ seeded outside the UI unless creation of that state is the behavior under test.
 Regression coverage accompanies bug fixes. Every change records categories that
 are not applicable with a reason in its completion report.
 
+ADR-033/BUG-016 adds a read-only Kalender presentation adapter and prepared
+day/week/month scenarios shared by widget and native suites. Adapter regressions
+cover overnight carry-in, elapsed duration across DST, recurrence, display zones,
+family/resource scope and removal/cancellation filtering. Grid scenarios cover
+relative event placement/duration, overlaps, empty dates, range navigation,
+agenda/large-text reading and navigation without outbox mutations. Tests run
+with saved logs; the assistant reports status without failure diagnosis unless
+the maintainer requests it. Current results are in BUG-016-VERIFICATION.md;
+a failed suite keeps BUG-016 open. Native scenarios remain absent from CI
+(BUG-012). No backup portability scenario is included in the grid suite.
+
 ## Mandatory scenarios
 
 - Two families cannot read or mutate each other's metadata or ciphertext.

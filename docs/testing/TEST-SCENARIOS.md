@@ -45,6 +45,11 @@ scenario's setup helper.
 | --- | --- | --- | --- |
 | `ONB-MOB-001` | A new parent can create a family and reach the calendar | `blankDevice` → onboarding | `mobile/test/foundation_screen_test.dart` |
 | `CAL-MOB-001` | A parent adds a recurring event and assigns a child | `calendarReady` → add-event editor | Widget test plus `mobile/integration_test/calendar_add_event_scenario_test.dart` |
+| `CAL-GRID-MOB-001` | Prepared day/week/month, proportional duration, navigation/agenda and tap-without-write | `calendarReady` + two events → grid directly; dispose DB/controllers | `mobile/test/calendar_grid_test.dart`, `mobile/integration_test/calendar_grid_scenario_test.dart` via shared support scenarios |
+| `CAL-GRID-MOB-002` | Overlapping events remain separate; empty dates retain grid axes | Prepared overlapping events → day grid | Same widget/native suite |
+| `CAL-GRID-MOB-003` | Narrow month and large text preserve accessible shared-child agenda | Prepared shared event, 390×844 layout → month/agenda | Same widget/native suite; physical VoiceOver/TalkBack unverified |
+| `CAL-GRID-UNIT-001/002/003` | Overnight carry-in/exact boundaries, timezone conversion and spring/fall DST duration/recurrence | Synthetic immutable domain events → presentation adapter; no UI setup | `mobile/test/calendar_occurrence_adapter_test.dart` |
+| `CAL-GRID-SEC-001` | Other family/resource and tombstones/cancellations absent; display interactions cannot reschedule/resize | Synthetic scoped domain fixture → adapter | Same adapter suite; no new backend security boundary |
 | `AI-MOB-001` | A natural-language proposal changes nothing until approval and supports Undo | `calendarReady` → proposal input | `mobile/test/natural_language_event_flow_test.dart` |
 | `AI-MOB-002` | An ambiguous clock time requires the parent to choose AM or PM | `calendarReady` → proposal review | `mobile/test/natural_language_event_flow_test.dart` |
 | `AI-MOB-003` | Unsupported or failed native AI uses the deterministic local parser | Parsed proposal → provider adapter | `mobile/test/native_ai_provider_test.dart` |
@@ -85,10 +90,11 @@ From the repository root:
 
 ```sh
 ./test                     # all Flutter unit/widget tests; no device
-./test --ios               # calendar + child UI journeys; iOS simulator
+./test --ios               # calendar + child + grid UI journeys; iOS simulator
 ./test --android           # same journeys; Android emulator
 ./test --ios --scenario calendar  # only CAL-MOB-001
 ./test --ios --scenario child     # only CHILD-NATIVE-001
+./test --ios --scenario grid      # only CAL-GRID-MOB-001/002/003
 ```
 
 The runner selects a running supported simulator/emulator automatically, or
@@ -102,7 +108,7 @@ own database/key teardown. First builds can take several minutes.
 Watch UI actions in Simulator/Android Emulator. Terminal prints PASS/FAIL and
 the full log path under ignored `test-results/`. The command returns nonzero
 on setup/test failure and stops at the first failed scenario. Native mode uses
-an explicit two-file allowlist, not the whole integration directory: neither
+an explicit calendar/child/grid allowlist, not the whole integration directory: neither
 backup portability direction is run. These commands do not run backend tests,
 production-provider checks or the complete CI quality gates. BUG-012 remains
 pending; this helper does not change CI.

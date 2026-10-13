@@ -53,12 +53,19 @@ in-repository record while Sarti has no external tracker.
   Keep Sarti's repositories, encryption, authorization, recurrence/DST rules and
   sync protocol authoritative; map existing occurrences to the widget through
   a presentation adapter. Widget callbacks must use existing validated edit/save
-  flows and must not introduce silent event mutations. No dependency installed
-  or compatible version verified yet.
+  flows and must not introduce silent event mutations.
+- Implementation update (2026-10-12): Pinned Kalender 0.33.0 with resolved
+  transitive locks, recorded accepted ADR-033 and added the presentation adapter,
+  day/week/month grids, navigation and agenda. Added prepared grid/native and
+  adapter regressions. Static analysis and Python tooling tests pass, but the
+  Flutter unit/widget suite and native iOS/Android grid commands failed.
+  Logs were saved without failure diagnosis
+  per maintainer instruction. BUG-016 remains open; see
+  `../testing/BUG-016-VERIFICATION.md` for execution status and log paths.
 - Required tests: Prepared day/week/month widget/native scenarios covering
   positioning, duration, overlap, date navigation, empty/dense schedules, shared
   child assignments, text scaling/accessibility, overnight and DST behavior.
-  Pending design/implementation; no tests run. This is a P0 presentation gap,
+  Implementation is pending successful verification. This is a P0 presentation gap,
   not a deferred Stage 4 feature.
 
 ### BUG-015 — Every child added through the app receives the same colour

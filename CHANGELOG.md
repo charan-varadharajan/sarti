@@ -67,6 +67,13 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
   harness for prepared data, direct flow entry, emulator execution, and teardown.
 
 ### Corrected
+- BUG-016: integrate pinned Kalender 0.33.0 day/week time grids and month grid,
+  with period/Today navigation, narrow-phone week scrolling, selected-day agenda,
+  child labels, start/end display and overlapping/overnight occurrences.
+  Disable widget create/drag/resize paths; retain Sarti's encrypted repositories
+  and recurrence engine. ADR-033, dependency review and prepared regressions added.
+  Verification incomplete: Flutter unit/widget suite and native iOS/Android grid
+  commands failed; BUG-016 remains open. Failure logs retained without diagnosis.
 - BUG-003: complete encrypted child-profile synchronization with stable resource
   IDs, atomic local writes, explicit read-only sharing for current calendar
   guardians, signed recipient-scoped sealed keys, verified epoch rotation and

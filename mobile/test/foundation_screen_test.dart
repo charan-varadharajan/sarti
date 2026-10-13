@@ -51,6 +51,9 @@ void main() {
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
+    await tester.tap(find.byTooltip('Show agenda'));
+    await tester.pumpAndSettle();
+
     expect(find.text('Swimming'), findsOneWidget);
     expect(find.textContaining('weekly'), findsOneWidget);
     expect(harness.controller.family!.events.single.childIds, hasLength(1));

@@ -3,11 +3,11 @@
 ## Developer tooling
 
 `test` delegates to `scripts/run_tests.py`: Flutter unit/widget execution or
-explicit prepared native calendar/child scenarios, automatic simulated-device
+explicit prepared native calendar/child/grid scenarios, automatic simulated-device
 selection/startup, streamed logs and failure exit codes. No dependencies beyond
 Python standard library and installed platform tools. Regression coverage is in
-`scripts/test_run_tests.py`; added but not executed by the assistant per the
-maintainer's test-ownership preference. Backup portability is excluded.
+`scripts/test_run_tests.py`. Assistant test execution follows the latest
+maintainer instruction in CONTRIBUTING.md. Backup portability is excluded.
 
 ## Mobile
 
@@ -22,6 +22,7 @@ maintainer's test-ownership preference. Backup portability is excluded.
 | `features/calendar/domain` | Event, recurrence, IANA timezone/DST behavior | Recurrence unit tests |
 | `features/calendar/data` | Atomic family/child/event repository, explicit child sharing intent, safe profile placeholders, outbox, durable event conflicts, reminders | Repository/sync tests |
 | `features/calendar/presentation` | Progressive onboarding, Today/Week/Month, edit/assign/cancel/delete/conflict UI | Widget journey |
+| `features/calendar/presentation` grid adapter | ADR-033 Kalender day/week/month, range/Today navigation, selected-day and accessible agenda, occurrence duration/overnight/DST conversion; layout never writes | `calendar_occurrence_adapter_test.dart`, `calendar_grid_test.dart`, prepared native grid scenarios |
 | `features/sync` | Version vectors, exact-envelope retries, authenticated child/calendar dispatch, signed sealed-key exchange and epoch convergence | Child sync/security/widget/native scenarios; PostgreSQL grant/relay contracts |
 | `features/push` | FCM token lifecycle and strict opaque wake-up coalescing into encrypted sync | 6 coordinator unit tests; provider/device delivery pending |
 | `features/email` | Device-addressed sealed-box decryption, source attribution, local proposal review, and device-scoped dismissal | Ciphertext/tamper unit tests and approval widget flow |

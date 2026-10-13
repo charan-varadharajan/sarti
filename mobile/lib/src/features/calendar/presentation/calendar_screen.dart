@@ -4,7 +4,7 @@ import 'package:sarti_mobile/src/features/ai/cloud_ai_consent_dialog.dart';
 import 'package:sarti_mobile/src/features/ai/native_ai_provider.dart';
 import 'package:sarti_mobile/src/features/ai/natural_language_event_dialog.dart';
 import 'package:sarti_mobile/src/features/calendar/domain/calendar_event.dart';
-import 'package:sarti_mobile/src/features/calendar/domain/recurrence.dart';
+import 'package:sarti_mobile/src/features/calendar/presentation/family_calendar_view.dart';
 import 'package:sarti_mobile/src/features/calendar/presentation/calendar_controller.dart';
 import 'package:sarti_mobile/src/features/email/email_suggestion_inbox.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -31,7 +31,6 @@ class CalendarScreen extends StatelessWidget {
     builder: (context, _) {
       final family = controller.family;
       if (family == null) return _FamilyOnboarding(controller: controller);
-      final visibleEvents = _visibleEvents(family.events);
       return Scaffold(
         appBar: AppBar(
           title: Text(family.name),
@@ -118,105 +117,20 @@ class CalendarScreen extends StatelessWidget {
               ),
             ),
             Expanded(
-              child: visibleEvents.isEmpty
-                  ? const _EmptyCalendar()
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(12, 4, 12, 96),
-                      itemCount: visibleEvents.length,
-                      itemBuilder: (context, index) {
-                        final item = visibleEvents[index];
-                        final event = item.event;
-                        final child = family.children
-                            .where((item) => event.childIds.contains(item.id))
-                            .firstOrNull;
-                        return Card(
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: child == null
-                                  ? Theme.of(context)
-                                        .colorScheme
-                                        .primaryContainer
-                                  : Color(child.colorArgb),
-                              child: const Icon(Icons.event),
-                            ),
-                            title: Text(event.title),
-                            subtitle: Text(
-                              _eventSummary(
-                                event,
-                                item.displayStart,
-                                child?.name,
-                              ),
-                            ),
-                            onTap: () => _editEvent(context, event),
-                            trailing: PopupMenuButton<String>(
-                              onSelected: (value) {
-                                if (value == 'cancel') controller.cancel(event);
-                                if (value == 'delete') controller.delete(event);
-                              },
-                              itemBuilder: (_) => const [
-                                PopupMenuItem(
-                                  value: 'cancel',
-                                  child: Text('Cancel event'),
-                                ),
-                                PopupMenuItem(
-                                  value: 'delete',
-                                  child: Text('Delete event'),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+              child: FamilyCalendarView(
+                family: family,
+                range: controller.range,
+                timezone: controller.timezone,
+                onEdit: (event) => _editEvent(context, event),
+                onCancel: controller.cancel,
+                onDelete: controller.delete,
+              ),
             ),
           ],
         ),
       );
     },
   );
-
-  List<({CalendarEvent event, DateTime displayStart})> _visibleEvents(
-    List<CalendarEvent> events,
-  ) {
-    final location = tz.getLocation(controller.timezone);
-    final now = tz.TZDateTime.now(location);
-    final dayStart = tz.TZDateTime(location, now.year, now.month, now.day);
-    final rangeStart = switch (controller.range) {
-      CalendarRange.today => dayStart,
-      CalendarRange.week => dayStart.subtract(
-        Duration(days: dayStart.weekday - DateTime.monday),
-      ),
-      CalendarRange.month => tz.TZDateTime(location, now.year, now.month),
-    };
-    final rangeEnd = switch (controller.range) {
-      CalendarRange.today => rangeStart.add(const Duration(days: 1)),
-      CalendarRange.week => rangeStart.add(const Duration(days: 7)),
-      CalendarRange.month => tz.TZDateTime(location, now.year, now.month + 1),
-    };
-    final result = <({CalendarEvent event, DateTime displayStart})>[];
-    for (final event in events) {
-      for (final occurrence in occurrencesBetween(
-        event,
-        rangeStart.toUtc(),
-        rangeEnd.toUtc(),
-      )) {
-        result.add((event: event, displayStart: occurrence.startsAt));
-      }
-    }
-    result.sort(
-      (left, right) => left.displayStart.compareTo(right.displayStart),
-    );
-    return result;
-  }
-
-  String _eventSummary(CalendarEvent event, DateTime start, String? childName) {
-    final recurring = event.recurrence == null
-        ? ''
-        : ' · ${event.recurrence!.frequency.name}';
-    final child = childName == null ? '' : ' · $childName';
-    final pickup = event.pickupGuardianId == null ? '' : ' · pickup assigned';
-    return '${start.month}/${start.day} ${TimeOfDay.fromDateTime(start).format24()}$child$recurring$pickup';
-  }
 
   Future<void> _addWithNaturalLanguage(BuildContext context) async {
     final saved = await showNaturalLanguageEventDialog(
@@ -573,24 +487,4 @@ class _FamilyOnboarding extends StatelessWidget {
       ),
     ),
   );
-}
-
-class _EmptyCalendar extends StatelessWidget {
-  const _EmptyCalendar();
-  @override
-  Widget build(BuildContext context) => const Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(Icons.calendar_month_outlined, size: 48),
-        SizedBox(height: 12),
-        Text('No events yet'),
-      ],
-    ),
-  );
-}
-
-extension on TimeOfDay {
-  String format24() =>
-      '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
 }

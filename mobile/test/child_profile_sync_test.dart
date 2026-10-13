@@ -600,6 +600,8 @@ void main() {
         MaterialApp(home: CalendarScreen(controller: controller)),
       );
       await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Show agenda'));
+      await tester.pumpAndSettle();
       expect(find.textContaining('Mia'), findsOneWidget);
       expect(
         tester

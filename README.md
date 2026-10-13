@@ -35,8 +35,8 @@ Quick local Flutter tests (from this directory):
 
 ```sh
 ./test             # unit/widget tests, no device needed
-./test --ios       # prepared UI journeys on an iOS simulator
-./test --android   # prepared UI journeys on an Android emulator
+./test --ios       # prepared calendar/child/grid UI journeys on an iOS simulator
+./test --android   # prepared calendar/child/grid UI journeys on an Android emulator
 ```
 
 Console shows pass/fail; logs are saved in `test-results/`. The runner starts an
