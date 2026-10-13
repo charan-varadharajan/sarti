@@ -1,6 +1,6 @@
 # BUG-010 — Replacement epoch verification
 
-Date: 2026-10-12. Status: **Failed-test spot fixes pass; full-suite rerun pending.**
+Date: 2026-10-12. Status: **Resolved; full automated verification passes.**
 
 ## Scope and approvals
 
@@ -44,7 +44,7 @@ lost self-grant response recovery, and refusal to invent initial/established
 keys. The shared fixture gains a one-shot lost-grant-response injection.
 Stable IDs and prepared entry/teardown are in TEST-SCENARIOS.md.
 
-## Executed checks
+## Initial executed checks
 
 All output saved under ignored `test-results/bug010-*.log`. Only process exit
 status was inspected; no test counts, failure identities or diagnosis inferred.
@@ -86,20 +86,51 @@ active-only grant assertions remain intact. No application behavior changed.
 - Logs: `test-results/bug010-spot-tests.log`, `bug010-spot-format.log`.
 - Full Flutter suite, backend checks and native tests were not rerun in this
   follow-up, as requested. The initial full-suite failure remains historical
-  evidence, not a claim that the corrected full suite passes. BUG-010 remains
-  open pending full verification; the secret scan is still unexecuted.
+  evidence, not a claim that the corrected full suite passed at that point.
+  BUG-010 remained open then; subsequent closure results are recorded below.
 
-## Limits and next action
+## Closure verification
 
-No native simulator/emulator rerun or shipping build performed after the failing
-Flutter suite. Neither backup portability direction ran; Android-to-iOS remains
-explicitly deferred. No new device authentication bypass was added.
+The maintainer authorized full verification and closure. The final source is
+`c685fa1` (implementation) plus `a54ec74` (test-only corrections). All command
+exit statuses below passed; failure logs were not inspected and counts are not
+inferred. The initial failed Flutter run above is historical, superseded by
+this successful full rerun.
+
+| Check | Final result / saved log |
+| --- | --- |
+| Isolated PostgreSQL setup and `alembic upgrade head` | PASS; `bug010-migrations.log` |
+| Full backend `pytest --cov=sarti_backend --cov-report=term-missing` | PASS; `bug010-backend.log` |
+| Ruff format / lint | PASS; `bug010-ruff-format.log`, `bug010-ruff.log` |
+| Strict Mypy / Bandit | PASS; `bug010-mypy.log`, `bug010-bandit.log` |
+| Runtime dependency audit | PASS; `bug010-dependency.log` |
+| Full Dart format / Flutter analysis | PASS; `bug010-final-format.log`, `bug010-final-analyze.log` |
+| Full Flutter unit/widget suite with coverage | PASS; `bug010-final-flutter.log` |
+| Offline pinned Gitleaks scan of BUG-010 committed changes | PASS; `bug010-final-secret-scan.log` |
+| Regenerated OpenAPI has no drift | PASS |
+| Version integrity (`0.1.0+1`) / whitespace check | PASS |
+
+The initial secret-scan command was rejected by automatic approval review. A
+safer scan used the already cached exact image digest with `--pull=never`,
+`--network=none`, read-only filesystem, no mounted host directories, dropped
+capabilities and no-new-privileges. It scanned the committed BUG-010 diff locally
+and passed. No source was sent to an external service.
+
+BUG-010 is closed for the implemented replacement protocol and automated
+regressions. No application changes were made during closure verification.
+
+## Remaining platform limits
+
+No native simulator/emulator rerun or shipping build was performed during this
+closure check: changes are shared Dart key coordination and backend transactions,
+with no native bridge/UI/schema changes. Neither backup portability direction
+ran; Android-to-iOS remains explicitly deferred. No authentication bypass added.
 
 Physical passkeys, Keychain/Keystore, real recovery UI interruptions, production
-network transport and two physical phones remain unverified. The controlled
-relay and stubbed WebAuthn verifier do not establish these guarantees.
-Historical copies cannot be erased; missing historical keys/snapshots still fail
-closed. The server never receives plaintext resource or recovery keys.
+network transport and two physical phones remain unverified release checks.
+The controlled relay and stubbed WebAuthn verifier do not establish these
+capabilities. Historical copies cannot be erased; missing historical keys or
+snapshots still fail closed. Servers never receive plaintext resource/recovery
+keys. These limits remain documented rather than inferred from passing mocks.
 
-Do not move to another defect or Stage 4 automatically. Full verification and
-the blocked secret scan remain outstanding; scoped failed-test fixes pass.
+Do not move to another defect or Stage 4 automatically.

@@ -135,36 +135,6 @@ in-repository record while Sarti has no external tracker.
   explicit instruction not to run Android-to-iOS backup scenario
   `BACKUP-XPLAT-002` until separately authorized. Pending; no CI change yet.
 
-### BUG-010 — Device replacement revokes access without advancing resource-key epochs
-- Severity: High
-- Component: `backend/src/sarti_backend/api/auth.py`, device/resource lifecycle
-- Discovered: 2026-10-12 during BUG-003 security review
-- Blocking: Release; ADR-020 replacement-device protection for future content
-- Summary: Successful passkey authentication revokes existing devices/sessions
-  and issues a new device ID, but does not increment affected resource epochs.
-  A replaced phone retains old keys; later ciphertext using unchanged epochs
-  remains decryptable if obtained outside the authenticated relay.
-- Evidence: `authentication_complete` updates devices/sessions and creates the
-  new device without updating resources. Existing replacement API tests prove
-  old-session rejection, not cryptographic future-content separation.
-- Workaround: No shipped cryptographic workaround. Keep device replacement out
-  of release acceptance until rekeying is verified. Revocation does not erase
-  earlier copies.
-- Implementation update (2026-10-12): Added atomic scoped epoch advancement,
-  adult/resource locking, post-lock active-granter validation and restored-admin
-  initialization of an unclaimed advanced epoch. Prepared PostgreSQL/crypto and
-  mobile recovery/interruption tests added. Backend regression/security suite,
-  migrations, Ruff/Mypy/Bandit and dependency audit pass. Flutter format/analyze
-  pass. Follow-up inspected only three failure blocks: initialize test timezones
-  and assert inaccessible-resource skipping leaves the future key absent.
-  All three failed-test reruns pass; full suite not rerun at maintainer direction.
-  BUG-010 remains open pending full verification and the blocked secret scan; see
-  `../testing/BUG-010-VERIFICATION.md`.
-- Required action: Implement the accepted ADR-020 replacement transition with
-  epoch advancement, remaining-device rekey/grants, interrupted-transition and
-  stale-key tests. Preserve single-active-phone rules and recovery. This is a
-  separate defect, not addressed by the BUG-003 child creation fix.
-
 ### BUG-011 — Multi-device version-vector order changes authenticated metadata
 - Severity: Medium
 - Component: `core/crypto/resource_crypto.dart`, sync AAD encoding, PostgreSQL relay
@@ -217,6 +187,26 @@ in-repository record while Sarti has no external tracker.
 ---
 
 ## Resolved defects
+
+### BUG-010 — Device replacement did not advance resource-key epochs
+- Severity: High
+- Component: authentication, resource-key lifecycle and sync
+- Discovered: 2026-10-12
+- Fixed: 2026-10-12
+- Fix version: Unreleased
+- Fix commits: `c685fa1` (implementation), `a54ec74` (test setup/expectations)
+- Disposition: Active-phone replacement atomically advances accessible live
+  resource epochs with revocation and new device/session creation. Ordered
+  resource locks serialize uploads/grants; stale new writes and revoked-device
+  grants fail. Remaining/recovered admins establish fresh signed sealed keys
+  without restoring old identity or silently replacing an established key.
+- Verification: Full PostgreSQL/backend tests, migration checks, full Flutter
+  tests, format/analysis, Ruff/Mypy/Bandit, dependency audit, offline pinned
+  Gitleaks, OpenAPI drift and version checks PASS. See
+  `../testing/BUG-010-VERIFICATION.md` for commands and limits.
+- Remaining boundaries: Physical passkeys/protected storage, production recovery
+  transport and two-phone tests remain release validation. Historical copies
+  cannot be erased. No other bug or Stage 4 scope is included.
 
 ### BUG-016 — Day/week/month controls reused one agenda list without calendar grids
 - Severity: Medium

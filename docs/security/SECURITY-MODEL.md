@@ -66,14 +66,13 @@ available to it. Revocation protects future access and is not remote erasure.
 
 ADR-020 and `../architecture/KEY-MANAGEMENT.md` specify the implemented device/resource lifecycle.
 Guardian removal increments every resource epoch and prevents future grants.
-BUG-010 implements scoped device-replacement epoch advancement in the same
-transaction as revocation and fresh session creation, with serialized sync/grant
-publication and current-device checks. Backend regression/security tests pass;
-the initial Flutter suite failed. Authorized targeted fixes now pass all three
-previously failing tests; full-suite verification and secret scan remain pending. BUG-010
-remains a High-severity release blocker until mobile verification is resolved;
-do not claim end-to-end replacement acceptance. See
-`../testing/BUG-010-VERIFICATION.md`.
+BUG-010 is resolved: device replacement advances accessible live resource
+epochs in the same transaction as revocation and fresh session creation.
+Serialized resource publication and current-device checks reject stale writes
+and revoked granters. Full backend/mobile automated regression and security
+checks pass; physical passkey/protected-storage and production two-phone
+validation remain required before release. See
+`../testing/BUG-010-VERIFICATION.md` for evidence and limits.
 Backup derivation is independent of sync keys. Approved ADR-032 encrypts the
 SQLCipher key inside the v2 snapshot envelope and gates the durable server blob
 to active family owners. Login permits download but never decryption. Local

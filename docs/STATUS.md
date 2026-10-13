@@ -2,19 +2,16 @@
 
 - Current stage: Stage 3 — AI proposals, email intake, push notifications, and backup/recovery
 - Updated: 2026-10-12
-- Stage state: remediation in progress; BUG-001/002/003 remediation delivered; provider/device validation and BUG-004/005/010/011/012/013/014/015 outstanding
+- Stage state: remediation in progress; BUG-001/002/003 remediation delivered; provider/device validation and BUG-004/005/011/012/013/014/015 outstanding
 - Repository version: `0.1.0+1`; no public release tag
 
 ## Current result
 
-BUG-010 replacement epoch remediation is implemented, with PostgreSQL/API,
-rollback/concurrency and cryptographic regressions. Backend tests/migrations,
-Ruff/Mypy/Bandit, dependency audit and Flutter formatting/analysis pass. The
-initial Flutter test suite failed. Authorized spot fixes corrected three test
-setup/expectation errors; all three reruns pass. Full suite was not rerun.
-BUG-010 remains open and release-blocking. See
-`testing/BUG-010-VERIFICATION.md`; no other bug was addressed.
-
+BUG-010 is resolved. Full PostgreSQL/backend and Flutter regression suites,
+migrations, static/security/dependency checks, offline pinned secret scan,
+OpenAPI drift and version integrity all pass on the corrected source. See
+`testing/BUG-010-VERIFICATION.md` for commands and remaining physical-device
+release checks. No other defect was changed.
 
 BUG-016 Kalender 0.33.0 presentation integration is resolved under ADR-033.
 Two incorrect test expectations were corrected; application behavior did not
@@ -112,11 +109,6 @@ BUG-002 and BUG-003 verification reports; provider/device results are not inferr
 
 ## Remaining Stage 2 and Stage 3 work
 
-- BUG-010 (High): passkey device replacement revokes the old phone but does not
-  advance resource-key epochs in the original implementation. The ADR-020
-  remediation passes backend checks and the three corrected Flutter test reruns.
-  A full-suite rerun and blocked secret scan remain pending.
-  Resolve verification before release; old keys must not decrypt future content.
 - BUG-011 (Medium): PostgreSQL JSONB can reorder multi-author logical vectors,
   causing insertion-ordered AAD authentication failure. Real-backend concurrent
   calendar editing needs canonical/compatible encoding and a round-trip test.
