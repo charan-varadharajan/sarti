@@ -7,6 +7,15 @@
 
 ## Current result
 
+Remaining BUG-005 integration has a reviewable proposal in
+`architecture/adr/037-server-managed-cloud-assist.md`: disabled billing-backed
+broker, explicitly disclosed Sarti processing, server-only credentials and
+atomic usage caps. Provider terms prohibit sensitive/personal input to unpaid
+services; paid processing still has retention limits requiring disclosure.
+ADR-037 is proposed, not accepted. No runtime/API/schema change or billing
+activation was made during this design review.
+
+
 BUG-005 privacy controls are tightened under approved ADR-036: fresh per-request
 labels, no model-payload requester IDs, bounded supported-token submission,
 source-grounded output and renewed consent. Privacy/UI/public-copy guidance

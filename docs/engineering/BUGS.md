@@ -169,6 +169,12 @@ in-repository record while Sarti has no external tracker.
   This does not wire cloud credentials or establish live provider compatibility;
   BUG-005 remains open for that integration. Automated results are recorded in
   `../testing/BUG-005-PRIVACY-VERIFICATION.md`.
+- Provider review (2026-10-13): Official Gemini terms prohibit sensitive/personal
+  information on unpaid services; paid services still retain content temporarily
+  for abuse monitoring. Fresh labels do not establish unpaid-service eligibility.
+  Proposed ADR-037 documents a disabled billing-backed broker, explicit server
+  processing boundary and atomic usage caps. Not approved or implemented; no
+  billing activation or provider call was performed.
 - Required action: Approve a provider credential architecture that preserves
   ADR-036 minimization and explicit consent without exposing a reusable key,
   then implement and perform a live provider test.

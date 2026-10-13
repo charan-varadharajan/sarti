@@ -67,6 +67,9 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
   harness for prepared data, direct flow entry, emulator execution, and teardown.
 
 ### Corrected
+- BUG-005: record verified Gemini unpaid-service restrictions and paid-service
+  retention limits. Draft ADR-037 for a disabled server credential broker,
+  explicit processing boundary and usage caps; implementation awaits approval.
 - BUG-005: approved ADR-036 replaces transmitted stable aliases/raw sentences
   with fresh request-scoped labels and a fail-closed scheduling-token payload;
   only source-supported time/recurrence output may enrich a proposal. Renew

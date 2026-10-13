@@ -45,5 +45,7 @@ unresolved rather than inferred.
 
 | [ADR-036](adr/036-request-scoped-cloud-privacy.md) | Request-scoped labels, minimized cloud input and accurate privacy claims | Accepted; supersedes ADR-028 cloud transmission policy |
 
+| [ADR-037](adr/037-server-managed-cloud-assist.md) | Server-managed cloud assist, paid-service gate and bounded usage | Proposed; approval required before implementation |
+
 New records use the next three-digit number. Accepted decisions are changed only
 by an explicitly approved superseding ADR.
