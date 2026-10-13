@@ -23,6 +23,26 @@ in-repository record while Sarti has no external tracker.
 
 ## Open defects
 
+### BUG-013 — Multi-event natural-language input is reduced to one proposal
+- Severity: Medium
+- Component: `features/ai/event_parser.dart`, `natural_language_event_dialog.dart`
+- Discovered: 2026-10-12 during maintainer simulator testing
+- Blocking: Reliable natural-language entry of multiple independently timed events
+- Summary: A sentence describing the same activity for two children at different
+  times produces only one entry. Synthetic reproduction: "Tomorrow karate for
+  Alex at 5 pm and Sam at 7 pm."
+- Root cause: `AiProvider.parse` returns a single `EventProposal`; deterministic
+  time extraction uses the first match and the review/save UI owns one event.
+  Native enrichment also feeds the single-proposal review path.
+- Workaround: Enter and approve each child's event separately, checking the
+  date, time and child assignment in each preview.
+- Proposed action: Detect multiple event clauses; present separate editable
+  proposals with explicit confirmation and undo. Carry shared date/activity only
+  when unambiguous; require clarification otherwise. Never silently discard a
+  clause or create an event automatically. Add parser, review/approval, no-write
+  before approval, ambiguity and prepared native UI regressions. Pending design
+  review; no implementation or test execution yet.
+
 ### BUG-012 — iOS simulator integration tests are absent from CI
 - Severity: Medium
 - Component: `.github/workflows/ci.yml`, `mobile/integration_test/`

@@ -21,6 +21,9 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
 ## [Unreleased]
 
 ### Added
+- Record BUG-013 from manual simulator feedback: multi-event natural-language
+  input is reduced to a single proposal; separate-entry workaround and proposed
+  explicit multi-proposal review documented. Not fixed yet.
 - Simple local test entry point: `./test`, `./test --ios`, and
   `./test --android`, with automatic simulator/emulator startup/selection,
   prepared calendar/child journeys, console pass/fail and ignored saved logs.
