@@ -21,6 +21,9 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
 ## [Unreleased]
 
 ### Added
+- Record BUG-015: add-child UI hardcodes one colour for every child; document
+  distinct defaults, parent selection and encrypted existing-profile correction
+  requirements. Implementation remains pending.
 - BUG-014 approved interaction: Undo opens an editable saved-event preview;
   Delete removes the event, Cancel discards preview edits, and Save is enabled
   only for valid changes. Replace the prior immediate-deletion proposal;

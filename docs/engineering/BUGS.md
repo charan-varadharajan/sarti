@@ -23,6 +23,26 @@ in-repository record while Sarti has no external tracker.
 
 ## Open defects
 
+### BUG-015 — Every child added through the app receives the same colour
+- Severity: Medium
+- Component: `features/calendar/presentation/calendar_screen.dart`, child profiles
+- Discovered: 2026-10-12 during maintainer simulator testing
+- Blocking: P0 child-specific colour-coded schedule acceptance
+- Summary: Multiple children have identical calendar colour indicators.
+- Root cause: The add-child UI hardcodes `0xFF8E6CEF` for every new profile;
+  there is no colour selection or distinct default assignment.
+- Workaround: None through the shipping child UI; review child assignments
+  explicitly rather than relying on colour.
+- Proposed action: Choose distinct defaults from an accessible palette using
+  existing household colours, and let parents choose a colour before creation.
+  Keep names/labels alongside colour; handle palette exhaustion explicitly.
+  Existing duplicate-colour profiles need a deliberate correction path that
+  preserves encrypted synchronization semantics; do not silently recolour only
+  one device. Calendar currently shows the first assigned child's colour for
+  shared events; define clear indicators for multiple children as part of design.
+  Add prepared two-child widget/native tests, persistence/encrypted-delivery
+  checks and shared-event/palette edge cases. Pending implementation; no tests run.
+
 ### BUG-014 — Event-added Undo action persists indefinitely
 - Severity: Medium
 - Component: `features/calendar/presentation/calendar_screen.dart`
