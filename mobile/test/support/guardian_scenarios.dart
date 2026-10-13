@@ -53,17 +53,43 @@ void guardianScenarios() {
       );
       await tester.tap(find.byKey(const Key('guardian-create-invitation')));
       await tester.pumpAndSettle();
-      final qr = tester.widget<QrImageView>(
-        find.byKey(const Key('guardian-invitation-qr')),
+      final qrFinder = find.byKey(const Key('guardian-invitation-qr'));
+      final qr = tester.widget<QrImageView>(qrFinder);
+      final painter =
+          tester
+                  .widget<CustomPaint>(
+                    find.descendant(
+                      of: qrFinder,
+                      matching: find.byType(CustomPaint),
+                    ),
+                  )
+                  .painter!
+              as QrPainter;
+      // Compare the actual rendered QR with the expected token-only payload.
+      // QrImageView deliberately does not expose its private data field.
+      final expected = QrPainter(
+        data: invitationLink(g.token),
+        version: qr.version,
+        errorCorrectionLevel: qr.errorCorrectionLevel,
+        gapless: qr.gapless,
+        eyeStyle: qr.eyeStyle,
+        dataModuleStyle: qr.dataModuleStyle,
       );
-      expect(qr.data, invitationLink(g.token));
+      await tester.runAsync(() async {
+        final actualImage = await painter.toImageData(224);
+        final expectedImage = await expected.toImageData(224);
+        expect(
+          actualImage!.buffer.asUint8List(),
+          orderedEquals(expectedImage!.buffer.asUint8List()),
+        );
+      });
       await tester.ensureVisible(find.byKey(const Key('guardian-share-link')));
       await tester.tap(find.byKey(const Key('guardian-share-link')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('guardian-copy-link')));
       await tester.pumpAndSettle();
-      expect(shared, qr.data);
-      expect(copied, qr.data);
+      expect(shared, invitationLink(g.token));
+      expect(copied, invitationLink(g.token));
       await tester.pumpWidget(
         MaterialApp(home: GuardianScreen(coordinator: g.guardian)),
       );

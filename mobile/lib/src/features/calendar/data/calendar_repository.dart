@@ -199,8 +199,9 @@ class CalendarRepository {
               'SELECT 1 FROM outbox WHERE operation_id=?',
               [id],
             ).isNotEmpty,
-          ))
+          )) {
         return;
+      }
       // Recovery clears the old identity's outbox. Explicit retry must publish
       // a fresh scoped handoff, rather than trusting an orphaned progress flag.
     }
@@ -409,9 +410,10 @@ class CalendarRepository {
         'INSERT OR REPLACE INTO app_preferences(key,value) VALUES (?,?)',
         ['guardian-ready-$familyId', 'true'],
       );
-      database.raw.execute('INSERT INTO applied_operations VALUES (?)', [
-        operationId,
-      ]);
+      database.raw.execute(
+        'INSERT INTO applied_operations(operation_id, applied_at) VALUES (?, ?)',
+        [operationId, DateTime.now().toUtc().toIso8601String()],
+      );
     });
     return RemoteApplyResult.applied;
   }

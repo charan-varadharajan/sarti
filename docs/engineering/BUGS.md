@@ -149,28 +149,6 @@ in-repository record while Sarti has no external tracker.
   explicit instruction not to run Android-to-iOS backup scenario
   `BACKUP-XPLAT-002` until separately authorized. Pending; no CI change yet.
 
-### BUG-004 — Guardian invitation/approval not connected to shipping mobile journey
-- Severity: Medium
-- Component: `mobile/lib/src/features/`, backend `api/households.py`
-- Discovered: 2026-10-11
-- Blocking: Stage 2 multi-guardian acceptance and therefore final Stage 3 acceptance
-- Summary: Guardian invitation and approval exist in backend and protocol tests
-  but are not connected to a complete shipping mobile UI journey. A second
-  guardian cannot be added through the app.
-- Root cause: Mobile UI for invitation flow was not implemented in Stage 2/3.
-- Workaround: Single-guardian families are unaffected.
-- Implementation update (2026-10-13): Share sheet/copy/QR links, explicit
-  acceptance, pinned-device owner review, resource permissions, cancellation,
-  retries/removal, read-only UI and encrypted initial handoff implemented under
-  ADR-035. Migration 0007 records guardian relay baselines. Prepared unit/widget/
-  native and real HTTP/PostgreSQL/Dart tests added. Backend/migration/security,
-  tooling, dependency, Docker health and shipping iOS/Android builds PASS.
-  Flutter analysis/full suite, real HTTP guardian host and both prepared native
-  commands FAIL. Logs uninspected; remains open. See
-  `../testing/BUG-004-VERIFICATION.md`.
-- Required action: Complete and verify the Stage 2 mobile invitation, approval,
-  resource-permission, and key-grant journey before Stage 3 can be accepted.
-
 ### BUG-005 — Optional Gemini adapter is not connected to a safe shipping credential path
 - Severity: Medium
 - Component: `mobile/lib/src/features/ai/`, backend configuration, ADR-023
@@ -191,6 +169,27 @@ in-repository record while Sarti has no external tracker.
 ---
 
 ## Resolved defects
+
+### BUG-004 — Guardian invitation/approval not connected to shipping mobile journey
+- Severity: Medium
+- Component: Guardian mobile journey, household API and encrypted handoff
+- Discovered: 2026-10-11
+- Fixed: 2026-10-13 — implementation `820f42d`, targeted verification follow-up
+- Fix version: Unreleased
+- Disposition: Approved ADR-035 adds share/copy/QR invitations, explicit acceptance,
+  pinned-device approval, resource permissions, cancellation/retry/removal,
+  read-only UI and scoped encrypted current-state handoff. Migration 0007 records
+  relay baselines. Follow-up repairs QR test API usage, test-engine initialization
+  and the missing applied-operation timestamp that rolled back profile readiness.
+- Verification: Analysis, full Flutter suite (136 pass, 2 opt-in skips), real
+  HTTP/PostgreSQL/Dart handoff and prepared iOS/Android guardian journeys (3 each)
+  PASS. Backend/migration/security, dependency, tooling, Docker health and shipping
+  builds passed during implementation. Offline secret scan and version checks pass.
+  See `../testing/BUG-004-VERIFICATION.md` for exact runs and limits.
+- Remaining acceptance boundaries: Physical camera/link/share/passkey/protected
+  storage and production two-phone validation remain unverified. No in-app QR
+  scanner or universal-link landing page; compatible installed-app reader/paste
+  fallback applies. No other bug or Stage 4 work was started.
 
 ### BUG-011 — PostgreSQL map ordering broke multi-author ciphertext authentication
 - Severity: Medium

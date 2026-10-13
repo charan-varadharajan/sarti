@@ -183,7 +183,7 @@ void main() {
         'Guardian approved. The encrypted calendar has been shared.',
       );
       await guardian.refresh();
-      expect(guardian.ready, isTrue);
+      expect(guardian.ready, isTrue, reason: guardian.message);
       final received = repos[1].load()!;
       expect(received.name, 'Prepared household');
       expect(received.children.map((c) => c.name), ['Mia']);

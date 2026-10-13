@@ -2,7 +2,7 @@
 
 - Current stage: Stage 3 — AI proposals, email intake, push notifications, and backup/recovery
 - Updated: 2026-10-13
-- Stage state: remediation in progress; BUG-001/002/003 remediation delivered; provider/device validation and BUG-004/005/012/013/014/015/017 outstanding
+- Stage state: remediation in progress; BUG-001/002/003/004 remediation delivered; provider/device validation and BUG-005/012/013/014/015/017 outstanding
 - Repository version: `0.1.0+1`; no public release tag
 
 ## Current result
@@ -10,9 +10,11 @@
 BUG-004 guardian onboarding is implemented under ADR-035: share/copy/QR,
 acceptance, verified owner approval, scoped initial encryption and read-only UI.
 Migration 0007 adds relay baselines. Backend/migration/security, dependency,
-tooling, Docker health and shipping iOS/Android builds pass. Flutter analysis/
-full tests, real HTTP guardian test and both native journey commands fail;
-logs uninspected and bug remains open. See `testing/BUG-004-VERIFICATION.md`.
+tooling, Docker health and shipping iOS/Android builds pass. After authorized
+failure investigation, the profile-apply transaction, fixture initialization and
+QR assertions were corrected. Analysis, full Flutter suite, real HTTP guardian
+test and both prepared native guardian suites pass (3 scenarios each). BUG-004
+is resolved for implemented and automated scope. See `testing/BUG-004-VERIFICATION.md`.
 Physical camera/share/link/passkey behavior requires separate validation.
 
 

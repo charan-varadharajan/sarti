@@ -1,6 +1,6 @@
 # BUG-004 — Guardian invitations, QR and scoped handoff verification
 
-Date: 2026-10-13. Status: **Implemented; verification failures keep BUG-004 open.**
+Date: 2026-10-13. Status: **Resolved for implemented/automated scope; physical/provider validation remains.**
 
 ## Approval and scope
 
@@ -78,7 +78,7 @@ failure diagnosis or automatic retry. That instruction was followed.
   native allowlist, with runner regression updated. Backup portability remains
   excluded. Existing migration tests support schema 7 and guarded teardown.
 
-## Executed results
+## Initial executed results (before authorized failure investigation)
 
 Only command exit statuses were reviewed. Failure identities, assertions,
 stack traces, build-vs-execution failure phase and test counts have not been
@@ -113,15 +113,14 @@ establishes compilation only and does not establish journey/provider success.
 
 ## Security and platform limits
 
-Server-side abuse/permission regression checks pass; mobile and cross-layer
-verification failures prevent claiming the full onboarding flow accepted or
-closing BUG-004. Source design keeps private names/content in scoped ciphertext
+Initial mobile and cross-layer failures blocked closure; the authorized
+follow-up below resolves them. Physical/provider acceptance remains separate. Source design keeps private names/content in scoped ciphertext
 and protected local storage. Packages were reviewed for targeted source logging/
 network paths and licenses; zero listed advisories is not proof of security.
 
 Share/copy tests inject capture adapters, so no messages were sent and no user
-clipboard was overwritten. Native QR rendering and workflow commands failed;
-no successful scanning is inferred. Real camera decode, OS share/clipboard,
+clipboard was overwritten. Initial native commands failed; follow-up native QR rendering and workflow
+commands pass. No successful camera scanning is inferred. Real camera decode, OS share/clipboard,
 cold/warm custom links, uninstalled-app fallback, configured production passkeys,
 Keychain/Keystore and two physical phones remain unverified. There is no HTTPS
 universal-link domain or web/app-store landing page in this fix.
@@ -134,8 +133,33 @@ Existing open event conflicts need owner resolution first; BUG-017 remains open.
 One local family and existing recovery/unknown-historical-key limitations remain.
 Neither backup portability direction ran; Android-to-iOS is explicitly deferred.
 
-## Remaining action
+## Authorized targeted follow-up — 2026-10-13
 
-Obtain the maintainer's follow-up before extracting the failing checks' details
-and making targeted fixes. Then rerun affected/full gates as authorized. Do not
-close BUG-004, start another bug or begin Stage 4 automatically.
+Maintainer requested “check failed test and fix”. Inspected only failing analysis,
+assertion and exception blocks. Corrected:
+
+- Unsupported `QrImageView.data` test accesses: compare the rendered QR image
+  against the expected token-only painter, and compare share/copy against that
+  expected invitation link. No QR-content assertion was removed.
+- Fixture sync-engine double initialization: allow the guardian relay adapter
+  to replace the prepared test engine.
+- Actual handoff defect: `applySharedHousehold` omitted the required `applied_at`
+  column. Insert both named fields inside the existing transaction, preserving
+  atomic profile/readiness/replay bookkeeping. Add timestamp and repeated-refresh
+  regression assertions; no schema or protocol change.
+- Two missing braces and an unnecessary import. A temporary exception rethrow
+  used with synthetic tests was removed; shipping bounded error handling remains.
+
+Follow-up checks: Dart formatting PASS; analysis PASS; full Flutter suite PASS
+(136 passed, 2 opt-in tests skipped); explicit real HTTP/PostgreSQL/Dart guardian
+handoff PASS. iPhone 18 Pro / iOS 27 and Android API 35 prepared guardian
+journeys PASS (3 scenarios on each). Logs: `bug004-fix-format.log`,
+`bug004-fix-analyze.log`, `bug004-fix-flutter.log`, `bug004-http-host.log`,
+`bug004-http-mobile.log`, `bug004-fix-ios.log`, `bug004-fix-android.log`.
+No backend, schema, dependency, API-wire or ADR changes were needed. Original
+backend/security/migration/dependency/build results above remain applicable;
+those suites were not repeated during the targeted fix. Version 0.1.0+1 and
+whitespace checks PASS; cached pinned offline secret scan PASS
+(`bug004-fix-secret-scan.log`). BUG-004 is resolved for implemented/automated
+scope; physical/provider checks listed above remain unexecuted. No other bug or
+stage was started.

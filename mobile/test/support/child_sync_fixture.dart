@@ -99,7 +99,7 @@ class ChildSyncDevice implements ResourceKeyApi, EncryptedRelay {
   late final SartiDatabase database;
   late final CalendarRepository repository;
   late final ResourceKeySync keySync;
-  late final SyncEngine engine;
+  late SyncEngine engine;
 
   Future<SyncReport> sync() async {
     if (fixture.offline) throw StateError('Fixture offline.');

@@ -80,6 +80,18 @@ void main() {
     expect(family.guardians.map((p) => p.name), contains('Dad'));
     expect(g.f.b.database.resourceKey(private.id, 1), isNull);
     expect(g.f.operations.every((op) => op.ciphertext.isNotEmpty), isTrue);
+    final marker = g.f.b.database.raw.select(
+      'SELECT operation_id, applied_at FROM applied_operations WHERE operation_id=?',
+      [g.f.operations.last.operationId],
+    );
+    expect(marker, hasLength(1));
+    expect(DateTime.tryParse(marker.single['applied_at'] as String), isNotNull);
+    await g.guardian.refresh();
+    expect(g.guardian.ready, isTrue);
+    expect(
+      g.f.b.repository.load()!.guardians.map((p) => p.name),
+      unorderedEquals(['Me', 'Dad']),
+    );
     expect(g.f.a.repository.load()!.events.single.revision, 1);
   });
   test('GUARD-SYNC-002 lost approval response resumes once; removal excludes future keys', () async {

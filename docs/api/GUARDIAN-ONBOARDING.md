@@ -67,7 +67,9 @@ ciphertext. Calendar events and tombstones retain IDs, durations and causal
 vectors; no user event is edited by sharing. A family-profile `household_shared`
 operation contains only encrypted family name and guardian profiles, validates
 scope and bounded fields, rejects concurrent profile replacement, and marks the
-local handoff ready after the earlier queued state. A nameless child placeholder
+local handoff ready after the earlier queued state. Profile changes, readiness
+and the timestamped applied-operation marker commit in one SQLCipher transaction;
+a failed apply rolls back all three, and duplicate delivery cannot add profiles. A nameless child placeholder
 preserves calendar assignments when its separate profile is not shared.
 
 The initial family-profile epoch may be claimed by its owner only if unclaimed;

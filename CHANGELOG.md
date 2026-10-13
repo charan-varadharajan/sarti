@@ -67,13 +67,21 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
   harness for prepared data, direct flow entry, emulator execution, and teardown.
 
 ### Corrected
+- BUG-004: correct the family-profile apply transaction to persist its required
+  timestamp, repair guardian fixture initialization and verify rendered QR
+  content through the supported painter API. Add apply-marker/repeated-refresh
+  regression coverage and resolve Flutter analysis findings. Analysis, full
+  Flutter suite (136 pass, 2 opt-in skips), real HTTP/PostgreSQL handoff and
+  iOS/Android prepared guardian suites (3 each) pass; BUG-004 resolved.
+  Physical camera/share/link/passkey validation remains outstanding.
 - BUG-004: add native share/copy and local QR invitations, explicit acceptance,
   device-code/permission approval, cancellation/retry/removal and read-only
   guardian UI. Add resource-scoped encrypted current-state handoff and metadata
   migration 0007 under ADR-035. New prepared UI/native, security and real
   PostgreSQL/HTTP/Dart regressions. Backend/migration/security, Docker health and
   shipping iOS/Android builds pass; Flutter analysis/tests, real HTTP handoff and
-  prepared native journeys fail. Logs retained without diagnosis; BUG-004 open.
+  prepared native journeys initially failed; the follow-up above fixes and
+  verifies these failures.
 - BUG-011: add approved ADR-034 protocol-2 deterministic authenticated metadata,
   persisted relay version, exact legacy retry compatibility, migration 0006 and
   real Dart/HTTP/PostgreSQL regressions. Existing ambiguous legacy ciphertext is

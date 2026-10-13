@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:app_links/app_links.dart';
 import 'package:crypto/crypto.dart';
@@ -8,8 +7,9 @@ import 'package:flutter/foundation.dart';
 final _tokenPattern = RegExp(r'^[A-Za-z0-9_-]{43}$');
 
 String invitationToken(String input) {
-  if (input.length > 256)
+  if (input.length > 256) {
     throw const FormatException('Enter a valid Sarti invitation.');
+  }
   final value = input.trim();
   if (_tokenPattern.hasMatch(value)) return value;
   final uri = Uri.tryParse(value);

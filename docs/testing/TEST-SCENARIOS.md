@@ -189,11 +189,11 @@ is included.
 
 | Scenario | Prepared fixture and direct target | Evidence |
 | --- | --- | --- |
-| `GUARD-MOB-001` | Owner family/child/event plus empty independent guardian → sharing screen → QR/share/copy → acceptance → owner code/permission review → decrypted read-only calendar | `guardian_screen_test.dart`, shared `support/guardian_scenarios.dart`, native `guardian_onboarding_scenario_test.dart` |
+| `GUARD-MOB-001` | Owner family/child/event plus empty independent guardian → sharing screen → rendered token-only QR/share/copy → acceptance → owner code/permission review → decrypted read-only calendar | `guardian_screen_test.dart`, shared `support/guardian_scenarios.dart`, native `guardian_onboarding_scenario_test.dart` |
 | `GUARD-MOB-002` | Empty guardian → malformed pasted invitation | Same widget/native suite: bounded error, no request |
 | `GUARD-MOB-003` | Prepared owner invitation → failed share / expired QR | Same suite: copy fallback remains, expired QR removed |
 | `GUARD-SEC-001/002` | Strict URI inputs / real encrypted family-profile adapter | `guardian_onboarding_test.dart`: foreign routes/query/invalid tokens rejected; wrong resource/malformed guardian leaves data unchanged |
-| `GUARD-SYNC-001` | Prepared independent SQLCipher/libsodium devices, prior relay expired → approval and scoped handoff | Same unit suite: current events/durations/guardians survive; unshared child remains nameless and has no key |
+| `GUARD-SYNC-001` | Prepared independent SQLCipher/libsodium devices, prior relay expired → approval and scoped handoff | Same unit suite: current events/durations/guardians survive; timestamped apply marker commits atomically, repeated refresh preserves one profile; unshared child remains nameless and has no key |
 | `GUARD-SYNC-002` | Prepared pending guardian → lost approval response / retry / removal | Same suite: one handoff, stable operation IDs, no future key for revoked guardian |
 | `GUARD-SYNC-003` | Approved handoff with old-identity outbox cleared → explicit retry | Same suite: orphaned progress cannot suppress a new scoped handoff |
 | `GUARD-API-001` | PostgreSQL owner/guardian/outsider and prior ciphertext → accept/review/approve | `test_guardian_onboarding_api.py`: pending/cross-family/changed-device/permission/expiry/replay/cancel/quota abuse, exact approvals, baseline filtering, removed re-enrollment |
