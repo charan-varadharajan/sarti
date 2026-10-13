@@ -43,7 +43,18 @@ in-repository record while Sarti has no external tracker.
   side-by-side overlaps, overnight events, recurrence and timezone/DST cases.
   Tapping an event opens its editor; empty grids must still show dates/time axes.
   Use the supplied image as layout guidance, without adding decorative image
-  services or unrelated features. No new dependency/provider selected.
+  services or unrelated features.
+- Approved widget selection (2026-10-12): Use the Flutter `kalender` package
+  (https://pub.dev/packages/kalender) for calendar presentation rather than
+  building time-grid layout from scratch. Before integration, review the exact
+  release, license, advisories, platform compatibility, transitive dependencies
+  and privacy behavior; pin the reviewed version and commit the resolver lock.
+  Record the dependency decision in an ADR as required by CONTRIBUTING.md.
+  Keep Sarti's repositories, encryption, authorization, recurrence/DST rules and
+  sync protocol authoritative; map existing occurrences to the widget through
+  a presentation adapter. Widget callbacks must use existing validated edit/save
+  flows and must not introduce silent event mutations. No dependency installed
+  or compatible version verified yet.
 - Required tests: Prepared day/week/month widget/native scenarios covering
   positioning, duration, overlap, date navigation, empty/dense schedules, shared
   child assignments, text scaling/accessibility, overnight and DST behavior.

@@ -21,6 +21,9 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
 ## [Unreleased]
 
 ### Added
+- BUG-016: record approved selection of `kalender` for calendar layouts, pending
+  version/dependency review and integration through Sarti's presentation layer.
+  No package installed or tests executed.
 - Record BUG-016: Today/Week/Month currently share a filtered agenda list;
   capture day time-axis, week time/date grid and month-grid requirements with
   prepared layout/accessibility regression coverage. Implementation pending.

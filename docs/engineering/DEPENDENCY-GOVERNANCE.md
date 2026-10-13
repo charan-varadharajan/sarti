@@ -54,6 +54,17 @@ and `unorm_dart` as resolver-locked transitive dependencies.
 
 ## Ongoing controls
 
+### Pending approved calendar selection
+
+On 2026-10-12 the maintainer selected `kalender` for BUG-016 day/week/month
+presentation. This records approval of the package choice, not completed
+adoption or compatibility verification. Before integration, complete the
+selection review above, record the SDK decision in an ADR, pin the exact version
+and update `mobile/pubspec.lock`. Preserve Sarti domain recurrence/timezone rules
+and encrypted local storage/sync boundaries behind a presentation adapter.
+Tests are added by the assistant and executed/reviewed by the maintainer unless
+separately authorized, per CONTRIBUTING.md. No package added in this change.
+
 CI checks dependency vulnerabilities. Updates are explicit reviewed changes with
 tests; automated updates must not merge around failed checks. Material licensing,
 security, privacy, or compatibility concerns trigger the contract stop condition.
