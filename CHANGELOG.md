@@ -73,7 +73,10 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
   preserved and rejected safely. Backend/migration/security, real HTTP/
   PostgreSQL/Dart and Docker health checks pass. Spot fixes add required braces
   and navigate the add-event test to its saved date across midnight. Analysis
-  and the failed widget test pass; BUG-011 awaits the full Flutter rerun.
+  and the full Flutter suite pass. Full backend/migration, real HTTP/PostgreSQL/
+  Dart, security/dependency, Docker health, offline secret scan, OpenAPI and
+  version checks pass on 2026-10-13; BUG-011 resolved. Physical-device checks
+  and legacy recovery limits remain documented.
 - Record BUG-017: a received resolution can leave an obsolete remote conflict
   card open. Deferred separately; alternatives remain preserved.
 - BUG-010: atomically advance accessible resource epochs during active-phone

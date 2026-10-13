@@ -149,35 +149,6 @@ in-repository record while Sarti has no external tracker.
   explicit instruction not to run Android-to-iOS backup scenario
   `BACKUP-XPLAT-002` until separately authorized. Pending; no CI change yet.
 
-### BUG-011 — Multi-device version-vector order changes authenticated metadata
-- Severity: Medium
-- Component: `core/crypto/resource_crypto.dart`, sync AAD encoding, PostgreSQL relay
-- Discovered: 2026-10-12 during BUG-003 security review
-- Blocking: Real-backend concurrent calendar editing acceptance
-- Summary: AAD uses insertion-ordered JSON, including the logical version map.
-  PostgreSQL JSONB reorders that map. A legitimately relayed operation with
-  multiple author entries can therefore fail AEAD authentication on download.
-- Evidence: A synthetic real-PostgreSQL JSONB round trip changed vector order;
-  PyNaCl/libsodium rejected ciphertext when AAD was rebuilt with the returned
-  map. The Dart encryption/decryption paths use the same insertion-order rule.
-  Existing memory-relay conflict tests preserve map order and miss this boundary.
-- Workaround: Single-writer calendar operation vectors avoid this ordering case;
-  do not treat concurrent editing as accepted against the real backend.
-- Implementation update (2026-10-12): Approved ADR-034 adds protocol 2 with
-  fixed metadata fields and sorted version-map keys, additive migration 0006,
-  version-aware retries, unchanged legacy ciphertext/pending envelopes and
-  fail-closed legacy recovery. New unit/security/migration and explicit real
-  HTTP/PostgreSQL/Dart conflict tests added. Backend/migration/security checks,
-  explicit real HTTP/PostgreSQL/Dart contract and Docker health checks PASS.
-  Follow-up fixes the analyzer braces issue and the add-event test's midnight
-  assumption. Analysis and the single failed widget test now PASS. Full suite
-  not rerun in the targeted follow-up; remains open pending full verification;
-  see `../testing/BUG-011-VERIFICATION.md`.
-- Required action: Specify canonical AAD and legacy/version compatibility,
-  obtain any necessary protocol/ADR approval, add a real HTTP/PostgreSQL mobile
-  ciphertext round-trip regression, and preserve conflict alternatives. This is
-  separate from immutable single-author child creation and is not fixed here.
-
 ### BUG-004 — Guardian invitation/approval not connected to shipping mobile journey
 - Severity: Medium
 - Component: `mobile/lib/src/features/`, backend `api/households.py`
@@ -211,6 +182,25 @@ in-repository record while Sarti has no external tracker.
 ---
 
 ## Resolved defects
+
+### BUG-011 — PostgreSQL map ordering broke multi-author ciphertext authentication
+- Severity: Medium
+- Component: resource crypto, sync envelope and PostgreSQL relay
+- Discovered: 2026-10-12
+- Fixed: 2026-10-13
+- Fix version: Unreleased
+- Fix commits: `038acbe` (implementation), `3501330` (style/test spot fixes)
+- Disposition: Approved ADR-034 introduces deterministic protocol-2 metadata,
+  fixed field order and sorted version-map keys. Migration 0006 preserves legacy
+  ciphertext with version 1. Exact retries include the version; legacy pending
+  bytes are retained and unknown/tampered versions fail without fallback.
+- Verification: Full backend/PostgreSQL and Flutter suites, real HTTP/PostgreSQL/
+  Dart encryption/conflict regression, migrations, static/security/dependency
+  checks, Docker startup/health, offline secret scan, OpenAPI/version checks PASS.
+  See `../testing/BUG-011-VERIFICATION.md` for commands and limits.
+- Remaining boundaries: Already-lost legacy map ordering needs authorized
+  recovery; it is not guessed or discarded. Backend-first rollout and upgraded
+  clients are required. Physical-device validation and BUG-017 are separate.
 
 ### BUG-010 — Device replacement did not advance resource-key epochs
 - Severity: High

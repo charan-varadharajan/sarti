@@ -1,21 +1,19 @@
 # Project status
 
 - Current stage: Stage 3 — AI proposals, email intake, push notifications, and backup/recovery
-- Updated: 2026-10-12
-- Stage state: remediation in progress; BUG-001/002/003 remediation delivered; provider/device validation and BUG-004/005/011/012/013/014/015/017 outstanding
+- Updated: 2026-10-13
+- Stage state: remediation in progress; BUG-001/002/003 remediation delivered; provider/device validation and BUG-004/005/012/013/014/015/017 outstanding
 - Repository version: `0.1.0+1`; no public release tag
 
 ## Current result
 
-BUG-011 protocol-2 metadata ordering remediation is implemented under approved
-ADR-034 with migration 0006 and legacy preservation. Backend/migration/security,
-real HTTP/PostgreSQL/Dart and Docker startup/health checks pass. Flutter analysis
-and full unit/widget tests initially failed. Authorized spot fixes now pass
-analysis and the failed widget test; full rerun pending, BUG-011 remains open.
-See `testing/BUG-011-VERIFICATION.md` for evidence and limits.
-BUG-017 remote conflict-card retirement was identified and deferred
-separately; no other behavior was fixed.
-
+BUG-011 is resolved under approved ADR-034, with migration 0006 and legacy
+ciphertext preservation. Full backend/PostgreSQL and Flutter suites, the real
+HTTP/PostgreSQL/Dart regression, static/security/dependency checks, Docker
+startup/health, offline secret scan, OpenAPI and version checks all pass on
+2026-10-13. See `testing/BUG-011-VERIFICATION.md` for evidence and limits.
+BUG-017 remote conflict-card retirement remains open separately; no other
+behavior was fixed during closure.
 
 BUG-010 is resolved. Full PostgreSQL/backend and Flutter regression suites,
 migrations, static/security/dependency checks, offline pinned secret scan,
@@ -95,13 +93,13 @@ remain acceptance gaps. No Stage 4 work is authorized.
 
 | Check | Result |
 | --- | --- |
-| Backend Pytest unit + PostgreSQL integration | 23 passed; 89.95% statement/branch coverage |
-| Alembic upgrade to head | Passed; schema version 5 |
+| Backend Pytest unit + PostgreSQL integration | PASS on 2026-10-13; full coverage gate, see BUG-011 report |
+| Alembic upgrade to head | PASS on 2026-10-13; schema version 6 |
 | Ruff / strict Mypy / Bandit | Passed |
 | OpenAPI contract | Passed |
 | Docker current-source smoke | Passed using cached runtime + current source/migrations; clean rebuild not rerun after prior Docker Hub timeout |
 | Flutter format / analyze | Passed; no issues |
-| Flutter unit/widget tests | 113 passed on 2026-10-12 |
+| Flutter unit/widget tests | PASS on 2026-10-13; full suite, see BUG-011 report |
 | Native child sync | `CHILD-NATIVE-001` passed on Android API 35 and iPhone 18 Pro / iOS 27.0; controlled relay and two logical guardian devices |
 | Prepared mobile emulator scenario | `CAL-MOB-001` passed on Android API 35 and iPhone 18 Pro / iOS 27.0 on 2026-10-12 |
 | Cross-platform encrypted backup | `BACKUP-XPLAT-001` passed: iPhone 18 Pro / iOS 27.0 simulator exports real `.srtbk`; Android 15 / API 35 emulator restores identical ciphertext; physical devices, auth/relay and protected storage excluded |
@@ -119,9 +117,8 @@ BUG-002 and BUG-003 verification reports; provider/device results are not inferr
 
 ## Remaining Stage 2 and Stage 3 work
 
-- BUG-011 (Medium): PostgreSQL JSONB can reorder multi-author logical vectors,
-  causing insertion-ordered AAD authentication failure. Real-backend concurrent
-  calendar editing needs canonical/compatible encoding and a round-trip test.
+- BUG-017: receiving a resolution can leave an obsolete conflict card open;
+  preserve alternatives while implementing causal retirement separately.
 - BUG-004: new-guardian invitation/approval and subsequent permission management
   still lack a complete shipping mobile journey. Child/calendar key delivery is
   now connected for existing authorized guardians; onboarding remains separate.

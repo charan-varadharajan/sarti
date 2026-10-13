@@ -136,16 +136,12 @@ relay/native simulator tests do not establish physical secure-storage policies,
 production passkeys or provider delivery. Child creation conflicts fail closed;
 there is no child-profile editing protocol or automatic overwrite path.
 
-BUG-011 records a separate availability/integrity compatibility gap: a real
-PostgreSQL JSONB round trip can reorder multi-author vectors in insertion-ordered
-AAD, causing legitimate ciphertext to fail authentication. No authentication
-bypass was observed; the decoder fails closed. Concurrent calendar editing
-against the real backend remains unaccepted pending canonical compatible AAD.
-
-BUG-011 remediation under approved ADR-034 uses versioned deterministic metadata
-for new operations and retains all existing encrypted data. There is no
-cross-version authentication fallback. Unknown versions and changed fields fail
-closed. Backend and real HTTP/PostgreSQL/Dart crypto verification pass, but
-the initial Flutter failures needed test/style corrections. Targeted analysis
-and failed-test reruns now pass; full verification is pending for BUG-011.
-No physical-device claim is made.
+BUG-011 is resolved under approved ADR-034. New operations use versioned
+deterministic metadata, preserving meaning across PostgreSQL JSONB ordering.
+Existing encrypted data and legacy pending retries remain unchanged. There is
+no cross-version authentication fallback: unknown versions and changed fields
+fail closed. Full Flutter/backend and real HTTP/PostgreSQL/Dart crypto checks
+pass on 2026-10-13; see `../testing/BUG-011-VERIFICATION.md`.
+Already-lost legacy ordering requires authorized recovery and is not guessed.
+Physical-device claims remain separate; BUG-017 conflict-card retirement is
+still outstanding.

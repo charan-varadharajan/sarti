@@ -1,6 +1,7 @@
 # BUG-011 — Versioned deterministic sync metadata verification
 
-Date: 2026-10-12. Status: **Targeted Flutter fixes pass; full-suite rerun pending.**
+Date: 2026-10-12. Closure verified: 2026-10-13.
+Status: **Resolved; all required automated checks pass.**
 
 ## Approval and implementation
 
@@ -87,14 +88,44 @@ recurrence, child and reminder assertions. App calendar behavior is unchanged.
 - Dart formatting for both edited files and `git diff --check`: **PASS**.
 - Full Flutter, backend, real HTTP/PostgreSQL and native suites were not rerun
   in this targeted follow-up. Earlier backend/HTTP successes remain evidence;
-  a corrected full-suite pass is not inferred. BUG-011 remains open pending it.
+  a corrected full-suite pass was not inferred at that stage. The closure
+  verification below supersedes that pending status.
 
-## Limits and remaining action
+## Closure verification — 2026-10-13
 
-The identified Flutter failures are corrected and their targeted reruns pass.
-A full Flutter suite rerun is still required for closure. No native simulator/emulator suite or store build
-was run: no native bridge or UI changed. Neither backup portability direction
-ran; Android-to-iOS remains explicitly deferred. Physical passkeys, protected
-storage, two physical phones, background delivery and production transport
-remain separate checks. Existing legacy map-order loss is not claimed repaired.
+The maintainer requested full tests and conditional closure, without log
+analysis. Verification ran against `038acbe` plus `3501330` (the spot fixes).
+Only exit statuses were inspected; no failure logs were analyzed and no test
+counts are inferred. No application behavior changed during closure.
+
+| Check | Final result / ignored log under `test-results/` |
+| --- | --- |
+| Isolated PostgreSQL setup and Alembic upgrade 0006 | PASS; `bug011-migrations.log` |
+| Full backend Pytest with coverage (unit/integration/security/contracts/migration) | PASS; `bug011-backend.log` |
+| Ruff format/lint | PASS; `bug011-ruff-format.log`, `bug011-ruff.log` |
+| Strict Mypy / Bandit | PASS; `bug011-mypy.log`, `bug011-bandit.log` |
+| Runtime dependency audit | PASS; `bug011-dependency.log` |
+| Full Dart format / Flutter analysis | PASS; `bug011-final-format.log`, `bug011-final-analyze.log` |
+| Full Flutter unit/widget suite with coverage | PASS; `bug011-final-flutter.log` |
+| Explicit real HTTP/PostgreSQL/Dart encryption and conflict regression | PASS; `bug011-final-http-host.log`, `bug011-http-mobile.log` |
+| Current-source Docker build/startup and live/ready health checks | PASS; `bug011-final-docker-smoke.log` |
+| Cached pinned offline Gitleaks scan of committed BUG-011 changes | PASS; `bug011-final-secret-scan.log` |
+| OpenAPI regeneration/drift, version 0.1.0+1 and whitespace | PASS |
+
+The backend/full Flutter suites omit the opt-in real HTTP case by default;
+the explicit host executed it separately and passed. Secret scanning used the
+cached pinned image with no network, no image pull, read-only filesystem, no
+host mounts and dropped capabilities. BUG-011 is closed for protocol-2 metadata
+ordering and documented legacy compatibility.
+
+## Remaining limits
+
+No native simulator/emulator suite or store build was run: no native bridge or
+UI behavior changed. Neither backup portability direction ran; Android-to-iOS
+remains explicitly deferred. Physical passkeys, protected storage, two physical
+phones, background delivery and production transport remain separate checks.
+Existing legacy map-order loss cannot be reconstructed and is not claimed
+repaired; ciphertext is retained and requires authorized recovery. Deploy the
+additive backend/migration before upgraded clients; old clients cannot decode
+protocol 2. BUG-017 remote conflict-card retirement remains open separately.
 No Stage 4 work is included; do not advance to another bug automatically.
