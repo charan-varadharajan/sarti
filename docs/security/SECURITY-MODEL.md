@@ -69,7 +69,8 @@ Guardian removal increments every resource epoch and prevents future grants.
 BUG-010 implements scoped device-replacement epoch advancement in the same
 transaction as revocation and fresh session creation, with serialized sync/grant
 publication and current-device checks. Backend regression/security tests pass;
-the Flutter test suite fails and is uninspected at maintainer direction. BUG-010
+the initial Flutter suite failed. Authorized targeted fixes now pass all three
+previously failing tests; full-suite verification and secret scan remain pending. BUG-010
 remains a High-severity release blocker until mobile verification is resolved;
 do not claim end-to-end replacement acceptance. See
 `../testing/BUG-010-VERIFICATION.md`.

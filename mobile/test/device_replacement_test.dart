@@ -5,13 +5,17 @@ import 'package:sarti_mobile/src/core/crypto/resource_crypto.dart';
 import 'package:sarti_mobile/src/core/network/sarti_api.dart';
 import 'package:sarti_mobile/src/features/calendar/presentation/calendar_controller.dart';
 import 'package:sodium/sodium.dart';
+import 'package:timezone/data/latest.dart' as tz_data;
 
 import 'support/child_sync_fixture.dart';
 
 void main() {
   late Sodium sodium;
   late ChildSyncFixture f;
-  setUpAll(() async => sodium = await SodiumInit.init());
+  setUpAll(() async {
+    sodium = await SodiumInit.init();
+    tz_data.initializeTimeZones();
+  });
   setUp(() => f = ChildSyncFixture(sodium));
   tearDown(() => f.close());
 
@@ -59,8 +63,14 @@ void main() {
       );
       expect(await f.b.keyGrants(), isEmpty);
       await expectLater(
-        f.b.keySync.prepare(f.familyId),
+        f.b.resourceDevices(f.familyId, f.calendarId),
         throwsA(isA<SartiApiException>()),
+      );
+      await f.b.keySync.prepare(f.familyId);
+      expect(f.b.database.resourceKey(f.calendarId, 2), isNull);
+      expect(
+        f.b.database.resourceKey(f.calendarId, 1),
+        orderedEquals(oldKey.extractBytes()),
       );
     },
   );

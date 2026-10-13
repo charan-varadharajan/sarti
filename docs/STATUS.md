@@ -10,7 +10,8 @@
 BUG-010 replacement epoch remediation is implemented, with PostgreSQL/API,
 rollback/concurrency and cryptographic regressions. Backend tests/migrations,
 Ruff/Mypy/Bandit, dependency audit and Flutter formatting/analysis pass. The
-Flutter test suite fails; logs are retained uninspected per the maintainer.
+initial Flutter test suite failed. Authorized spot fixes corrected three test
+setup/expectation errors; all three reruns pass. Full suite was not rerun.
 BUG-010 remains open and release-blocking. See
 `testing/BUG-010-VERIFICATION.md`; no other bug was addressed.
 
@@ -113,7 +114,8 @@ BUG-002 and BUG-003 verification reports; provider/device results are not inferr
 
 - BUG-010 (High): passkey device replacement revokes the old phone but does not
   advance resource-key epochs in the original implementation. The ADR-020
-  remediation now passes backend checks, but Flutter regression tests fail.
+  remediation passes backend checks and the three corrected Flutter test reruns.
+  A full-suite rerun and blocked secret scan remain pending.
   Resolve verification before release; old keys must not decrypt future content.
 - BUG-011 (Medium): PostgreSQL JSONB can reorder multi-author logical vectors,
   causing insertion-ordered AAD authentication failure. Real-backend concurrent

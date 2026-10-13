@@ -67,6 +67,9 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
   harness for prepared data, direct flow entry, emulator execution, and teardown.
 
 ### Corrected
+- BUG-010 follow-up: initialize test timezones and correct the revoked-resource
+  expectation while explicitly checking no future key is received. Only the
+  three previously failing tests rerun: PASS. Full suite not rerun.
 - BUG-010: atomically advance accessible resource epochs during active-phone
   replacement, serialize concurrent transitions and stale uploads/grants, and
   allow restored admins to establish an unclaimed advanced epoch without old

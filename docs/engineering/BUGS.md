@@ -155,8 +155,10 @@ in-repository record while Sarti has no external tracker.
   initialization of an unclaimed advanced epoch. Prepared PostgreSQL/crypto and
   mobile recovery/interruption tests added. Backend regression/security suite,
   migrations, Ruff/Mypy/Bandit and dependency audit pass. Flutter format/analyze
-  pass, but its full test suite fails. Logs are retained without inspection per
-  maintainer instruction. BUG-010 remains open and release-blocking; see
+  pass. Follow-up inspected only three failure blocks: initialize test timezones
+  and assert inaccessible-resource skipping leaves the future key absent.
+  All three failed-test reruns pass; full suite not rerun at maintainer direction.
+  BUG-010 remains open pending full verification and the blocked secret scan; see
   `../testing/BUG-010-VERIFICATION.md`.
 - Required action: Implement the accepted ADR-020 replacement transition with
   epoch advancement, remaining-device rekey/grants, interrupted-transition and

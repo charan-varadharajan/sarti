@@ -1,6 +1,6 @@
 # BUG-010 — Replacement epoch verification
 
-Date: 2026-10-12. Status: **Implemented; verification failed, remains open.**
+Date: 2026-10-12. Status: **Failed-test spot fixes pass; full-suite rerun pending.**
 
 ## Scope and approvals
 
@@ -65,8 +65,29 @@ status was inspected; no test counts, failure identities or diagnosis inferred.
 | Version integrity (`0.1.0+1`) and `git diff --check` | PASS |
 | Pinned Gitleaks staged-diff scan | NOT RUN: automatic approval review rejected passing staged source to a third-party Docker image |
 
-No failure log was read, no failed test was diagnosed and no failed check was
-retried. Flutter's full suite failure prevents closing BUG-010.
+The initial execution did not inspect logs or retry failures.
+
+## Authorized failed-test spot fix
+
+The maintainer subsequently authorized inspecting only failed tests and making
+spot fixes. Only the three failure blocks were extracted from the saved Flutter
+log. `REPLACE-SYNC-001` and `REPLACE-SEC-002` lacked timezone initialization in
+this test isolate; suite setup now initializes the bundled database.
+`REPLACE-SEC-001` incorrectly expected resource preparation to propagate a 403,
+although preparation intentionally skips inaccessible resources. It now asserts
+the directory request is denied and preparation leaves the new epoch key absent
+and the retained historical key unchanged. Old-key decryption rejection and
+active-only grant assertions remain intact. No application behavior changed.
+
+- Only those three previously failing tests were rerun with
+  `flutter test test/device_replacement_test.dart --name
+  'REPLACE-(SEC-001|SYNC-001|SEC-002)' --reporter expanded`: **PASS**, exit 0.
+- Formatting of the edited test file and `git diff --check`: **PASS**.
+- Logs: `test-results/bug010-spot-tests.log`, `bug010-spot-format.log`.
+- Full Flutter suite, backend checks and native tests were not rerun in this
+  follow-up, as requested. The initial full-suite failure remains historical
+  evidence, not a claim that the corrected full suite passes. BUG-010 remains
+  open pending full verification; the secret scan is still unexecuted.
 
 ## Limits and next action
 
@@ -80,5 +101,5 @@ relay and stubbed WebAuthn verifier do not establish these guarantees.
 Historical copies cannot be erased; missing historical keys/snapshots still fail
 closed. The server never receives plaintext resource or recovery keys.
 
-Maintainer review/authorization is needed before investigating the Flutter
-failure. Do not move to another defect or Stage 4 automatically.
+Do not move to another defect or Stage 4 automatically. Full verification and
+the blocked secret scan remain outstanding; scoped failed-test fixes pass.
