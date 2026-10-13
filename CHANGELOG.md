@@ -67,6 +67,13 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
   harness for prepared data, direct flow entry, emulator execution, and teardown.
 
 ### Corrected
+- BUG-010: atomically advance accessible resource epochs during active-phone
+  replacement, serialize concurrent transitions and stale uploads/grants, and
+  allow restored admins to establish an unclaimed advanced epoch without old
+  keys. Add scoped replacement, rollback/retry, concurrent and real-crypto
+  regressions. Backend tests/migrations/static/security checks pass; Flutter
+  tests fail (logs uninspected). BUG-010 remains open. No server plaintext key
+  or backup-format change.
 - BUG-016: integrate pinned Kalender 0.33.0 day/week time grids and month grid,
   with period/Today navigation, narrow-phone week scrolling, selected-day agenda,
   child labels, start/end display and overlapping/overnight occurrences.

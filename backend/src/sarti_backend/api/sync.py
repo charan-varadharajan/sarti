@@ -171,6 +171,10 @@ def upload_operation(
         raise ConflictDetected("The ciphertext digest does not match the envelope.")
     now = datetime.now(UTC)
     with database.transaction() as connection:
+        # Same lock order as device replacement: resource, then device.
+        connection.execute(
+            select(resources.c.id).where(resources.c.id == payload.resource_id).with_for_update()
+        )
         delete_expired_operations(connection, now)
         epoch, _ = require_resource_permission(
             connection,
@@ -344,6 +348,13 @@ def create_key_grant(
         )
         if payload.key_epoch != epoch:
             raise ConflictDetected("The key grant uses a stale resource key epoch.")
+        active_granter = connection.execute(
+            select(devices.c.id).where(
+                and_(devices.c.id == actor.device_id, devices.c.state == "active")
+            )
+        ).first()
+        if active_granter is None:
+            raise PermissionDenied
         recipient = connection.execute(
             select(devices.c.adult_id).where(
                 and_(

@@ -115,12 +115,19 @@ class ResourceKeySync {
       }
       var claimedEpoch = false;
       var key = database.resourceKey(resource.id, resource.keyEpoch);
+      final hasPreviousKey = database.raw.select(
+        'SELECT 1 FROM resource_keys WHERE resource_id = ? AND key_epoch < ?',
+        [resource.id, resource.keyEpoch],
+      ).isNotEmpty;
+      // Recovery deliberately clears old keys. An authorized admin may claim
+      // an advanced, unclaimed epoch; never invent a missing initial-epoch key
+      // or replace an established key. The server serializes concurrent claims.
+      final unclaimedRecoveryEpoch =
+          resource.keyEpoch > 1 &&
+          !devices.any((device) => device.hasCurrentGrant);
       if (key == null &&
           self.permission == 'admin' &&
-          database.raw.select(
-            'SELECT 1 FROM resource_keys WHERE resource_id = ? AND key_epoch < ?',
-            [resource.id, resource.keyEpoch],
-          ).isNotEmpty) {
+          (hasPreviousKey || unclaimedRecoveryEpoch)) {
         final candidate = sodium.randombytes.buf(32);
         try {
           // The first self-grant claims this epoch under the server resource

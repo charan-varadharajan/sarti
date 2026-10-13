@@ -7,6 +7,14 @@
 
 ## Current result
 
+BUG-010 replacement epoch remediation is implemented, with PostgreSQL/API,
+rollback/concurrency and cryptographic regressions. Backend tests/migrations,
+Ruff/Mypy/Bandit, dependency audit and Flutter formatting/analysis pass. The
+Flutter test suite fails; logs are retained uninspected per the maintainer.
+BUG-010 remains open and release-blocking. See
+`testing/BUG-010-VERIFICATION.md`; no other bug was addressed.
+
+
 BUG-016 Kalender 0.33.0 presentation integration is resolved under ADR-033.
 Two incorrect test expectations were corrected; application behavior did not
 change in the follow-up. Full Flutter regression tests pass (120/120), as do
@@ -104,8 +112,9 @@ BUG-002 and BUG-003 verification reports; provider/device results are not inferr
 ## Remaining Stage 2 and Stage 3 work
 
 - BUG-010 (High): passkey device replacement revokes the old phone but does not
-  advance resource-key epochs. Implement/test the accepted ADR-020 transition
-  before release; old keys must not decrypt future content.
+  advance resource-key epochs in the original implementation. The ADR-020
+  remediation now passes backend checks, but Flutter regression tests fail.
+  Resolve verification before release; old keys must not decrypt future content.
 - BUG-011 (Medium): PostgreSQL JSONB can reorder multi-author logical vectors,
   causing insertion-ordered AAD authentication failure. Real-backend concurrent
   calendar editing needs canonical/compatible encoding and a round-trip test.

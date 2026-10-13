@@ -53,3 +53,7 @@ accepts a stable client UUID; names, colours and aliases remain absent from the
 schema. Optional explicit owner consent inserts read permissions for active
 calendar guardians only at first child provisioning. Retrying creation does not
 expand those permissions to later guardians.
+
+BUG-010 uses existing rows/columns; no migration. Adult-row and ordered resource
+locks serialize replacement, scoped epoch increments and sync publication in
+one transaction with device/session revocation. Resource keys remain absent.

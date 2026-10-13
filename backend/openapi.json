@@ -946,6 +946,7 @@
   "paths": {
     "/v1/auth/authentication/complete": {
       "post": {
+        "description": "Replace the active phone atomically, advancing accessible resource epochs.\n\nFresh authorized-device grants are required for future writes. Authentication\nnever returns resource keys or decrypts an encrypted recovery snapshot.",
         "operationId": "authentication_complete_v1_auth_authentication_complete_post",
         "requestBody": {
           "content": {

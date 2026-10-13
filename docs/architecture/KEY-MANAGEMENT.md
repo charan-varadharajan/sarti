@@ -41,3 +41,29 @@ only to active resource-authorized devices. No missing existing key is fabricate
 at the same epoch. Old keys remain available for retained historical ciphertext;
 revocation cannot retract earlier copies. Local destruction follows the existing
 database/device-reset lifecycle; the server never receives plaintext keys.
+
+## Device replacement (BUG-010)
+
+Passkey completion serializes on the adult row, then locks accessible live
+resources in UUID order. Active owners rotate all live family resources;
+active guardians rotate only explicitly permitted resources. Pending/revoked
+memberships and deleted families/resources are excluded. Epoch advancement,
+old-phone/session revocation, new device registration and new session creation
+commit together. A failed transaction rolls all of these back; replaying a
+completed challenge cannot advance epochs again. Distinct concurrent successful
+replacements serialize and each replaces the preceding phone.
+
+Uploads and grants lock the resource before inspecting its epoch; grants recheck
+active granter state after the lock. A stale new upload fails; an exact existing
+receipt does not publish new ciphertext. Remaining admins generate random keys,
+self-grant under the existing first-granter lock and distribute only to active
+authorized devices. An interrupted self-grant is recovered from the sealed grant
+before retry, so an accepted key is never silently replaced.
+
+ADR-032 clears historical resource keys during restore. An authorized admin with
+no historical key may initialize an advanced epoch (>1) only when the directory
+shows no current grant. The server first-granter rule remains authoritative in a
+race. An initial missing key or already established epoch is never fabricated.
+Without a current key, writes remain pending. Historical content still needs
+its appropriate snapshot/key; fresh grants do not recreate expired relay data.
+No server plaintext key custody or backup decryption is introduced.

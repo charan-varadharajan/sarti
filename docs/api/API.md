@@ -15,7 +15,11 @@ plaintext.
 - `POST /v1/auth/registration/options` and `/registration/complete` create the
   adult, credential, active device, and session.
 - `POST /v1/auth/authentication/options` and `/authentication/complete` verify a
-  passkey, rotate the active phone when necessary, and issue a new session.
+  passkey and issue a new session. When replacing an active phone, the same
+  transaction advances epochs of its accessible live resources, revokes the old
+  phone/sessions and registers the replacement. Failed completion rolls back the
+  transition; completed-challenge replay is rejected. Fresh device grants are
+  required before future writes; login does not decrypt a backup.
 
 Options/challenges expire in five minutes and are one-use. Completion includes
 only WebAuthn output and 32-byte device public keys. Protected endpoints require

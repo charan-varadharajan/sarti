@@ -48,6 +48,7 @@ class ChildSyncFixture {
   final Set<String> denied = {};
   final Map<String, String> childPermissions = {};
   bool loseNextReceipt = false;
+  bool loseNextGrantReceipt = false;
   bool offline = false;
   final List<RelayEnvelope> attempts = [];
   bool reverseDownload = false;
@@ -211,6 +212,10 @@ class ChildSyncDevice implements ResourceKeyApi, EncryptedRelay {
         .firstOrNull;
     if (existing != null) throw const SartiApiException(409);
     fixture.grants.add(grant);
+    if (fixture.loseNextGrantReceipt) {
+      fixture.loseNextGrantReceipt = false;
+      throw StateError('Fixture lost self-grant response after acceptance.');
+    }
   }
 
   @override

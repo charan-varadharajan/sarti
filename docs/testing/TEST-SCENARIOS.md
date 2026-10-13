@@ -143,3 +143,21 @@ database. It must never connect to production services.
 - Update or remove stale catalogue rows in the same commit as the behavior.
 - Do not put real family names, emails, tokens, keys, or production identifiers
   in fixtures, screenshots, logs, or golden files.
+
+## Replacement-device security (BUG-010)
+
+| Scenario | Prepared state and direct entry | Evidence |
+| --- | --- | --- |
+| `REPLACE-API-001` | Owner, restricted guardian, outsider and pending family membership → passkey completion | `backend/tests/integration/test_device_replacement.py`: accessible epochs, isolation, old sessions, replay, stale grants/writes, independent sealed-box and AEAD checks |
+| `REPLACE-API-002` | Owner + family → injected session-creation interruption, retry same challenge | Same API suite: full transaction rollback and retry |
+| `REPLACE-API-003` | One adult, two prepared passkeys → concurrent completions | Same API suite: serialized epochs, one active phone |
+| `REPLACE-SEC-001` | Two keyed logical devices → revoke one and advance epoch | `mobile/test/device_replacement_test.dart`: real libsodium old-key decryption rejection, active-only grants |
+| `REPLACE-SEC-002` | Missing initial key / already claimed advanced epoch → key preparation and local write | Same mobile suite: no invented key, write remains pending |
+| `REPLACE-SYNC-001` | Prepared restored family and fresh admin identity, no historical keys → key preparation | Same mobile suite: unclaimed advanced epoch self-grant, encrypted future write, stable retries |
+| `REPLACE-SYNC-002` | Same restored state → lose accepted self-grant response, retry | Same mobile suite: established key recovered without duplicate/replacement |
+
+All fixtures are synthetic and disposable; prerequisites are seeded directly.
+PostgreSQL API tests stub WebAuthn verification, not database transactions or
+crypto libraries. Mobile tests use real SQLCipher/libsodium with a controlled
+relay. They do not establish physical passkeys, protected storage, OS recovery
+or production two-phone compatibility. No backup portability direction is run.

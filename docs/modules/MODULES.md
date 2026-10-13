@@ -40,3 +40,10 @@ maintainer instruction in CONTRIBUTING.md. Backup portability is excluded.
 | `api.backups` | Owner/device-scoped opaque backup relay, 10 MiB limit, revision CAS, deletion | PostgreSQL API isolation/replay/deletion integration |
 | `db` | PostgreSQL connectivity and schema metadata | Migration integration |
 | `core` | Configuration, auth dependency, errors, logging | Unit/security tests |
+
+`households/device_replacement.py` exposes the metadata-only resource epoch
+transition to authentication. Auth owns adult serialization/device/session
+replacement; encrypted-sync writers share resource locks. Mobile
+`ResourceKeySync` owns fresh keys and signed sealed grants, including unclaimed
+advanced-epoch initialization after recovery. See KEY-MANAGEMENT.md and the
+REPLACE scenario entries; no cryptographic primitive or wire format changed.

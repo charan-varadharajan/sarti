@@ -150,6 +150,14 @@ in-repository record while Sarti has no external tracker.
 - Workaround: No shipped cryptographic workaround. Keep device replacement out
   of release acceptance until rekeying is verified. Revocation does not erase
   earlier copies.
+- Implementation update (2026-10-12): Added atomic scoped epoch advancement,
+  adult/resource locking, post-lock active-granter validation and restored-admin
+  initialization of an unclaimed advanced epoch. Prepared PostgreSQL/crypto and
+  mobile recovery/interruption tests added. Backend regression/security suite,
+  migrations, Ruff/Mypy/Bandit and dependency audit pass. Flutter format/analyze
+  pass, but its full test suite fails. Logs are retained without inspection per
+  maintainer instruction. BUG-010 remains open and release-blocking; see
+  `../testing/BUG-010-VERIFICATION.md`.
 - Required action: Implement the accepted ADR-020 replacement transition with
   epoch advancement, remaining-device rekey/grants, interrupted-transition and
   stale-key tests. Preserve single-active-phone rules and recovery. This is a

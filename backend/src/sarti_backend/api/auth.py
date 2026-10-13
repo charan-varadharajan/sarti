@@ -14,6 +14,7 @@ from webauthn.helpers import base64url_to_bytes
 
 from sarti_backend.core.errors import ConflictDetected, InvalidCredential
 from sarti_backend.db.schema import adults, challenges, credentials, devices, sessions
+from sarti_backend.households.device_replacement import advance_replacement_epochs
 from sarti_backend.identity.webauthn_service import WebAuthnVerifier
 
 
@@ -226,6 +227,11 @@ def authentication_options(request: Request) -> CeremonyOptions:
 
 @router.post("/authentication/complete", response_model=SessionResponse)
 def authentication_complete(payload: CeremonyCompletion, request: Request) -> SessionResponse:
+    """Replace the active phone atomically, advancing accessible resource epochs.
+
+    Fresh authorized-device grants are required for future writes. Authentication
+    never returns resource keys or decrypts an encrypted recovery snapshot.
+    """
     verifier: WebAuthnVerifier = request.app.state.webauthn
     database: TransactionalDatabase = request.app.state.database
     try:
@@ -255,6 +261,15 @@ def authentication_complete(payload: CeremonyCompletion, request: Request) -> Se
         except Exception as error:
             raise InvalidCredential from error
         adult_id: UUID = credential["adult_id"]
+        # Serialize replacement across every passkey belonging to this adult.
+        connection.execute(select(adults.c.id).where(adults.c.id == adult_id).with_for_update())
+        replacing = connection.execute(
+            select(devices.c.id).where(
+                and_(devices.c.adult_id == adult_id, devices.c.state == "active")
+            )
+        ).first()
+        if replacing is not None:
+            advance_replacement_epochs(connection, adult_id)
         now = datetime.now(UTC)
         connection.execute(
             update(credentials)
