@@ -42,6 +42,14 @@ in-repository record while Sarti has no external tracker.
   clause or create an event automatically. Add parser, review/approval, no-write
   before approval, ambiguity and prepared native UI regressions. Pending design
   review; no implementation or test execution yet.
+- Approved duration requirement: When the input specifies no end time or
+  duration, each proposed event defaults to 60 minutes. Show an editable
+  "Duration: 1 hour (default)" in each preview before approval. This is an app
+  default, not an inferred fact. Explicit end times/durations must be honored
+  when unambiguous and valid; unclear or conflicting values require clarification.
+  Current natural-language save hardcodes 60 minutes without an editable duration.
+  Include tests for visible defaults, independent per-proposal edits, explicit
+  durations/end times and confirmation preserving the reviewed duration.
 
 ### BUG-012 — iOS simulator integration tests are absent from CI
 - Severity: Medium

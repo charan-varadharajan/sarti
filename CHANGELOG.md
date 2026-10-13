@@ -21,6 +21,9 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
 ## [Unreleased]
 
 ### Added
+- BUG-013 clarification: approved visible, editable one-hour duration defaults
+  per proposal, with explicit end-time/duration handling and regression criteria;
+  implementation remains pending.
 - Record BUG-013 from manual simulator feedback: multi-event natural-language
   input is reduced to a single proposal; separate-entry workaround and proposed
   explicit multi-proposal review documented. Not fixed yet.
