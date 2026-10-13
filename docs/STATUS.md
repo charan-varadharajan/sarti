@@ -2,7 +2,7 @@
 
 - Current stage: Stage 3 — AI proposals, email intake, push notifications, and backup/recovery
 - Updated: 2026-10-12
-- Stage state: remediation in progress; BUG-001/002/003 remediation delivered; provider/device validation and BUG-004/005/010/011/012/013 outstanding
+- Stage state: remediation in progress; BUG-001/002/003 remediation delivered; provider/device validation and BUG-004/005/010/011/012/013/014 outstanding
 - Repository version: `0.1.0+1`; no public release tag
 
 ## Current result

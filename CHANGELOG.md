@@ -21,6 +21,9 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
 ## [Unreleased]
 
 ### Added
+- Record BUG-014: event-added Undo persists because action snackbars default to
+  persistent in the pinned Flutter SDK; propose transient, dismissible feedback
+  with accessibility and stale-action regression coverage. Not fixed yet.
 - BUG-013 clarification: calendar entries omit end times and manual editing lacks
   duration controls; record start/end display and editable-duration requirements,
   preserving existing durations and handling overnight/DST ranges.

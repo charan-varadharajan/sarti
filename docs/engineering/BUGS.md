@@ -23,6 +23,24 @@ in-repository record while Sarti has no external tracker.
 
 ## Open defects
 
+### BUG-014 — Event-added Undo action persists indefinitely
+- Severity: Medium
+- Component: `features/calendar/presentation/calendar_screen.dart`
+- Discovered: 2026-10-12 during maintainer simulator testing
+- Blocking: Safe transient post-save feedback; stale Undo can delete an event
+  after the parent considers the save complete.
+- Summary: The "Event added" snackbar remains visible with an active Undo link.
+- Root cause: The pinned Flutter 3.47.7 SDK defaults `SnackBar.persist` to true
+  when an action is present. Sarti supplies an Undo action without overriding
+  persistence. SDK source confirms this; no tests executed for this report.
+- Workaround: Dismiss the snackbar by swiping it away; avoid the stale Undo link.
+- Proposed action: Make standard feedback transient (five-second Undo window),
+  provide an explicit close control, and replace old feedback when another event
+  is saved. Preserve screen-reader accessibility behavior rather than forcing
+  timers that make the action inaccessible. Add widget regressions for expiry,
+  immediate Undo, dismissal without deletion, consecutive saves and accessibility.
+  Pending implementation; separate from BUG-013 parsing/duration work.
+
 ### BUG-013 — Multi-event natural-language input is reduced to one proposal
 - Severity: Medium
 - Component: `features/ai/event_parser.dart`, `natural_language_event_dialog.dart`
