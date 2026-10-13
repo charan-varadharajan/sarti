@@ -118,7 +118,7 @@ void main() {
       '01:30 PST–04:30 PDT',
     );
     expect(occurrences.map((item) => item.id).toSet(), hasLength(2));
-    expect(occurrenceTimeLabel(occurrences.last, 'UTC'), '09:30–11:30');
+    expect(occurrenceTimeLabel(occurrences.last, 'Etc/UTC'), '09:30–11:30');
     expect(data.events.single.localStart.hour, 1);
   });
 

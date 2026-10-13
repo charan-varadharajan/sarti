@@ -72,8 +72,9 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
   child labels, start/end display and overlapping/overnight occurrences.
   Disable widget create/drag/resize paths; retain Sarti's encrypted repositories
   and recurrence engine. ADR-033, dependency review and prepared regressions added.
-  Verification incomplete: Flutter unit/widget suite and native iOS/Android grid
-  commands failed; BUG-016 remains open. Failure logs retained without diagnosis.
+  Follow-up corrects only test expectations for canonical `Etc/UTC` and
+  alphabetical child labels. Targeted tests 7/7, Flutter suite 120/120 and
+  native grid tests iOS 3/3, Android 3/3 pass; BUG-016 resolved.
 - BUG-003: complete encrypted child-profile synchronization with stable resource
   IDs, atomic local writes, explicit read-only sharing for current calendar
   guardians, signed recipient-scoped sealed keys, verified epoch rotation and

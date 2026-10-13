@@ -1,13 +1,13 @@
 # BUG-016 — Kalender integration verification
 
-Date: 2026-10-12. Status: **Implemented, verification failed; BUG-016 remains open.**
+Date: 2026-10-12. Status: **Resolved after expectation corrections; all rerun suites pass.**
 
 ## Scope and approval
 
 The maintainer selected Kalender and authorized implementation/test execution.
 ADR-033 records that approved choice without superseding earlier ADRs. No Stage 4
-work is included. The latest instruction authorizes status-only test reporting:
-failure logs are saved but not read, diagnosed or used for automatic retries.
+work is included. The follow-up instruction authorizes fixing only the failing tests and rerunning
+verification. No other open defect is included in this follow-up.
 
 ## Implementation
 
@@ -44,7 +44,7 @@ failure logs are saved but not read, diagnosed or used for automatic retries.
 - Updated existing add-event/child-label journeys for the explicit agenda option
   and the Python runner allowlist regression for the new grid scenario.
 
-## Commands and status
+## Initial commands and status
 
 | Check | Status |
 | --- | --- |
@@ -60,11 +60,36 @@ failure logs are saved but not read, diagnosed or used for automatic retries.
 | OSV querybatch: Kalender and three new exact dependency versions | No listed vulnerabilities returned |
 | Pinned Gitleaks staged secret scan | PASS: no leaks found |
 
-Logs are ignored local artifacts under repository `test-results/`, not committed.
-Only command exit status was reviewed. Individual failing test identities,
-assertions, stack traces and whether native failure occurred during build or
-execution have **not** been inspected. No pass counts are inferred from a failed
-suite. No automatic failure diagnosis or rerun was performed.
+## Follow-up diagnosis and corrections
+
+The initial run had 118 passing and two failing Flutter tests. Each native grid
+run had two passing and one failing test. Both failures were test expectations:
+
+- `CAL-GRID-UNIT-002` requested `UTC`, which is absent from the bundled timezone
+  dataset. The test now uses the canonical `Etc/UTC` identifier and retains the
+  exact `09:30–11:30` conversion assertion and spring DST duration assertions.
+- `CAL-GRID-MOB-003` expected `Mia, Jithu`, while the repository explicitly orders
+  child profiles by display name. The shared widget/native test now expects
+  `Jithu, Mia`; both child labels and the exact event time remain required.
+
+Only these two test expectations changed; application behavior is unchanged.
+The stable scenario catalogue records these details. Logs remain ignored local
+artifacts under repository `test-results/`.
+
+### Follow-up execution
+
+- Targeted adapter/widget tests: **PASS, 7 tests**;
+  `test-results/bug016-targeted-retest.log`.
+- `flutter test --coverage --reporter expanded`: **PASS, 120 tests**;
+  `test-results/bug016-flutter-retest.log`.
+- iPhone 18 Pro / iOS 27 simulator, prepared grid suite: **PASS, 3 tests**;
+  `test-results/bug016-ios-retest.log`.
+- Android 15 / API 35 emulator, prepared grid suite: **PASS, 3 tests**;
+  `test-results/bug016-android-retest.log`.
+- `flutter analyze`: **PASS, no issues**;
+  `test-results/bug016-analyze-retest.log`.
+- Formatting of both changed Dart files, version check (`0.1.0+1`) and
+  `git diff --check`: **PASS**.
 
 ## Boundaries and remaining work
 
@@ -81,6 +106,7 @@ portability direction ran; Android-to-iOS remains explicitly deferred.
 
 BUG-013 parsing/duration editing, BUG-014 Undo, BUG-015 colour assignment and the
 High-severity BUG-010 security blocker remain open. No new security guarantee is
-claimed from this UI change. Next action is maintainer-directed investigation
-of the failed checks for BUG-016, then rerun the affected checks; do not move to
-another bug or stage automatically.
+claimed from this UI change. BUG-016 is resolved for the implemented presentation
+and automated coverage. Physical-device/accessibility checks remain unverified.
+Wait for the maintainer to select the next bug; do not move to another bug or
+stage automatically.

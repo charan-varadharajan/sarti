@@ -243,7 +243,7 @@ void calendarGridScenarios() {
       expect(find.byType(k.MonthBody), findsOneWidget);
       await tester.tap(find.byTooltip('Show agenda'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('Mia, Jithu'), findsOneWidget);
+      expect(find.textContaining('Jithu, Mia'), findsOneWidget);
       expect(find.textContaining('09:00–11:00'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },

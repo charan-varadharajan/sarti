@@ -23,51 +23,6 @@ in-repository record while Sarti has no external tracker.
 
 ## Open defects
 
-### BUG-016 — Day/week/month controls reuse one agenda list without calendar grids
-- Severity: Medium
-- Component: `features/calendar/presentation/calendar_screen.dart`
-- Discovered: 2026-10-12 during maintainer simulator testing
-- Blocking: P0 day/week/month calendar presentation acceptance
-- Summary: Today, Week and Month all render the same `ListView.builder`; the
-  range controls filter occurrences but do not provide distinct calendar layouts.
-  Parents cannot visually assess event duration, gaps or overlaps.
-- Root cause: Initial presentation implemented a filtered agenda only.
-- Workaround: Read event dates/times in the agenda; no spatial time-grid view.
-- Proposed design from maintainer feedback: Day uses a left time axis with event
-  blocks positioned by start and sized by duration. Week uses dates as columns
-  and time as rows, with readable navigation/scrolling on narrow phones. Month
-  uses a seven-column date grid with bounded event indicators and a selected-day
-  agenda. Keep an agenda option for accessibility and dense schedules.
-  Include current-time/today cues, previous/next period and Today navigation,
-  distinct child colours plus text labels (BUG-015), start/end display (BUG-013),
-  side-by-side overlaps, overnight events, recurrence and timezone/DST cases.
-  Tapping an event opens its editor; empty grids must still show dates/time axes.
-  Use the supplied image as layout guidance, without adding decorative image
-  services or unrelated features.
-- Approved widget selection (2026-10-12): Use the Flutter `kalender` package
-  (https://pub.dev/packages/kalender) for calendar presentation rather than
-  building time-grid layout from scratch. Before integration, review the exact
-  release, license, advisories, platform compatibility, transitive dependencies
-  and privacy behavior; pin the reviewed version and commit the resolver lock.
-  Record the dependency decision in an ADR as required by CONTRIBUTING.md.
-  Keep Sarti's repositories, encryption, authorization, recurrence/DST rules and
-  sync protocol authoritative; map existing occurrences to the widget through
-  a presentation adapter. Widget callbacks must use existing validated edit/save
-  flows and must not introduce silent event mutations.
-- Implementation update (2026-10-12): Pinned Kalender 0.33.0 with resolved
-  transitive locks, recorded accepted ADR-033 and added the presentation adapter,
-  day/week/month grids, navigation and agenda. Added prepared grid/native and
-  adapter regressions. Static analysis and Python tooling tests pass, but the
-  Flutter unit/widget suite and native iOS/Android grid commands failed.
-  Logs were saved without failure diagnosis
-  per maintainer instruction. BUG-016 remains open; see
-  `../testing/BUG-016-VERIFICATION.md` for execution status and log paths.
-- Required tests: Prepared day/week/month widget/native scenarios covering
-  positioning, duration, overlap, date navigation, empty/dense schedules, shared
-  child assignments, text scaling/accessibility, overnight and DST behavior.
-  Implementation is pending successful verification. This is a P0 presentation gap,
-  not a deferred Stage 4 feature.
-
 ### BUG-015 — Every child added through the app receives the same colour
 - Severity: Medium
 - Component: `features/calendar/presentation/calendar_screen.dart`, child profiles
@@ -252,6 +207,25 @@ in-repository record while Sarti has no external tracker.
 ---
 
 ## Resolved defects
+
+### BUG-016 — Day/week/month controls reused one agenda list without calendar grids
+- Severity: Medium
+- Component: calendar presentation
+- Discovered: 2026-10-12
+- Fixed: 2026-10-12
+- Fix version: Unreleased
+- Fix commit: `06e5837` (implementation); follow-up `test(calendar): correct BUG-016 verification expectations`
+- Disposition: Approved ADR-033 pins Kalender 0.33.0. Day/week time grids,
+  month grid, period/Today navigation, agenda, proportional event blocks,
+  overlap layout and child/time labels use Sarti's scoped recurrence adapter.
+  Widget create/drag/resize paths are disabled; edits retain explicit save flows.
+- Verification: Initial failures were test expectations: use canonical `Etc/UTC`
+  and repository alphabetical child order. Corrected only those expectations.
+  Targeted tests 7/7, full Flutter suite 120/120, iOS grid 3/3 and Android grid
+  3/3 pass. Static analysis and formatting pass. See
+  `../testing/BUG-016-VERIFICATION.md` for exact results and limits.
+- Remaining boundaries: Physical devices and screen readers unverified.
+  BUG-013/014/015 and security/release blockers remain separate open defects.
 
 ### BUG-003 — Child profile creation was local-only; cross-device labels incomplete
 - Severity: Medium

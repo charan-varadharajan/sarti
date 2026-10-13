@@ -2,15 +2,16 @@
 
 - Current stage: Stage 3 — AI proposals, email intake, push notifications, and backup/recovery
 - Updated: 2026-10-12
-- Stage state: remediation in progress; BUG-001/002/003 remediation delivered; provider/device validation and BUG-004/005/010/011/012/013/014/015/016 outstanding
+- Stage state: remediation in progress; BUG-001/002/003 remediation delivered; provider/device validation and BUG-004/005/010/011/012/013/014/015 outstanding
 - Repository version: `0.1.0+1`; no public release tag
 
 ## Current result
 
-BUG-016 Kalender 0.33.0 presentation integration is implemented under ADR-033,
-but remains open: static analysis/tooling checks pass and the Flutter unit/widget
-suite plus iOS/Android native grid commands failed. Logs are retained without diagnosis under the maintainer's current
-instruction. See `testing/BUG-016-VERIFICATION.md` for all execution results.
+BUG-016 Kalender 0.33.0 presentation integration is resolved under ADR-033.
+Two incorrect test expectations were corrected; application behavior did not
+change in the follow-up. Full Flutter regression tests pass (120/120), as do
+prepared grid tests on iOS (3/3) and Android (3/3), formatting and static analysis.
+See `testing/BUG-016-VERIFICATION.md` for results and device/accessibility limits.
 This does not close BUG-013/014/015 or the existing security/release blockers.
 
 The software-only privacy remediation now connects the shipping mobile app to
