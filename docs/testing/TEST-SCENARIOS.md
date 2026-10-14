@@ -452,6 +452,16 @@ logs. Physical assistant acceptance is separate from injected native intents.
 | P1-VOICE-004 | Tampered/oversized/injection input rejected or treated only as proposal data; no private context exported, no content in URLs/logs/plaintext queues, no silent cloud call |
 | P1-VOICE-005 | Repeated activation cannot silently duplicate writes; approved duration/recurrence/DST semantics preserved |
 | P1-VOICE-006 | Real iPhone and Android assistant invoke supported phrases; exact OS/device/account/language/distribution limits and unsupported behavior documented |
+| P1-VOICE-007 | Backend/API encrypted-sync regression: authentication, active device, cross-family/resource isolation, replay, idempotency and errors |
+| P1-VOICE-008 | Native handoff/API contract validation and generated OpenAPI drift |
+| P1-VOICE-009 | Encrypted persistence/outbox/server boundary, wrong-key/tamper and encrypted migration preservation where changed |
+| P1-VOICE-010 | Approval-gated local reminders and privacy-preserving notification/push behavior |
+| P1-VOICE-011 | Full automated regression on final source, normal builds and both native platform/HTTP-host CI automation |
+| P1-VOICE-012 | Static/security/dependency/license/secret checks and sanitized test artifacts |
 
 None of these planned cases has run. Existing parser/widget suites do not prove
 Siri/Gemini/Google Assistant compatibility. See ../product/P1-BACKLOG.md.
+
+The mandatory [P1 voice test plan](P1-VOICE-TEST-PLAN.md) defines scope, layers,
+fixtures, full-suite gates, existing CI gaps and deferred execution exclusions.
+All twelve voice scenarios remain planned; none is claimed implemented here.

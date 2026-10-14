@@ -56,10 +56,18 @@ verified; this example is a product goal, not a shipping command.
 
 Prepared synthetic family/device fixtures and direct intent-to-proposal entry;
 no UI setup except where setup itself is tested. Required planned scenarios are
-listed in TEST-SCENARIOS.md as P1-VOICE-001 through P1-VOICE-006. Verify both warm
+listed in TEST-SCENARIOS.md as P1-VOICE-001 through P1-VOICE-012. Verify both warm
 and cold start, cancellation, ambiguity, permissions, tampering/oversize, duplicate
 activation and encrypted persistence. Physical Siri and Android assistant tests
 are required for assistant claims; intent injection and mocks are insufficient.
+
+The detailed [scope and test plan](../testing/P1-VOICE-TEST-PLAN.md) is mandatory:
+unit, widget, Swift/Kotlin bridge, native E2E, API/OpenAPI contract, backend,
+security/abuse, encrypted persistence/sync, migration, smoke and CI regression
+coverage. Run complete automated gates for code changes, not just new cases;
+report explicit exclusions and physical/provider limits. Register new tests in
+CI and close Android-native/opt-in cross-layer automation gaps before claiming
+full P1 automation. No backend endpoint or migration is invented solely for tests.
 
 ### Next work
 

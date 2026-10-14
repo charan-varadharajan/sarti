@@ -32,6 +32,13 @@ Read, in order:
   maintainer (2026-10-14); P0 release acceptance gaps remain open.
 - Update documentation, schemas, tests, and generated API specifications in the
   same change as behavior.
+- For every code change, add/update meaningful tests for changed behavior and run
+  full automated regression gates on the final source: Flutter, backend/API with
+  isolated PostgreSQL and enabled cross-layer contracts, both native platform
+  journeys, contracts/migrations, builds, smoke, static/security/dependency and
+  version/tooling checks. Preserve explicit deferred-test/provider exclusions.
+  Follow `docs/testing/TEST-STRATEGY.md`; report blocked/skipped gates, never infer
+  a pass. Documentation-only changes use documentation checks.
 - State exactly which checks ran. Never infer provider or device compatibility
   from mocks.
 - Add or update the stable scenario entry in

@@ -27,7 +27,11 @@ truth and is checked for drift. Every migration has an entry in migration histor
 
 A change is complete only when requirements, documentation, applicable tests,
 security checks, API/schema synchronization, migration checks, regression
-coverage, and complexity review pass. Critical or high-severity vulnerabilities
+coverage, and complexity review pass. Code changes require full automated regression
+gates on the final source under `../testing/TEST-STRATEGY.md`, with tests at each
+changed layer and new tests registered in CI. Preserve explicit deferred tests
+and report incomplete gates. Documentation-only changes use documentation checks.
+Critical or high-severity vulnerabilities
 and unexplained test failures block completion.
 
 ## Stop conditions
@@ -35,7 +39,8 @@ and unexplained test failures block completion.
 Stop and obtain approval if an accepted ADR must change; a security guarantee
 cannot be met; an SDK fails privacy requirements; a service adds unexpected cost
 or exposure; a dependency has material security or licensing concerns; a
-fundamental architecture assumption fails; or work exceeds P0.
+fundamental architecture assumption fails; or work exceeds P0 and the explicitly approved P1 scope in
+`../product/P1-BACKLOG.md`.
 
 ## Repository conventions
 

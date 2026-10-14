@@ -40,7 +40,15 @@ or `./test --android` (prepared calendar/child/grid/guardian/adult-pet/retention
 ignored `test-results/`. See `../testing/TEST-SCENARIOS.md` for selection and
 coverage limits. These shortcuts do not replace the full gates below.
 
-Run all gates locally and confirm they pass:
+For code changes, run the full regression policy in
+`../testing/TEST-STRATEGY.md`, including backend integration/HTTP contracts and
+both native platform journeys, in addition to the baseline commands below.
+`make backend-test` is unit-only and `./test` is Flutter-only; neither alone is
+a full application regression run. Register new tests in CI. Preserve explicit
+user-deferred tests/providers and report all skips/blocked gates. Documentation
+changes use documentation consistency/version/whitespace/secret checks.
+
+Run the baseline gates locally and confirm they pass:
 
 ```sh
 # Backend
@@ -69,7 +77,9 @@ git diff --exit-code -- backend/openapi.json
 ## PR checklist
 
 - [ ] All local gates pass (list above)
-- [ ] New behavior has tests; test categories not applicable are noted with reason
+- [ ] Scope/acceptance maps to stable scenarios and tests at every changed layer
+- [ ] Full automated regression gates run on final source; new tests registered in CI
+- [ ] Test categories not applicable, blocked/skipped/deferred gates and provider/device limits are explicit
 - [ ] `CHANGELOG.md` `[Unreleased]` section updated
 - [ ] `docs/engineering/BUGS.md` updated if a defect was fixed or discovered
 - [ ] Relevant docs updated (ADR, API.md, DATABASE.md, MODULES.md, STATUS.md)

@@ -21,6 +21,10 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
 ## [Unreleased]
 
 ### Documentation
+- Require full automated regression gates for code changes, per-layer tests and
+  CI registration. Expand P1-001 scope/test traceability to backend/API/security,
+  contracts, encrypted persistence, migrations, reminders and both native platforms;
+  document current CI gaps, prepared fixtures and preserved deferred-test exclusions.
 - Record approved P1-001 Siri/Shortcuts and Android assistant voice event proposals,
   explicit confirmation, privacy/compatibility boundaries and planned scenarios.
   Hosting remains deferred until last; P0 release checks remain open. No runtime

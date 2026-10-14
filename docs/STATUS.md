@@ -7,6 +7,14 @@
 
 ## Current result
 
+P1-001 scope now has a mandatory layered test plan: twelve planned voice
+scenarios, prepared fixtures, full automated regression for code changes,
+backend/API/security/contracts/migrations, both native platforms and CI test
+registration. Existing Android-native and opt-in HTTP-host CI gaps are explicitly
+planned automation work. No voice tests or runtime integration implemented yet.
+See [P1 voice test plan](testing/P1-VOICE-TEST-PLAN.md). Hosting remains last.
+
+
 2026-10-14: Maintainer authorized P1 work before completing P0 release acceptance,
 with hosting last, and approved iPhone Siri/Shortcuts plus Android assistant voice
 entry as P1-001. Scope, privacy/compatibility boundaries and planned acceptance

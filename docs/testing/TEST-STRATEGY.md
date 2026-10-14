@@ -10,6 +10,26 @@ Functional journeys and their reusable fixture/entry/teardown contracts are
 maintained in [`TEST-SCENARIOS.md`](TEST-SCENARIOS.md). Prerequisite state is
 seeded outside the UI unless creation of that state is the behavior under test.
 
+## Full regression policy — maintainer instruction 2026-10-14
+
+Every code change adds/updates meaningful tests for its changed behavior and
+runs the full automated regression gates on the final source before completion:
+full Flutter unit/widget/security, backend unit and isolated PostgreSQL/API
+integration (including enabled HTTP/Dart contracts), both registered native
+platform journeys, normal builds, contracts/migrations, Docker smoke, static/
+security/dependency and version/tooling checks. Targeted development runs do not
+replace this final gate. A full backend claim cannot deselect integration tests.
+
+Add feature-specific tests at each changed layer; document unchanged layers
+without creating unnecessary endpoints, migrations or implementation-mirroring
+tests. Blocked/skipped gates remain explicitly incomplete. Preserve the user's
+deferred Android-to-iPhone backup transfer and live-provider exclusions. Plain
+documentation changes use consistency/version/whitespace/secret checks only.
+
+[P1 voice test plan](P1-VOICE-TEST-PLAN.md) maps scope to planned scenarios,
+per-layer coverage, fixtures, required CI automation and physical acceptance.
+The CI automation gaps it lists are requirements, not already implemented work.
+
 ## Suites
 
 | Suite | Purpose | Required when |
@@ -35,8 +55,8 @@ relative event placement/duration, overlaps, empty dates, range navigation,
 agenda/large-text reading and navigation without outbox mutations. Tests run
 with saved logs; the assistant reports status without failure diagnosis unless
 the maintainer requests it. Current results are in BUG-016-VERIFICATION.md;
-a failed suite keeps BUG-016 open. Native scenarios remain absent from CI
-(BUG-012). No backup portability scenario is included in the grid suite.
+a failed suite keeps BUG-016 open. Native iOS scenarios are now in CI under resolved BUG-012; Android native
+CI automation remains part of the P1 test plan. No backup portability scenario is included in the grid suite.
 
 ## Mandatory scenarios
 
