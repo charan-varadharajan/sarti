@@ -23,170 +23,59 @@ in-repository record while Sarti has no external tracker.
 
 ## Open defects
 
-### BUG-021 — No complete, discoverable family management hub
-- Severity: Medium
-- Component: Family/profile management and guardian entry points
-- Discovered: 2026-10-13, maintainer physical-iPhone testing
-- Blocking: Maintaining family details and finding authorized adult actions
-- Summary: No unified screen for family/profile edits, children/colours and adults.
-- Evidence: Child creation and authenticated guardian management are separate
-  calendar actions; no general family/profile editing screen exists. BUG-004
-  implemented guardian invitations/removal for configured authenticated builds,
-  not a full household-management hub. Missing device entry point needs checking
-  against that build's backend/session configuration and owner permissions.
-- Required action: Design an owner-aware Family screen with existing invite/
-  removal routes, clearly explained offline/unconfigured actions and explicit
-  profile-edit synchronization semantics. No permissions or key revocation
-  controls may be bypassed. Coordinate BUG-015 and BUG-020. Pending.
-- ADR-038 update: People & pets now exposes own-adult/pet profiles and child
-  colours. Existing invite/removal remains under Family guardians. Family-name
-  and general guardian-name editing remain outside this delivered screen.
-- Requested extension (2026-10-13): Adult appointments with explicit sharing,
-  pet profiles and pastel colours. ADR-038 was explicitly approved and implemented
-  with separate personal resources/backups. General family/guardian name editing
-  remains pending; feature verification is documented separately.
-- Workaround: Existing Family guardians action when signed in to a configured
-  service; it is unavailable in an offline-only build.
-
-### BUG-017 — Remote resolution leaves an obsolete conflict card open
-- Severity: Medium
-- Component: calendar repository conflict lifecycle
-- Discovered: 2026-10-12 during BUG-011 source review
-- Blocking: Complete cross-device conflict-resolution UI acceptance
-- Summary: Receiving a causally newer resolution updates the event but does not
-  retire the receiver's earlier conflict row. Its alternatives remain preserved,
-  but the old conflict can still be offered for action.
-- Evidence: `_saveRemote` writes event/version/applied-operation state without
-  updating `conflicts`; only the locally invoked `resolveConflict` retires a row.
-- Workaround: Review the latest event before acting on an old conflict card.
-- Required action: Define causal retirement of superseded conflict rows and test
-  remote resolution/stale-card actions. Deferred from BUG-011; no fix included.
-
-### BUG-014 — Event-added Undo action persists indefinitely
-- Severity: Medium
-- Component: `features/calendar/presentation/calendar_screen.dart`
-- Discovered: 2026-10-12 during maintainer simulator testing
-- Blocking: Safe transient post-save feedback; stale Undo can delete an event
-  after the parent considers the save complete.
-- Summary: The "Event added" snackbar remains visible with an active Undo link.
-- Root cause: The pinned Flutter 3.47.7 SDK defaults `SnackBar.persist` to true
-  when an action is present. Sarti supplies an Undo action without overriding
-  persistence. SDK source confirms this; no tests executed for this report.
-- Workaround: Dismiss the snackbar by swiping it away; avoid the stale Undo link.
-- Proposed action: Make standard feedback transient (five-second Undo window),
-  provide an explicit close control, and replace old feedback when another event
-  is saved. Preserve screen-reader accessibility behavior rather than forcing
-  timers that make the action inaccessible.
-- Approved interaction (2026-10-12): Tapping Undo opens an editable preview of
-  the saved event; it must not immediately delete or modify it. The preview has
-  Delete, Cancel and Save. Delete explicitly deletes that event. Cancel closes
-  the preview and discards unsaved edits, leaving the saved event intact. Save
-  starts disabled and enables only for valid changes from the original event;
-  reverting every change disables it again. Save persists reviewed changes.
-  Dismissing the preview without saving behaves like Cancel. If the event no
-  longer exists, handle that safely rather than recreating it from stale data.
-  This supersedes the previously proposed immediate-Undo deletion behavior.
-- Required regressions: Snackbar expiry/close without mutation; Undo opens
-  preview without a write; Delete removes only the target; Cancel/dismiss
-  preserves it; Save dirty/valid/reverted state and persistence; consecutive
-  saves target the correct event; stale/deleted event and accessibility cases.
-  Pending implementation; separate from BUG-013 parsing/duration work.
-
-### BUG-013 — Multi-event natural-language input is reduced to one proposal
-- Severity: Medium
-- Component: `features/ai/event_parser.dart`, `natural_language_event_dialog.dart`
-- Discovered: 2026-10-12 during maintainer simulator testing
-- Blocking: Reliable natural-language entry of multiple independently timed events
-- Summary: A sentence describing the same activity for two children at different
-  times produces only one entry. Synthetic reproduction: "Tomorrow karate for
-  Alex at 5 pm and Sam at 7 pm."
-- Root cause: `AiProvider.parse` returns a single `EventProposal`; deterministic
-  time extraction uses the first match and the review/save UI owns one event.
-  Native enrichment also feeds the single-proposal review path.
-- Workaround: Enter and approve each child's event separately, checking the
-  date, time and child assignment in each preview.
-- Proposed action: Detect multiple event clauses; present separate editable
-  proposals with explicit confirmation and undo. Carry shared date/activity only
-  when unambiguous; require clarification otherwise. Never silently discard a
-  clause or create an event automatically. Add parser, review/approval, no-write
-  before approval, ambiguity and prepared native UI regressions. Pending design
-  review; no implementation or test execution yet.
-- Approved duration requirement: When the input specifies no end time or
-  duration, each proposed event defaults to 60 minutes. Show an editable
-  "Duration: 1 hour (default)" in each preview before approval. This is an app
-  default, not an inferred fact. Explicit end times/durations must be honored
-  when unambiguous and valid; unclear or conflicting values require clarification.
-  Current natural-language save hardcodes 60 minutes without an editable duration.
-  Include tests for visible defaults, independent per-proposal edits, explicit
-  durations/end times and confirmation preserving the reviewed duration.
-- Additional reported case: Named clock times are not recognized by the
-  deterministic parser, which handles numeric times only. Synthetic regression:
-  "alex has swimming for 2 hours tomorrow at noon" must propose swimming for
-  the matched child tomorrow at 12:00, duration 120 minutes, ending at 14:00,
-  subject to explicit approval. Parse noon as 12:00 (not midnight), keep the
-  duration separate from the start time, and remove recognized scheduling words
-  from the event title. Add deterministic-parser and editable-preview/save
-  regressions so the case works without native AI. Not fixed or tested yet.
-- Calendar display gap: Event subtitles display only the start time even though
-  events persist `durationMinutes`; the manual event editor also has no duration
-  control. Show start and end in calendar entries and review/edit flows, with
-  editable duration/end time for manual as well as natural-language creation.
-  Derive the displayed end from the stored start, event timezone and duration;
-  handle crossing midnight with an end-date indication and cover DST boundaries.
-  Preserve existing event durations on edit. Add prepared widget/native
-  regressions for one-hour defaults, two-hour entries, edits and overnight/DST
-  ranges. No implementation or test execution yet.
-
-### BUG-012 — iOS simulator integration tests are absent from CI
-- Severity: Medium
-- Component: `.github/workflows/ci.yml`, `mobile/integration_test/`
-- Discovered: 2026-10-12
-- Blocking: Automated native iOS regression coverage; a green CI build alone
-  does not establish simulator journey acceptance.
-- Summary: The iOS job compiles the app but never boots a simulator or executes
-  integration tests. Flutter unit/widget tests run on Linux in the Android job.
-- Root cause: Simulator integration execution and result reporting were not
-  added to the workflow.
-- Workaround: Run the prepared native scenarios locally when required; report
-  those results separately from CI builds.
-- Required action: Add prepared-fixture iOS simulator integration tests on PRs
-  and main pushes, with readable results and failure artifacts. Preserve the
-  explicit instruction not to run Android-to-iOS backup scenario
-  `BACKUP-XPLAT-002` until separately authorized. Pending; no CI change yet.
-
-### BUG-005 — Optional Gemini adapter is not connected to a safe shipping credential path
-- Severity: Medium
-- Component: `mobile/lib/src/features/ai/`, backend configuration, ADR-023
-- Discovered: 2026-10-11
-- Blocking: Optional Gemini provider acceptance; local/native parsing is unaffected
-- Summary: The mobile Gemini adapter and consent gate exist, but the shipping
-  bootstrap constructs only the native provider. `SARTI_GEMINI_API_KEY` exists
-  only in backend settings and is unused there; it cannot configure the mobile
-  adapter. Embedding an unrestricted provider key in the app would expose it.
-- Root cause: Provider credential delivery and runtime construction were not
-  designed end to end.
-- Workaround: Cloud assist remains unavailable; deterministic and native
-  on-device parsing continue without a cloud fallback.
-- Approved privacy remediation (2026-10-13): ADR-036 replaces transmitted stable
-  aliases/free-form prompts with fresh labels and a fail-closed structured token
-  grammar, evidence-bound output and disclosure-v2 consent. UI/privacy/marketing
-  guidance removes blanket “personal information never leaves your phone” claims.
-  This does not wire cloud credentials or establish live provider compatibility;
-  BUG-005 remains open for that integration. Automated results are recorded in
-  `../testing/BUG-005-PRIVACY-VERIFICATION.md`.
-- Provider review (2026-10-13): Official Gemini terms prohibit sensitive/personal
-  information on unpaid services; paid services still retain content temporarily
-  for abuse monitoring. Fresh labels do not establish unpaid-service eligibility.
-  Proposed ADR-037 documents a disabled billing-backed broker, explicit server
-  processing boundary and atomic usage caps. Not approved or implemented; no
-  billing activation or provider call was performed.
-- Required action: Approve a provider credential architecture that preserves
-  ADR-036 minimization and explicit consent without exposing a reusable key,
-  then implement and perform a live provider test.
+### BUG-005 — Optional cloud provider acceptance deferred
+- Severity: Medium (optional feature; native/local path unaffected)
+- Discovered: 2026-10-11; clarified 2026-10-14
+- Implementation fixed: safe server-managed credential path, strict minimized
+  request schema, explicit v3 consent/action, atomic caps and generated API under
+  maintainer-approved ADR-037. Direct mobile Gemini SDK removed; default disabled.
+- Blocking: Live cloud provider acceptance only, explicitly deferred by maintainer
+  on 2026-10-14. No automatic cloud fallback, billing or family-data call enabled.
+- Remaining action: Review eligible model/project and provider/audience/retention
+  controls, then obtain separate activation/synthetic smoke authorization. Current
+  2.5 adapter requires prior provider access; new projects need reviewed current
+  model support. Mocks do not establish live compatibility.
+- Verification: `../testing/REMAINING-BUGS-VERIFICATION.md` and
+  `../api/CLOUD-ASSIST.md`. No reusable provider key is shipped in mobile.
 
 ---
 
 ## Resolved defects
+
+### BUG-021 — Family management hub
+- Severity: Medium
+- Fixed: 2026-10-14; version 0.5.0+5; commit: this combined remediation commit
+- Disposition: Unified owner-aware Family screen, encrypted family/guardian/child name editing, existing guardian/removal, pastel profile and retention routes; offline/access guidance.
+- Verification: `../testing/REMAINING-BUGS-VERIFICATION.md` (executed results and
+  physical/provider/CI limitations). No next stage or cloud activation.
+
+### BUG-017 — Obsolete remote conflict cards
+- Severity: Medium
+- Fixed: 2026-10-14; version 0.5.0+5; commit: this combined remediation commit
+- Disposition: Persisted vectors are authoritative; retire only same-event conflicts covering both parents, reject stale cards and prevent stale snapshots reopening them.
+- Verification: `../testing/REMAINING-BUGS-VERIFICATION.md` (executed results and
+  physical/provider/CI limitations). No next stage or cloud activation.
+
+### BUG-014 — Persistent unsafe Undo
+- Severity: Medium
+- Fixed: 2026-10-14; version 0.5.0+5; commit: this combined remediation commit
+- Disposition: Five-second closable feedback opens review instead of deleting; explicit Delete/Cancel/valid dirty Save, reverted/stale checks and safe dialog lifecycle.
+- Verification: `../testing/REMAINING-BUGS-VERIFICATION.md` (executed results and
+  physical/provider/CI limitations). No next stage or cloud activation.
+
+### BUG-013 — Single-proposal parsing and duration gaps
+- Severity: Medium
+- Fixed: 2026-10-14; version 0.5.0+5; commit: this combined remediation commit
+- Disposition: Multiple reviewed clauses save atomically; noon/midnight, explicit durations/end ranges, visible editable defaults and end previews including DST clarification.
+- Verification: `../testing/REMAINING-BUGS-VERIFICATION.md` (executed results and
+  physical/provider/CI limitations). No next stage or cloud activation.
+
+### BUG-012 — Native iOS scenarios absent from CI
+- Severity: Medium
+- Fixed: 2026-10-14; version 0.5.0+5; commit: this combined remediation commit
+- Disposition: Main/PR CI now runs eight allowlisted prepared journeys with runtime discovery, per-scenario summary and failure logs/screenshots; portability excluded.
+- Verification: `../testing/REMAINING-BUGS-VERIFICATION.md` (executed results and
+  physical/provider/CI limitations). No next stage or cloud activation.
 
 ### BUG-022 — Family recovery drops historical decryption/causal continuation
 - Severity: High

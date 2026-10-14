@@ -8,12 +8,13 @@ no separate pamphlet or marketing website currently exists in this repository.
 
 “Calendar sync and backups are encrypted before leaving an authorized device.
 Native AI processes suggestions on-device. If you choose optional cloud AI,
-limited scheduling information may be sent to Google Gemini with temporary
+limited scheduling information may be temporarily processed by Sarti servers
+and sent to Google Gemini with temporary
 labels. This reduces exposure but does not make it anonymous. Email processing
 has a separate plaintext boundary.”
 
-For the current build add: “Optional cloud AI is not yet connected in the
-shipping app. Local parsing and supported native AI remain available.”
+For the current build add: “The optional broker is disabled by default and live provider testing is pending.
+Local parsing and supported native AI remain the primary path.”
 
 ## Required distinctions
 

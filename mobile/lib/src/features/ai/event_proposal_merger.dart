@@ -57,6 +57,10 @@ class EventProposalMerger {
       childNameTokens: childTokens,
       guardianNameTokens: guardianTokens,
       requiresTimeConfirmation: base.requiresTimeConfirmation,
+      durationMinutes: base.durationMinutes,
+      endTimeOfDay: base.endTimeOfDay,
+      hasExplicitDuration: base.hasExplicitDuration,
+      requiresDurationConfirmation: base.requiresDurationConfirmation,
     );
   }
 

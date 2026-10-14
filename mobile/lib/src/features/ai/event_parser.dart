@@ -28,6 +28,10 @@ class EventProposal {
     this.childNameTokens = const [],
     this.guardianNameTokens = const [],
     this.requiresTimeConfirmation = false,
+    this.durationMinutes,
+    this.endTimeOfDay,
+    this.hasExplicitDuration = false,
+    this.requiresDurationConfirmation = false,
   });
 
   final String rawInput;
@@ -45,6 +49,10 @@ class EventProposal {
   /// True when the input contained a clock time without enough information to
   /// distinguish morning from afternoon/evening.
   final bool requiresTimeConfirmation;
+  final int? durationMinutes;
+  final ParsedTime? endTimeOfDay;
+  final bool hasExplicitDuration;
+  final bool requiresDurationConfirmation;
 
   /// True when enough information exists to show a confirmation UI.
   bool get isActionable => title != null && title!.isNotEmpty;
@@ -70,6 +78,16 @@ class EventProposal {
 abstract interface class AiProvider {
   EventProposal parse(String input, {DateTime? now});
 }
+
+final _namedTime = RegExp(r'\b(noon|midnight)\b', caseSensitive: false);
+final _duration = RegExp(
+  r'\bfor\s+(\d+(?:\.\d+)?)\s*(hours?|hrs?|minutes?|mins?)\b',
+  caseSensitive: false,
+);
+final _clock = RegExp(
+  r'\b(?:\d{1,2}(?::\d{2})?\s*(?:am|pm)|\d{1,2}:\d{2}|noon|midnight|at\s+\d{1,2}(?![:\d]|\s*(?:am|pm)))\b',
+  caseSensitive: false,
+);
 
 // ── Weekday helpers ──────────────────────────────────────────────────────────
 
@@ -130,6 +148,7 @@ final _locationAt = RegExp(
 // "X has <event>" pattern
 final _hasPattern = RegExp(
   r'^([A-Z][a-z]+)(?:\s+and\s+([A-Z][a-z]+))?\s+(?:has|have)\s+(.+)',
+  caseSensitive: false,
 );
 
 // "Remind <guardian> to <action>" pattern
@@ -151,6 +170,8 @@ class DeterministicEventParser implements AiProvider {
 
   // Strips all time/date/recurrence/location keywords and cleans whitespace.
   String _stripKeywords(String s) => s
+      .replaceAll(_duration, '')
+      .replaceAll(_namedTime, '')
       .replaceAll(_time12, '')
       .replaceAll(_time24, '')
       .replaceAll(_bareHour, '')
@@ -167,6 +188,50 @@ class DeterministicEventParser implements AiProvider {
       .replaceAll(RegExp(r'\bon\b', caseSensitive: false), '')
       .replaceAll(RegExp(r'\s{2,}'), ' ')
       .trim();
+
+  List<EventProposal> parseAll(String input, {DateTime? now}) {
+    final parts = input.split(RegExp(r'\s+and\s+|;\s*', caseSensitive: false));
+    if (parts.length == 1 ||
+        (!_clock.hasMatch(parts.first) &&
+            !parts.every(
+              (p) =>
+                  RegExp(r'\bhas\b|\bhave\b', caseSensitive: false).hasMatch(p),
+            )) ||
+        !parts.skip(1).any((p) => _clock.hasMatch(p))) {
+      return [parse(input, now: now)];
+    }
+    final proposals = <EventProposal>[];
+    String? sharedDate, activity;
+    for (var i = 0; i < parts.length; i++) {
+      var text = parts[i].trim();
+      if (i == 0) {
+        sharedDate = RegExp(
+          r'\b(today|tomorrow|(?:every\s+)?(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b',
+          caseSensitive: false,
+        ).firstMatch(text)?.group(0);
+      } else {
+        if (!RegExp(
+              r'\b(today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b',
+              caseSensitive: false,
+            ).hasMatch(text) &&
+            sharedDate != null) {
+          text = '$text $sharedDate';
+        }
+        final short = RegExp(
+          r'^([A-Za-z][A-Za-z-]*)\s+at\b',
+          caseSensitive: false,
+        ).firstMatch(text);
+        if (short != null && activity != null) {
+          text =
+              '${short.group(1)} has $activity ${text.substring(short.end - 2)}';
+        }
+      }
+      final proposal = parse(text, now: now);
+      proposals.add(proposal);
+      if (i == 0 && proposal.title != null) activity = proposal.title;
+    }
+    return proposals;
+  }
 
   @override
   EventProposal parse(String input, {DateTime? now}) {
@@ -214,8 +279,19 @@ class DeterministicEventParser implements AiProvider {
       }
     }
 
+    final forChild = RegExp(
+      r'\bfor\s+([A-Za-z][A-Za-z-]*)\b',
+      caseSensitive: false,
+    ).firstMatch(working);
+    if (forChild != null && !_duration.hasMatch(forChild.group(0)!)) {
+      childTokens.add(forChild.group(1)!);
+    }
+
     // ── fallback title ────────────────────────────────────────────────────
     title ??= _stripKeywords(working);
+    if (forChild != null) {
+      title = title.replaceAll(forChild.group(0)!, '').trim();
+    }
     if (title.isEmpty) title = null;
 
     // ── time ──────────────────────────────────────────────────────────────
@@ -251,6 +327,71 @@ class DeterministicEventParser implements AiProvider {
           }
         }
       }
+    }
+
+    final named = _namedTime.firstMatch(working);
+    if (named != null) {
+      timeOfDay = ParsedTime(
+        named.group(1)!.toLowerCase() == 'noon' ? 12 : 0,
+        0,
+      );
+    }
+    if (timeOfDay != null &&
+        (timeOfDay.hour > 23 ||
+            timeOfDay.minute > 59 ||
+            (t12 != null &&
+                (int.parse(t12.group(1)!) < 1 ||
+                    int.parse(t12.group(1)!) > 12)))) {
+      timeOfDay = null;
+      requiresTimeConfirmation = true;
+    }
+    ParsedTime? endTimeOfDay;
+    int? durationMinutes;
+    var requiresDurationConfirmation = false;
+    final durations = _duration.allMatches(working).toList();
+    if (durations.length == 1) {
+      final d = durations.single;
+      final minutes =
+          double.parse(d.group(1)!) *
+          (d.group(2)!.toLowerCase().startsWith('h') ? 60 : 1);
+      if (minutes > 0 &&
+          minutes <= 10080 &&
+          minutes == minutes.roundToDouble()) {
+        durationMinutes = minutes.toInt();
+      } else {
+        requiresDurationConfirmation = true;
+      }
+    } else if (durations.length > 1) {
+      requiresDurationConfirmation = true;
+    }
+    final range = RegExp(
+      r'\b(?:to|until|-)\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm)|noon|midnight|\d{1,2}:\d{2})\b',
+      caseSensitive: false,
+    ).firstMatch(working);
+    if (range != null && timeOfDay != null) {
+      final end = parse('End at ${range.group(1)}', now: now).timeOfDay;
+      endTimeOfDay = end;
+      if (end == null) {
+        requiresDurationConfirmation = true;
+      } else {
+        var difference =
+            end.hour * 60 + end.minute - timeOfDay.hour * 60 - timeOfDay.minute;
+        if (difference < 0) difference += 1440;
+        if (difference == 0 ||
+            (durationMinutes != null && difference != durationMinutes)) {
+          requiresDurationConfirmation = true;
+        } else {
+          durationMinutes = difference;
+        }
+      }
+      title = title
+          ?.replaceAll(range.group(0)!, '')
+          .replaceAll(RegExp(r'\b(?:from|to|until)\b'), '')
+          .trim();
+    } else if (_clock.allMatches(working).length > 1) {
+      if (range != null) requiresDurationConfirmation = true;
+      timeOfDay = null;
+      requiresTimeConfirmation = true;
     }
 
     // ── date ──────────────────────────────────────────────────────────────
@@ -309,6 +450,10 @@ class DeterministicEventParser implements AiProvider {
       childNameTokens: childTokens,
       guardianNameTokens: guardianTokens,
       requiresTimeConfirmation: requiresTimeConfirmation,
+      durationMinutes: durationMinutes,
+      endTimeOfDay: endTimeOfDay,
+      hasExplicitDuration: durations.isNotEmpty,
+      requiresDurationConfirmation: requiresDurationConfirmation,
     );
   }
 }

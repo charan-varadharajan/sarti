@@ -75,10 +75,11 @@ their resource, device, family, or account lifecycle removes them.
 - **Provider privacy policy:** TODO — link Firebase/Google privacy policy.
 
 ### Optional cloud AI assist (Google Gemini)
-- **Current availability:** Not connected in the shipping bootstrap. Credential
-  delivery and live provider validation remain BUG-005; this describes the
-  approved adapter boundary, not a live-service guarantee.
-- **Requires fresh explicit opt-in.** Defaults off; disclosure version 2 does
+- **Current availability:** ADR-037 broker implementation is connected to an
+  explicit action but disabled on the server by default. Live provider testing
+  is deferred by the maintainer; no live-service guarantee. Native/local parsing
+  is the primary path and needs no cloud provider.
+- **Requires fresh explicit opt-in.** Defaults off; disclosure version 3 does
   not inherit earlier consent. Local parsing remains available when disabled.
 - **What may be sent:** A bounded JSON array of supported scheduling tokens,
   with fresh random labels for known children, guardians and places for each
@@ -88,6 +89,11 @@ their resource, device, family, or account lifecycle removes them.
 - **Excluded from the model payload:** Stored aliases, account/family/device IDs,
   profile records, keys, requester identifiers and reverse label mappings.
   Temporary mappings stay in phone memory; no persistent mapping is created.
+- **Sarti processing:** The authenticated Sarti server temporarily sees these
+  scheduling tokens in memory and sends them to Gemini. This path is outside
+  sync/backup E2EE. Provider credentials remain runtime-only on the server; no
+  prompts/responses/content hashes are persisted. Adult/day and global/month
+  attempt counts expire after 35 days; account deletion purges adult rows.
 - **Residual risk:** Scheduling information can still be sensitive or identify
   someone. Token filtering is not a universal PII detector. Network metadata,
   provider credentials and distinctive schedules can allow correlation even

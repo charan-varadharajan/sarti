@@ -145,3 +145,11 @@ one week by default. Locking and expected revision serialize policy writes;
 downgrade refuses to discard a configured revision. Cascading family deletion
 removes the preference with its family row. This is configuration metadata, not
 plaintext calendar history. Relay seven-day expiry and recovery storage are unchanged.
+
+## PostgreSQL 0010 (ADR-037)
+
+`ai_usage(scope,bucket,attempts,expires_at)` stores only adult/day and global/month
+counts. Unique scope/bucket and transaction advisory lock serialize reservation
+across replicas before external I/O. No prompt/response/hash/request payload.
+Account deletion trigger removes adult scope; no family scope exists. Expired
+rows purge on attempts and through the required daily maintenance command.

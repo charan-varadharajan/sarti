@@ -67,3 +67,20 @@ release checks. Existing backend authorization/replay/security suites still appl
 Calendar retention also removes completed recovery-intent bodies for the deleted
 entry; unresolved/quarantined intent and exact pending retries are protected.
 RECOVERY-RETENTION-001 verifies this minimization boundary.
+
+## Optional broker and remaining-bug controls (ADR-037)
+
+Threats: embedded mobile credentials, silent cloud fallback, token injection,
+provider redirects/logging, replay-driven spend, stale conflict/data overwrite
+and unintended Undo deletion. Controls: runtime-only server secret, explicit
+v3 consent/action, fail-closed grammar/extra fields, fixed host/no redirects,
+bounded response/total deadline/no retry, atomic adult/global attempt caps,
+safe content-free logs and independent phone evidence checks. Calls remain
+separate from sync E2EE. Provider eligibility/retention/live acceptance are
+deferred activation gates; pseudonyms are not anonymous.
+
+Tests: CLOUD-BROKER/QUOTA/API/MOB schema, captured transport, revoked device,
+concurrent quotas, expiry/account purge; CONFLICT-RETIRE and AAD-HTTP causal
+retirement/stale rejection; NLP-BATCH-SEC atomic cross-family rollback;
+UNDO-MOB dirty/reverted/cancel/expiry plus existing explicit Delete journey;
+FAMILY-HUB encrypted peer update and guardian/foreign-write denial.

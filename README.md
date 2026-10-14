@@ -3,17 +3,17 @@
 Sarti is a privacy-first AI family organizer: **Your family's wise companion.**
 
 Calendar sync and backups use encrypted content. Native AI runs on-device;
-optional cloud AI, when configured and explicitly enabled, may receive limited
-scheduling information with temporary labels. This reduces exposure but does
+optional cloud AI, when explicitly requested and enabled, temporarily processes
+limited scheduling information on Sarti servers and Google Gemini with temporary labels. This reduces exposure but does
 not make it anonymous. Inbound email has a separate plaintext-processing
-boundary. See [privacy disclosure](docs/PRIVACY.md). Cloud AI is not yet wired
-into the shipping app.
+boundary. See [privacy disclosure](docs/PRIVACY.md). The broker is implemented disabled by default. Native AI and the local parser
+remain the primary path; live cloud validation is deferred.
 
 This monorepo contains the Flutter iOS/Android app, FastAPI backend, PostgreSQL
 migrations, Docker local environment, tests, CI gates, and architecture/security
 documentation through Stage 2.
 
-Current release version: `0.1.0` (mobile build `1`). Version increments and
+Current development version: `0.5.0` (mobile build `5`; no public release tag). Version increments and
 release tags follow [ADR-030](docs/architecture/adr/030-release-versioning.md).
 
 ## Prerequisites

@@ -194,3 +194,12 @@ email_suggestion_deliveries = sa.Table(
     sa.Column("status", sa.Text(), nullable=False),
     sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
 )
+
+ai_usage = sa.Table(
+    "ai_usage",
+    metadata,
+    sa.Column("scope", sa.Text(), primary_key=True),
+    sa.Column("bucket", sa.Date(), primary_key=True),
+    sa.Column("attempts", sa.Integer(), nullable=False),
+    sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
+)

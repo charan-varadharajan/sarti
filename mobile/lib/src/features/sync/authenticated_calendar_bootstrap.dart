@@ -623,6 +623,7 @@ class _AuthenticatedCalendarBootstrapState
                   ? null
                   : () => unawaited(_openGuardians()),
               nativeAi: NativeEventAiProvider(),
+              cloudApi: _api,
               cloudAiConsent: CloudAiConsentController(
                 CloudAiConsentStore(widget.database),
               ),

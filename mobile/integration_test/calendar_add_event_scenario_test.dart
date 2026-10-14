@@ -23,7 +23,14 @@ void main() {
 
     await harness.openAddEvent(tester);
     await tester.enterText(find.byType(TextField).first, 'Swimming');
-    await tester.tap(find.text('Repeat weekly'));
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    final repeat = find.widgetWithText(SwitchListTile, 'Repeat weekly');
+    await Scrollable.ensureVisible(tester.element(repeat), alignment: 0.2);
+    await tester.pumpAndSettle();
+    await tester.tap(repeat);
+    await tester.pumpAndSettle();
+    expect(tester.widget<SwitchListTile>(repeat).value, isTrue);
     final miaId = harness.controller.family!.children
         .firstWhere((child) => child.name == 'Mia')
         .id;

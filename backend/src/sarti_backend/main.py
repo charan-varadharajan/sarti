@@ -9,6 +9,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from sarti_backend.api.ai import router as ai_router
 from sarti_backend.api.auth import router as auth_router
 from sarti_backend.api.backups import router as backups_router
 from sarti_backend.api.email import router as email_router
@@ -83,6 +84,8 @@ def create_app(
         started = time.monotonic()
         response = await call_next(request)
         response.headers["X-Request-ID"] = request_id
+        if request.url.path.startswith("/v1/ai/"):
+            response.headers["Cache-Control"] = "no-store"
         logger.info(
             "request_complete",
             extra={
@@ -131,6 +134,7 @@ def create_app(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
+    app.include_router(ai_router)
     app.include_router(health_router)
     app.include_router(auth_router)
     app.include_router(backups_router)

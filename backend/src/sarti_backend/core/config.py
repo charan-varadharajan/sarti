@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     webauthn_origin: str = Field(default="http://localhost:8000", min_length=1)
     email_worker_secret: str = Field(default="", repr=False)
     gemini_api_key: str = Field(default="", repr=False)
+    cloud_ai_enabled: bool = False
+    cloud_ai_reviewed: bool = False
+    cloud_ai_model: Literal["", "gemini-2.5-flash-lite"] = ""
     fcm_credentials_file: str = Field(default="")
 
 

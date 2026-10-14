@@ -746,6 +746,97 @@
         "title": "PermissionAssignment",
         "type": "object"
       },
+      "ProposalRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "consent_version": {
+            "maximum": 3.0,
+            "minimum": 3.0,
+            "title": "Consent Version",
+            "type": "integer"
+          },
+          "tokens": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Tokens",
+            "type": "array"
+          },
+          "version": {
+            "maximum": 1.0,
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "consent_version",
+          "tokens"
+        ],
+        "title": "ProposalRequest",
+        "type": "object"
+      },
+      "ProposalResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "recurrence": {
+            "anyOf": [
+              {
+                "pattern": "^(daily|weekly)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recurrence"
+          },
+          "recurrenceWeekday": {
+            "anyOf": [
+              {
+                "maximum": 7.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recurrenceweekday"
+          },
+          "timeHour": {
+            "anyOf": [
+              {
+                "maximum": 23.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timehour"
+          },
+          "timeMinute": {
+            "anyOf": [
+              {
+                "maximum": 59.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timeminute"
+          }
+        },
+        "title": "ProposalResponse",
+        "type": "object"
+      },
       "PushTokenRegister": {
         "additionalProperties": false,
         "properties": {
@@ -1173,6 +1264,116 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/v1/ai/capability": {
+      "get": {
+        "operationId": "capability_v1_ai_capability_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Capability V1 Ai Capability Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Capability",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/v1/ai/proposals": {
+      "post": {
+        "operationId": "propose_v1_ai_proposals_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProposalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Propose",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
     "/v1/auth/authentication/complete": {
       "post": {
         "description": "Replace the active phone atomically, advancing accessible resource epochs.\n\nFresh authorized-device grants are required for future writes. Authentication\nnever returns resource keys or decrypts an encrypted recovery snapshot.",

@@ -85,6 +85,7 @@ jobs:
         working-directory: mobile
 
   mobile-ios:
+    timeout-minutes: 60
     # passkeys diagnostics use an iOS 26.1 SDK API while retaining iOS 13 runtime support.
     runs-on: macos-26
     steps:
@@ -98,6 +99,16 @@ jobs:
         working-directory: mobile
       - run: flutter build ios --debug --no-codesign
         working-directory: mobile
+      - name: Run prepared native iOS scenarios
+        run: python3 scripts/ci_ios_tests.py
+      - name: Publish native iOS test results and failure screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-native-results
+          path: test-results/ios-ci/
+          if-no-files-found: error
+          retention-days: 7
 
   docker-smoke:
     runs-on: ubuntu-latest

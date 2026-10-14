@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:sarti_mobile/src/features/ai/event_parser.dart';
 import 'package:sarti_mobile/src/features/ai/event_proposal_merger.dart';
 import 'package:sarti_mobile/src/features/ai/prompt_pseudonymizer.dart';
@@ -10,27 +9,18 @@ typedef CloudAiTransport = Future<String?> Function(String prompt);
 
 /// Optional cloud scheduling assist under ADR-036; construction is consent gated.
 class GeminiAiProvider implements AiProvider {
-  GeminiAiProvider(String apiKey, {CloudAiTransport? transport})
-    : _generate = transport ?? _transport(apiKey);
-
+  // Legacy test transport only; credentials never construct mobile networking.
+  GeminiAiProvider(String unused, {CloudAiTransport? transport})
+    : _generate = transport ?? ((_) async => null),
+      _broker = false;
+  GeminiAiProvider.broker(CloudAiTransport transport)
+    : _generate = transport,
+      _broker = true;
   final CloudAiTransport _generate;
+  final bool _broker;
   final _fallback = const DeterministicEventParser();
   final _merger = const EventProposalMerger();
   final _pseudonymizer = const PromptPseudonymizer();
-
-  static CloudAiTransport _transport(String key) {
-    final model = GenerativeModel(
-      model: 'gemini-1.5-flash',
-      apiKey: key,
-      generationConfig: GenerationConfig(
-        responseMimeType: 'application/json',
-        maxOutputTokens: 256,
-        temperature: 0,
-      ),
-    );
-    return (prompt) async =>
-        (await model.generateContent([Content.text(prompt)])).text;
-  }
 
   static const _systemInstruction = '''
 Extract explicit scheduling fields from the versioned JSON token array below.
@@ -78,7 +68,9 @@ Do not return titles, names, labels or any other fields.
         ],
       );
       if (protected == null) return base;
-      final text = await _generate('$_systemInstruction\n${protected.text}');
+      final text = await _generate(
+        _broker ? protected.text : '$_systemInstruction\n${protected.text}',
+      );
       if (text == null || text.isEmpty || text.length > 8192) return base;
       final json = jsonDecode(text);
       if (json is! Map<String, dynamic>) return base;

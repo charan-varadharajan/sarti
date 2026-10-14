@@ -28,10 +28,10 @@ class _CloudAiConsentDialog extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           const Text(
-            'When configured and enabled, Sarti sends limited scheduling '
-            'tokens to Gemini, using fresh temporary labels for known people '
+            'When you explicitly request cloud assistance, Sarti’s server temporarily processes limited scheduling '
+            'tokens and sends them to Gemini, using fresh temporary labels for known people '
             'and places. Your saved aliases and account IDs are excluded. '
-            'Unsupported text stays local. Schedules can still be sensitive '
+            'Sarti does not save these prompts. Google’s provider retention rules apply. Unsupported text stays local. Schedules can still be sensitive '
             'or identifying, and network/provider metadata may link requests. '
             'This is pseudonymization, not anonymization. It does not guarantee '
             'that personal information never leaves your phone.',

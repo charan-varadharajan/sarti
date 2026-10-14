@@ -122,3 +122,18 @@ only, gates publication and validates history review before retention resume.
 Bootstrap routes recovery through that coordinator, disables ordinary mutations
 and prevents recreation. ResourceKeySync recovery mode skips private resources
 and implicit provisioning; SyncEngine enforces exact reviewed-operation binding.
+
+## Combined remaining-bug remediation (2026-10-14)
+
+Parser `parseAll` preserves distinct clauses, explicit shared context, noon/
+midnight and duration uncertainty. The dialog reviews each proposal and commits
+all only after final approval; manual editor supports duration/end display and
+safe dirty/stale preview state. Snackbar Undo is a transient review link, never
+immediate deletion. Repository uses persisted vectors and retires only conflicts
+whose two parents are causally covered. FamilyManagementScreen unifies existing
+routes; name edits reuse encrypted profile kinds/authorization.
+
+`ai.broker` / `api.ai` own strict token validation, atomic budgets and bounded
+HTTPX provider processing; mobile gate holds no provider key and requires renewed
+consent + explicit action. `scripts/ci_ios_tests.py` selects an available native
+simulator, runs only allowlisted prepared journeys and emits results/artifacts.

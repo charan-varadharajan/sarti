@@ -93,3 +93,8 @@ logging path. Sharing invokes the user's OS chooser with token-only text and a
 valid popover origin; no contacts or message/inbox access. QR uses an offline
 painter. Desktop/web transitive adapters do not add those platforms to P0.
 Physical sharing/camera/link behavior must be validated independently of mocks.
+
+2026-10-14 / BUG-005: removed mobile `google_generative_ai` 0.4.7 and its lock
+entry. No new package. Server broker uses existing pinned HTTPX with fixed host,
+no redirects, bounded streaming and a total deadline. Provider deployment/model
+eligibility must be verified separately before activation.

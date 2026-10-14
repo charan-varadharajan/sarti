@@ -211,3 +211,13 @@ TODO — complete before production launch.
 - [ ] Incident response procedure reviewed by product owner
 - [ ] Rollback tested in a staging environment
 - [ ] Product owner sign-off obtained before first production deploy
+
+## Optional cloud broker remains disabled (ADR-037)
+
+Do not enable from this bug-fix rollout. Live testing is deferred by maintainer.
+Before separate activation, follow ../api/CLOUD-ASSIST.md: verify billing-backed
+project/provider eligibility/model lifecycle, secret delivery, explicit review
+flags, caps, daily `python -m sarti_backend.ai.purge` scheduling and infrastructure
+body-log/retention restrictions. No provider credential is packaged in mobile.
+Migration 0010 must precede any server enabling. Existing local Docker keeps the
+flags absent/default false and requires no provider key.

@@ -107,6 +107,10 @@ void main() {
 
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
+    expect(repository.load()!.events, hasLength(1));
+    expect(find.text('Edit event'), findsOneWidget);
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
     expect(repository.load()!.events, isEmpty);
   });
 

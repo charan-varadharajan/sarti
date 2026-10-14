@@ -30,5 +30,8 @@ def configure_logging(level: str) -> None:
     root.handlers.clear()
     root.addHandler(handler)
     root.setLevel(level)
+    # Provider clients must not emit full URLs/headers/bodies under DEBUG.
+    for external in ("httpx", "httpcore"):
+        logging.getLogger(external).setLevel(logging.WARNING)
     for logger_name in ("sarti", "sarti.database", "sarti.http"):
         logging.getLogger(logger_name).disabled = False

@@ -329,6 +329,16 @@ class SartiApiClient
     );
   }
 
+  Future<Map<String, dynamic>> cloudCapability() =>
+      _json('GET', '/v1/ai/capability', authenticated: true);
+  Future<Map<String, dynamic>> cloudProposal(Map<String, dynamic> request) =>
+      _json(
+        'POST',
+        '/v1/ai/proposals',
+        authenticated: true,
+        body: {...request, 'consent_version': 3},
+      );
+
   Future<Map<String, dynamic>> calendarRetention(String familyId) => _json(
     'GET',
     '/v1/families/$familyId/calendar-retention',

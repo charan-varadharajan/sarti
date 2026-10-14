@@ -13,6 +13,7 @@ flowchart LR
   App --> Local[(SQLCipher local store)]
   App --> NativeAI[Verified native on-device AI]
   App <-->|TLS: metadata + ciphertext| API[FastAPI modular monolith]
+  API -.->|explicit optional tokens; default disabled| CloudAI[Google Gemini]
   API --> PG[(PostgreSQL metadata, jobs, relay ciphertext)]
   Mail[External email sender] --> Gateway[Inbound email gateway]
   Gateway --> API
@@ -178,10 +179,11 @@ permissions, rollout and physical-platform validation limits.
 The separate optional adapter uses a bounded JSON scheduling-token array and
 fresh per-request labels. Stored aliases, requester/account/family/device IDs,
 raw sentences and reverse mappings are excluded. Unsupported input remains
-local. Consent version 2 requires new opt-in. Scheduling and provider/network
+local. Current broker consent version 3 requires renewed opt-in. Scheduling and provider/network
 metadata can still be identifying; pseudonymization is not anonymity. The
-shipping bootstrap remains local/native; safe credential delivery and live
-provider validation are still BUG-005. No backend cloud broker is introduced.
+primary path remains local/native. ADR-037 now implements an optional disabled
+broker with explicit v3 consent and a Sarti in-memory plaintext boundary;
+live provider validation remains deferred.
 Public copy follows `../product/PRIVACY-MESSAGING.md`.
 
 ## Adult-private calendar extension (ADR-038)

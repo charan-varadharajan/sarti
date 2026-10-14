@@ -215,3 +215,21 @@ Malformed ciphertext cannot advance the failed page cursor; incomplete snapshots
 remain readable/blocked. Tests: RECOVERY-CONT/GATE/SCOPE/KEY/MIG plus expanded
 GUARD-HTTP real backend host. See BUG-022 verification for actual execution and
 physical-device/provider limits; no household-completeness guarantee after TTL.
+
+## ADR-037 optional plaintext processing / combined bug fixes
+
+Cloud assist is separate from native/local inference and sync/backup E2EE. It is
+default disabled; no app-held provider key, prompt persistence or automatic
+fallback. A separate consent v3 action sends only allowlisted fresh-label tokens
+to Sarti memory and a fixed Gemini endpoint. Strict extra-field rejection,
+active-device auth, atomic quota reservation, no redirects/retries, bounded
+streaming, a ten-second total deadline and safe errors/logging protect the path.
+Counts expire in 35 days; account deletion trigger purges adult counters.
+Before activation, schedule daily expiry purge and independently verify provider
+billing/eligibility/logging/model lifecycle. Maintainer deferred live testing.
+
+BUG-017 uses persisted causal state so an old outbox/snapshot cannot reopen a
+resolved conflict; retirement requires both parent vectors and correct event
+scope. BUG-013 batches roll back all content/outbox on invalid cross-family
+references. BUG-014 stale previews cannot save/delete changed content. Family
+profile editing changes no authorization semantics and stays encrypted.

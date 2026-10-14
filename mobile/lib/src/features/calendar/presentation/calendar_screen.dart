@@ -1,4 +1,9 @@
+import 'dart:convert';
+
+import '../../../core/network/sarti_api.dart';
+
 import 'family_setup_screen.dart';
+import 'family_management_screen.dart';
 import 'calendar_retention_screen.dart';
 import '../data/calendar_repository.dart';
 import 'household_profiles_screen.dart';
@@ -20,6 +25,7 @@ class CalendarScreen extends StatelessWidget {
     super.key,
     required this.controller,
     this.cloudAiConsent,
+    this.cloudApi,
     this.nativeAi,
     this.emailInbox,
     this.onBackup,
@@ -32,6 +38,7 @@ class CalendarScreen extends StatelessWidget {
 
   final CalendarController controller;
   final CloudAiConsentController? cloudAiConsent;
+  final SartiApiClient? cloudApi;
   final NativeEventAiProvider? nativeAi;
   final EmailSuggestionInbox? emailInbox;
   final VoidCallback? onBackup, onPersonalBackup;
@@ -51,6 +58,16 @@ class CalendarScreen extends StatelessWidget {
             PopupMenuButton<String>(
               tooltip: 'People, pets & private backup',
               onSelected: (value) {
+                if (value == 'family') {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => FamilyManagementScreen(
+                        controller: controller,
+                        onGuardians: onGuardians,
+                      ),
+                    ),
+                  );
+                }
                 if (value == 'profiles') {
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
@@ -75,6 +92,11 @@ class CalendarScreen extends StatelessWidget {
                 if (value == 'private-backup') onPersonalBackup?.call();
               },
               itemBuilder: (_) => [
+                PopupMenuItem(
+                  enabled: !controller.repository.recoveryPending,
+                  value: 'family',
+                  child: const Text('Family'),
+                ),
                 PopupMenuItem(
                   enabled: !controller.repository.recoveryPending,
                   value: 'profiles',
@@ -295,14 +317,55 @@ class CalendarScreen extends StatelessWidget {
       context,
       controller: controller,
       provider: nativeAi!,
+      cloudApi: cloudApi,
+      cloudConsent: cloudAiConsent,
     );
     if (saved != null && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
         SnackBar(
-          content: const Text('Event added'),
+          persist: false,
+          duration: const Duration(seconds: 5),
+          showCloseIcon: true,
+          content: Text(
+            saved.length == 1 ? 'Event added' : '${saved.length} events added',
+          ),
           action: SnackBarAction(
             label: 'Undo',
-            onPressed: () => controller.delete(saved),
+            onPressed: () async {
+              CalendarEvent? selected;
+              if (saved.length == 1) {
+                selected = saved.single;
+              } else {
+                selected = await showDialog<CalendarEvent>(
+                  context: context,
+                  builder: (context) => SimpleDialog(
+                    title: const Text('Review a saved event'),
+                    children: [
+                      for (final event in saved)
+                        SimpleDialogOption(
+                          onPressed: () => Navigator.pop(context, event),
+                          child: Text(event.title),
+                        ),
+                    ],
+                  ),
+                );
+              }
+              if (selected == null || !context.mounted) return;
+              final current = controller.family?.events
+                  .where((e) => e.id == selected!.id)
+                  .firstOrNull;
+              if (current == null) {
+                messenger.showSnackBar(
+                  const SnackBar(
+                    content: Text('This event is no longer available.'),
+                  ),
+                );
+                return;
+              }
+              await _editEvent(context, current);
+            },
           ),
         ),
       );
@@ -383,6 +446,9 @@ class CalendarScreen extends StatelessWidget {
     var start =
         event?.localStart ??
         tz.TZDateTime.now(location).add(const Duration(hours: 1));
+    final duration = TextEditingController(
+      text: '${event?.durationMinutes ?? 60}',
+    );
     var recurring = event?.recurrence != null;
     var selectedChildren = {...?event?.childIds};
     var pickup = event?.pickupGuardianId;
@@ -396,7 +462,25 @@ class CalendarScreen extends StatelessWidget {
     String? error;
     String? reviewedSharedVector;
 
-    final accepted = await showDialog<bool>(
+    String fingerprint() => jsonEncode([
+      title.text.trim(),
+      start.toIso8601String(),
+      int.tryParse(duration.text),
+      recurring,
+      (selectedChildren.toList()..sort()),
+      pickup,
+      (selectedParticipants.entries.map((p) => '${p.key}:${p.value}').toList()
+        ..sort()),
+      adultAppointment,
+      share,
+    ]);
+    final initialFingerprint = fingerprint();
+    bool dirty() => event == null || fingerprint() != initialFingerprint;
+    bool valid() =>
+        title.text.trim().isNotEmpty &&
+        (int.tryParse(duration.text) ?? 0) > 0 &&
+        (int.tryParse(duration.text) ?? 10081) <= 10080;
+    final route = DialogRoute<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
@@ -408,6 +492,7 @@ class CalendarScreen extends StatelessWidget {
               children: [
                 TextField(
                   controller: title,
+                  onChanged: (_) => setState(() {}),
                   autofocus: true,
                   decoration: const InputDecoration(labelText: 'Title'),
                 ),
@@ -436,6 +521,42 @@ class CalendarScreen extends StatelessWidget {
                       );
                     }
                   },
+                ),
+                ListTile(
+                  title: const Text('Start time'),
+                  subtitle: Text(TimeOfDay.fromDateTime(start).format(context)),
+                  onTap: () async {
+                    final selected = await showTimePicker(
+                      context: context,
+                      initialTime: TimeOfDay.fromDateTime(start),
+                    );
+                    if (selected != null) {
+                      setState(
+                        () => start = DateTime(
+                          start.year,
+                          start.month,
+                          start.day,
+                          selected.hour,
+                          selected.minute,
+                        ),
+                      );
+                    }
+                  },
+                ),
+                TextField(
+                  key: const Key('event-duration'),
+                  controller: duration,
+                  keyboardType: TextInputType.number,
+                  onChanged: (_) => setState(() {}),
+                  decoration: InputDecoration(
+                    labelText: 'Duration (minutes)',
+                    helperText: event == null
+                        ? 'Duration: 1 hour (default)'
+                        : null,
+                  ),
+                ),
+                Text(
+                  'Ends: ${tz.TZDateTime(tz.getLocation(event?.timezone ?? controller.timezone), start.year, start.month, start.day, start.hour, start.minute).add(Duration(minutes: int.tryParse(duration.text) ?? 0))}',
                 ),
                 SwitchListTile(
                   title: const Text('Repeat weekly'),
@@ -566,26 +687,56 @@ class CalendarScreen extends StatelessWidget {
                       ),
                     ),
                   ],
-                  onChanged: (value) => pickup = value,
+                  onChanged: (value) => setState(() => pickup = value),
                 ),
               ],
             ),
           ),
           actions: [
+            if (event != null)
+              TextButton(
+                onPressed: () {
+                  final current = controller.family?.events
+                      .where((e) => e.id == event.id)
+                      .firstOrNull;
+                  if (current != null && current.encode() != event.encode()) {
+                    setState(
+                      () => error = 'This event changed. Close and reopen it before deleting.',
+                    );
+                    return;
+                  }
+                  if (current != null) controller.delete(current);
+                  Navigator.pop(context, true);
+                },
+                child: const Text('Delete'),
+              ),
             TextButton(
               onPressed: () => Navigator.pop(context, false),
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: !canWrite && (!adultAppointment || share)
+              onPressed:
+                  (!canWrite && (!adultAppointment || share)) ||
+                      !dirty() ||
+                      !valid()
                   ? null
                   : () {
                       try {
+                        if (event != null &&
+                            controller.family?.events
+                                    .where((e) => e.id == event.id)
+                                    .firstOrNull
+                                    ?.encode() !=
+                                event.encode()) {
+                          throw StateError('Event changed; reopen it.');
+                        }
                         controller.save(
                           id: event?.id,
                           title: title.text,
                           localStart: start,
-                          durationMinutes: event?.durationMinutes ?? 60,
+                          eventTimezone: event?.timezone,
+                          durationMinutes: int.parse(duration.text),
+                          notes: event?.notes,
                           childIds: selectedChildren.toList(),
                           participants: [
                             for (final p in selectedParticipants.entries)
@@ -595,7 +746,11 @@ class CalendarScreen extends StatelessWidget {
                           shareWithHousehold: share,
                           reviewedSharedVector: reviewedSharedVector,
                           pickupGuardianId: pickup,
-                          recurrence: recurring
+                          recurrence:
+                              recurring == (event?.recurrence != null) &&
+                                  event?.recurrence != null
+                              ? event!.recurrence
+                              : recurring
                               ? RecurrenceRule(
                                   frequency: RecurrenceFrequency.weekly,
                                   weekdays: {start.weekday},
@@ -617,6 +772,10 @@ class CalendarScreen extends StatelessWidget {
         ),
       ),
     );
+    final accepted = await Navigator.of(context).push(route);
+    await route.completed;
+    title.dispose();
+    duration.dispose();
     if (accepted != true) return;
   }
 

@@ -2,10 +2,24 @@
 
 - Current stage: Stage 3 — AI proposals, email intake, push notifications, and backup/recovery
 - Updated: 2026-10-13
-- Stage state: remediation in progress; BUG-001/002/003/004 remediation delivered; provider/device validation and BUG-005/012/013/014/017/021 outstanding
-- Repository version: `0.4.0+4`; no public release tag
+- Stage state: remediation in progress; BUG-001/002/003/004 remediation delivered; provider/device validation and BUG-005 live provider acceptance deferred; physical/provider validation outstanding
+- Repository version: `0.5.0+5`; no public release tag
 
 ## Current result
+
+Combined remediation for BUG-012/013/014/017/021 implemented and verified;
+BUG-005 credential/broker code is implemented disabled by default under approved
+ADR-037, with live provider acceptance explicitly deferred by maintainer.
+Native on-device AI remains primary, with local deterministic fallback; Gemini
+is optional. PostgreSQL 0010 adds usage metadata only; local schema remains v9.
+Final checks: Flutter 212 pass/2 HTTP opt-in skips (both hosts executed), backend
+57 pass/91.25% coverage, native iOS 69 distinct checks and Android 10 combined/
+DST checks. Both normal builds and required static/audit/tooling/migration/health/
+secret gates pass. See testing/REMAINING-BUGS-VERIFICATION.md for exact evidence
+and limits. Remote CI is not inferred from local checks. No Stage 4,
+billing, production deployment or real-family cloud request. Local signing edits
+remain excluded. Older results below are historical baselines.
+
 
 ADR-040 is maintainer-approved and implemented in development 0.4.0+4.
 Family recovery preserves scoped history and unsent intent while resetting former
@@ -215,8 +229,7 @@ BUG-002 and BUG-003 verification reports; provider/device results are not inferr
 
 ## Remaining Stage 2 and Stage 3 work
 
-- BUG-017: receiving a resolution can leave an obsolete conflict card open;
-  preserve alternatives while implementing causal retirement separately.
+- BUG-017 resolved in 0.5.0+5; remaining work is release/provider/device acceptance.
 - Guardian invitation/approval and scoped initial state are implemented and
   automated checks pass. Physical camera/share/link/passkey/provider validation
   remains; do not infer it from fixtures or local HTTP contracts.

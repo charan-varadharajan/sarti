@@ -62,13 +62,24 @@ return the local proposal. Dates, people, places and titles are not generated
 by this cloud path. This limits its usefulness deliberately; unsupported input
 uses the existing local/native proposal and explicit manual review.
 
-Disclosure version 2 requires renewed opt-in. Scheduling tokens may still be
+Disclosure version 3 requires renewed opt-in for the ADR-037 server boundary. Scheduling tokens may still be
 sensitive; common words can be identifiers and provider credentials/network
 metadata permit correlation. No guarantee of anonymity, universal PII removal,
 provider retention or no-training is made. See `../product/PRIVACY-MESSAGING.md`.
 
 Tests capture the adapter's outgoing prompt with an injected transport and
 verify zero calls for blocked requests. They do not establish a live Gemini
-service/model, provider terms, retention or physical-device guarantees. BUG-005
-still blocks shipping credential/inference activation; the existing SDK/model
-selection must be verified before that separate integration is released.
+service/model, provider terms, retention or physical-device guarantees. The
+implemented ADR-037 broker remains disabled; live activation/validation is
+separately deferred by the maintainer. The direct mobile Gemini SDK was removed.
+
+## ADR-037 broker / BUG-005
+
+Native AI and deterministic parsing remain primary; Gemini is optional and
+server-disabled by default. A user separately opts into disclosure v3 and taps
+Use cloud assist on a review. Phone filtering produces fresh-label token JSON;
+Sarti authenticates, validates and reserves atomic quota before an in-memory
+fixed-host provider call. Both sides validate fields; phone checks source evidence.
+No API event mutation occurs. Unsupported input/errors retain the local preview.
+There is no direct mobile provider key or Gemini SDK; the old test adapter has
+no default network transport. Live validation is deferred, per maintainer.

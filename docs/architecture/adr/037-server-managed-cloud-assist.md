@@ -1,6 +1,6 @@
 # ADR-037: Server-managed optional cloud assist
 
-- Status: Proposed — requires maintainer approval before implementation
+- Status: Accepted — maintainer approved implementation 2026-10-14
 - Date: 2026-10-13
 - Scope: Remaining BUG-005 credential/shipping integration
 - Extends: ADR-036; adds an explicitly disclosed Sarti plaintext processing boundary
@@ -23,7 +23,7 @@ Sources: [Terms](https://ai.google.dev/gemini-api/terms),
 [Key handling](https://ai.google.dev/gemini-api/docs/api-key),
 [Model lifecycle](https://ai.google.dev/gemini-api/docs/deprecations).
 
-## Proposed architecture
+## Architecture
 
 1. Phone locally prepares ADR-036's bounded token payload and fresh labels.
    Unsupported input never reaches the broker. A separate explicit “Use cloud
@@ -52,7 +52,7 @@ Sources: [Terms](https://ai.google.dev/gemini-api/terms),
    the local/native/manual flow available. Bounded errors never echo provider
    bodies, prompts, headers or secrets. Requests/responses use no-store headers.
 
-## Proposed activation and abuse controls
+## Activation and abuse controls
 
 Default disabled. Enabling requires an explicitly selected supported model,
 verified billing-backed project, runtime secret, approved provider/audience/region
@@ -102,8 +102,34 @@ processing path. Earlier consent does not enable version 3 automatically.
   live synthetic-only smoke against the selected billing-backed project before
   any family-data activation. Mocks cannot close live provider acceptance.
 
-## Decision requested
+## Approval and activation boundary
 
-Approve implementation of this **disabled-by-default billing-backed broker**, its
-new in-memory processing boundary and proposed usage counters/caps, or defer
-optional cloud AI and continue local/native-only while fixing another bug.
+Maintainer explicitly approved ADR-037 implementation on 2026-10-14. The broker
+is implemented disabled by default. Approval excludes billing activation,
+production deployment and real family-data transmission. Live synthetic-only
+provider acceptance still needs an eligible billing-backed project and reviewed
+configuration; mocks do not close that gap.
+
+Implementation selects the operator-configured `gemini-2.5-flash-lite` REST
+adapter, with no default model, HTTPX 10-second total deadline, no redirects or
+automatic retries, `store:false`, disabled thinking and a 256 output-token bound.
+Model lifecycle/support, price and provider eligibility must be checked again
+before activation. Official REST/model/terms were reviewed 2026-10-14:
+https://ai.google.dev/api/generate-content,
+https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash-lite,
+https://ai.google.dev/gemini-api/terms.
+
+Migration 0010 adds only scope/date/count/expiry usage rows. A PostgreSQL
+transaction lock serializes global/monthly and adult/daily reservations before
+I/O. Failed attempts count. Adults' deletion triggers purge their rows; no
+family identifier is stored in this table, so no family-scoped rows exist.
+Expiry is purged on reservations and by a required daily maintenance command
+(`python -m sarti_backend.ai.purge`); schedule that command before activation.
+Sarti persists no prompt, response, content hash or provider request record.
+
+Provider compatibility limit: Google's current model documentation restricts
+Gemini 2.5 access to projects/users with prior usage. The implemented 2.5 adapter
+therefore is not a ready-to-activate choice for a new project. Before any cloud
+activation, review an eligible current model/adapter and perform the separately
+authorized live synthetic check. Native/local use is unaffected.
+Source: [Gemini 2.5 Flash-Lite access notice](https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash-lite).

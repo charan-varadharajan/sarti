@@ -28,12 +28,12 @@ void main() {
   });
 
   test(
-    'CLOUD-CONSENT-002 old disclosure consent does not enable version 2',
+    'CLOUD-CONSENT-002 old disclosure consent does not enable version 3',
     () {
       final database = SartiDatabase.open(':memory:', Uint8List(32));
       addTearDown(database.close);
       database.raw.execute(
-        "INSERT INTO app_preferences(key,value) VALUES ('cloud_ai_consent_v1','enabled')",
+        "INSERT INTO app_preferences(key,value) VALUES ('cloud_ai_consent_v2','enabled')",
       );
       final store = CloudAiConsentStore(database);
       expect(store.enabled, isFalse);
@@ -51,10 +51,10 @@ void main() {
     var constructions = 0;
     final gate = CloudAiGate(
       consent: consent,
-      apiKey: 'configured-test-key',
-      providerFactory: (key) {
+      available: true,
+      providerFactory: () {
         constructions++;
-        return GeminiAiProvider(key);
+        return GeminiAiProvider.broker((_) async => null);
       },
     );
 
@@ -70,7 +70,11 @@ void main() {
     addTearDown(database.close);
     final consent = CloudAiConsentController(CloudAiConsentStore(database));
     consent.setEnabled(true);
-    final gate = CloudAiGate(consent: consent, apiKey: '');
+    final gate = CloudAiGate(
+      consent: consent,
+      available: false,
+      providerFactory: () => GeminiAiProvider.broker((_) async => null),
+    );
 
     expect(gate.available, isFalse);
     expect(gate.createProvider(), isNull);

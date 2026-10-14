@@ -33,3 +33,11 @@ transactions and update `user_version` only after success.
 | `0009` | PostgreSQL | Family retention enum/enabled/revision; legacy default disabled; guarded downgrade | RETENTION-MIG-002 |
 
 | Local v9 | SQLCipher | Recovery gate and quarantined intent/exact reviewed-operation mapping; preserved history; legacy marker blocks | RECOVERY-MIG and RECOVERY-CONT tests |
+
+| `0010` | PostgreSQL | Atomic optional cloud usage counters, expiry index, adult-delete purge trigger; no content | Real migration round-trip, concurrent reservations, expiry/account purge and encrypted relay regressions |
+
+Batch calendar creation commits all reviewed event/relationship/outbox rows in
+one existing SQLCipher transaction; failed second writes roll back the batch.
+Family-name/guardian-name changes queue existing encrypted `household_shared`
+operations; offline changes wait for the authorized family-profile resource.
+Local schema stays v9; existing migration history is unchanged.

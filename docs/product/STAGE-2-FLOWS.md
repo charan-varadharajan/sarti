@@ -35,3 +35,12 @@ conflict choices. New profile sharing starts unchecked. A separate **Review
 history and resume cleanup** dialog previews current policy candidates; Cancel
 keeps editing/cleanup paused. Changed policy/history invalidates approval. Legacy
 missing history gives guidance for a complete authorized snapshot.
+
+The Family menu now opens one hub for family/guardian display names, children,
+pastel profiles, invitations/removal and retention. Offline/unconfigured guardian
+management is explained instead of bypassed. Multiple natural-language events
+receive separate editable previews; Review next writes nothing and final Add N
+commits the reviewed batch. Explicit durations/end times are honored or require
+clarification; unspecified duration visibly defaults to one hour. Undo lasts
+five seconds (OS accessibility behavior respected) and opens an editor with
+explicit Delete, Cancel and dirty/valid Save; it does not immediately mutate.

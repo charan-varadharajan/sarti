@@ -284,6 +284,9 @@ class ResourceKeySync {
         }
       }
     }
+    if (!recoveryOnly && family.role == 'owner') {
+      repository.publishPendingFamilyDetails();
+    }
   }
 
   Future<void> _sendGrant(

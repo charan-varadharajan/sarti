@@ -163,3 +163,8 @@ HTTP/PostgreSQL replacement-device journey (WebAuthn stub explicitly scoped).
 Run `./test --ios --scenario recovery` or Android equivalent for same-platform
 native recovery; this does not run deferred Android→iOS portability. Results and
 security coverage: BUG-022-VERIFICATION.md.
+
+BUG-012 adds native iOS journeys to main/PR CI using available simulator discovery,
+allowlisted prepared fixtures, per-scenario pass/fail summary and retained failure
+logs/screenshots. The exact runner is also executed locally; local passes do not
+claim the remote macOS job passed. See REMAINING-BUGS-VERIFICATION.md.

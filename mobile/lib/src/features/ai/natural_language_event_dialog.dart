@@ -1,4 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+
+import 'gemini_ai_provider.dart';
+import 'cloud_ai_consent.dart';
+import '../../core/network/sarti_api.dart';
+
+import '../../core/ids.dart';
+
 import 'package:sarti_mobile/src/features/ai/event_parser.dart';
 import 'package:sarti_mobile/src/features/ai/native_ai_provider.dart';
 import 'package:sarti_mobile/src/features/calendar/data/calendar_repository.dart';
@@ -6,18 +15,22 @@ import 'package:sarti_mobile/src/features/calendar/domain/calendar_event.dart';
 import 'package:sarti_mobile/src/features/calendar/presentation/calendar_controller.dart';
 import 'package:timezone/timezone.dart' as tz;
 
-Future<CalendarEvent?> showNaturalLanguageEventDialog(
+Future<List<CalendarEvent>?> showNaturalLanguageEventDialog(
   BuildContext context, {
   required CalendarController controller,
   required NativeEventAiProvider provider,
+  SartiApiClient? cloudApi,
+  CloudAiConsentController? cloudConsent,
   String? initialInput,
   String? sourceLabel,
-}) => showDialog<CalendarEvent>(
+}) => showDialog<List<CalendarEvent>>(
   context: context,
   barrierDismissible: false,
   builder: (context) => _NaturalLanguageEventDialog(
     controller: controller,
     provider: provider,
+    cloudApi: cloudApi,
+    cloudConsent: cloudConsent,
     initialInput: initialInput,
     sourceLabel: sourceLabel,
   ),
@@ -27,10 +40,14 @@ class _NaturalLanguageEventDialog extends StatefulWidget {
   const _NaturalLanguageEventDialog({
     required this.controller,
     required this.provider,
+    this.cloudApi,
+    this.cloudConsent,
     this.initialInput,
     this.sourceLabel,
   });
 
+  final SartiApiClient? cloudApi;
+  final CloudAiConsentController? cloudConsent;
   final CalendarController controller;
   final NativeEventAiProvider provider;
   final String? initialInput;
@@ -47,6 +64,11 @@ class _NaturalLanguageEventDialogState
   final _title = TextEditingController();
   final _location = TextEditingController();
   EventProposal? _proposal;
+  List<EventProposal> _proposals = [];
+  final List<CalendarEvent> _drafts = [];
+  int _index = 0;
+  bool _needsDurationClarification = false;
+  final _duration = TextEditingController();
   DateTime? _date;
   ParsedTime? _time;
   Set<String> _childIds = {};
@@ -70,6 +92,7 @@ class _NaturalLanguageEventDialogState
     _input.dispose();
     _title.dispose();
     _location.dispose();
+    _duration.dispose();
     super.dispose();
   }
 
@@ -77,16 +100,72 @@ class _NaturalLanguageEventDialogState
     if (_input.text.trim().isEmpty) return;
     setState(() => _loading = true);
     final zone = tz.getLocation(widget.controller.timezone);
-    final base = widget.provider.parse(
+    final bases = const DeterministicEventParser().parseAll(
       _input.text.trim(),
-      now: tz.TZDateTime.now(zone),
+      now: tz.TZDateTime.from(widget.controller.clock(), zone),
     );
-    final proposal = await widget.provider.tryEnrich(base);
+    final proposals = <EventProposal>[];
+    for (final base in bases) {
+      proposals.add(await widget.provider.tryEnrich(base));
+    }
     if (!mounted) return;
+    _proposals = proposals;
+    _drafts.clear();
+    _index = 0;
+    _loadProposal();
+  }
+
+  void _loadProposal() {
+    final proposal = _proposals[_index];
+    _needsDurationClarification = proposal.requiresDurationConfirmation;
+    _duration.text = proposal.requiresDurationConfirmation
+        ? ''
+        : '${proposal.durationMinutes ?? 60}';
     _title.text = proposal.title ?? '';
     _location.text = proposal.location ?? '';
     _date = proposal.date;
     _time = proposal.timeOfDay;
+    if (_date != null &&
+        _time != null &&
+        proposal.endTimeOfDay != null &&
+        !proposal.requiresDurationConfirmation) {
+      final zone = tz.getLocation(widget.controller.timezone);
+      final endClock = proposal.endTimeOfDay!;
+      final start = tz.TZDateTime(
+        zone,
+        _date!.year,
+        _date!.month,
+        _date!.day,
+        _time!.hour,
+        _time!.minute,
+      );
+      var end = tz.TZDateTime(
+        zone,
+        _date!.year,
+        _date!.month,
+        _date!.day,
+        endClock.hour,
+        endClock.minute,
+      );
+      if (!end.isAfter(start)) {
+        end = tz.TZDateTime(
+          zone,
+          _date!.year,
+          _date!.month,
+          _date!.day + 1,
+          endClock.hour,
+          endClock.minute,
+        );
+      }
+      final elapsed = end.difference(start).inMinutes;
+      if (proposal.hasExplicitDuration && proposal.durationMinutes != elapsed) {
+        _duration.text = '';
+        _needsDurationClarification = true;
+      } else {
+        _duration.text = '$elapsed';
+      }
+    }
+
     _childIds = {
       for (final child in _family.children)
         if (proposal.childNameTokens.any(
@@ -106,6 +185,65 @@ class _NaturalLanguageEventDialogState
       _proposal = proposal;
       _loading = false;
     });
+  }
+
+  Future<void> _cloudAssist() async {
+    if (_loading ||
+        _proposal == null ||
+        widget.cloudApi == null ||
+        widget.cloudConsent?.enabled != true) {
+      return;
+    }
+    setState(() => _loading = true);
+    try {
+      final capability = await widget.cloudApi!.cloudCapability();
+      if (capability['available'] != true ||
+          capability['consent_version'] != 3 ||
+          widget.cloudConsent?.enabled != true) {
+        if (mounted) {
+          setState(
+            () => _saveError = 'Cloud assistance is unavailable. Continue with the local preview.',
+          );
+        }
+        return;
+      }
+      final gate = CloudAiGate(
+        consent: widget.cloudConsent!,
+        available: true,
+        providerFactory: () => GeminiAiProvider.broker((payload) async {
+          if (widget.cloudConsent?.enabled != true) return null;
+          return jsonEncode(
+            await widget.cloudApi!.cloudProposal(
+              Map<String, dynamic>.from(jsonDecode(payload) as Map),
+            ),
+          );
+        }),
+      );
+      final provider = gate.createProvider();
+      if (provider == null) return;
+      final enriched = await provider.tryEnrich(
+        _proposal!,
+        childAliases: {for (final c in _family.children) c.name: c.cloudAlias},
+        guardianNames: _family.guardians.map((g) => g.name),
+      );
+      if (!mounted || widget.cloudConsent?.enabled != true) return;
+      setState(() {
+        if (identical(enriched, _proposal)) {
+          _saveError = 'Cloud assist added no verified information. Continue with the local preview.';
+        }
+        _proposal = enriched;
+        _time ??= enriched.timeOfDay;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () =>
+              _saveError = 'Cloud assistance is unavailable. Continue locally.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   Future<void> _chooseDate() async {
@@ -140,24 +278,60 @@ class _NaturalLanguageEventDialogState
       _time!.hour,
       _time!.minute,
     );
-    final saved = widget.controller.save(
-      title: _title.text.trim(),
-      notes: _location.text.trim().isEmpty
-          ? null
-          : 'Location: ${_location.text.trim()}',
-      localStart: start,
-      durationMinutes: 60,
-      childIds: _childIds.toList(),
-      pickupGuardianId: _pickupGuardianId,
-      recurrence: _proposal?.toRecurrenceRule(),
-      reminderMinutes: const [30],
+    final duration = int.tryParse(_duration.text);
+    if (duration == null || duration < 1 || duration > 10080) return;
+    _drafts.add(
+      CalendarEvent(
+        id: newId(),
+        householdId: _family.householdId,
+        calendarResourceId: _family.calendarResourceId,
+        title: _title.text.trim(),
+        notes: _location.text.trim().isEmpty
+            ? null
+            : 'Location: ${_location.text.trim()}',
+        localStart: start,
+        timezone: widget.controller.timezone,
+        durationMinutes: duration,
+        childIds: _childIds.toList(),
+        pickupGuardianId: _pickupGuardianId,
+        recurrence: _proposal?.toRecurrenceRule(),
+        reminderMinutes: const [30],
+        revision: 1,
+        updatedAt: DateTime.now().toUtc(),
+      ),
     );
-    Navigator.pop(context, saved);
+    if (_index + 1 < _proposals.length) {
+      _index++;
+      _loadProposal();
+      return;
+    }
+    try {
+      widget.controller.saveReviewedEvents(_drafts);
+      Navigator.pop(context, List<CalendarEvent>.of(_drafts));
+    } catch (_) {
+      _drafts.removeLast();
+      setState(
+        () => _saveError =
+            'Could not save. Review your details and current calendar access.',
+      );
+    }
+  }
+
+  String? _saveError;
+  bool get _validDuration {
+    final v = int.tryParse(_duration.text);
+    return v != null && v > 0 && v <= 10080;
   }
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: Text(_proposal == null ? 'Describe an event' : 'Review suggestion'),
+    title: Text(
+      _proposal == null
+          ? 'Describe an event'
+          : _proposals.length == 1
+          ? 'Review suggestion'
+          : 'Review suggestion ${_index + 1} of ${_proposals.length}',
+    ),
     content: SingleChildScrollView(
       child: _proposal == null ? _buildInput() : _buildReview(),
     ),
@@ -174,10 +348,20 @@ class _NaturalLanguageEventDialogState
       else
         FilledButton(
           onPressed:
-              _title.text.trim().isNotEmpty && _date != null && _time != null
+              _title.text.trim().isNotEmpty &&
+                  _date != null &&
+                  !_loading &&
+                  _time != null &&
+                  _validDuration
               ? _save
               : null,
-          child: const Text('Add to calendar'),
+          child: Text(
+            _index + 1 < _proposals.length
+                ? 'Review next'
+                : _proposals.length == 1
+                ? 'Add to calendar'
+                : 'Add ${_proposals.length} to calendar',
+          ),
         ),
     ],
   );
@@ -219,6 +403,11 @@ class _NaturalLanguageEventDialogState
           alignment: Alignment.centerLeft,
           child: Text(source, style: Theme.of(context).textTheme.bodySmall),
         ),
+      if (widget.cloudApi != null && widget.cloudConsent?.enabled == true)
+        OutlinedButton(
+          onPressed: _loading ? null : _cloudAssist,
+          child: const Text('Use cloud assist'),
+        ),
       TextField(
         controller: _title,
         onChanged: (_) => setState(() {}),
@@ -244,6 +433,25 @@ class _NaturalLanguageEventDialogState
         subtitle: Text(_time?.toString() ?? 'Missing — choose a time'),
         onTap: _chooseTime,
       ),
+      TextField(
+        controller: _duration,
+        key: const Key('proposal-duration'),
+        keyboardType: TextInputType.number,
+        onChanged: (_) => setState(() {}),
+        decoration: InputDecoration(
+          labelText: 'Duration (minutes)',
+          helperText: _needsDurationClarification
+              ? 'Conflicting or invalid duration — choose before saving'
+              : _proposal!.durationMinutes == null
+              ? (_duration.text == '60'
+                    ? 'Duration: 1 hour (default)'
+                    : 'Edited duration')
+              : 'Duration from your description',
+        ),
+      ),
+      if (_date != null && _time != null && _validDuration)
+        Text('Ends: ${_endPreview()}'),
+      if (_saveError != null) Text(_saveError!),
       if (_proposal!.requiresTimeConfirmation && _time == null)
         const Align(
           alignment: Alignment.centerLeft,
@@ -284,6 +492,19 @@ class _NaturalLanguageEventDialogState
       ),
     ],
   );
+
+  String _endPreview() {
+    final start = tz.TZDateTime(
+      tz.getLocation(widget.controller.timezone),
+      _date!.year,
+      _date!.month,
+      _date!.day,
+      _time!.hour,
+      _time!.minute,
+    );
+    final end = start.add(Duration(minutes: int.parse(_duration.text)));
+    return '${end.year}-${end.month.toString().padLeft(2, '0')}-${end.day.toString().padLeft(2, '0')} ${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')} ${end.timeZoneName}';
+  }
 
   String _recurrenceSummary(EventProposal proposal) {
     final frequency = proposal.recurrenceFrequency!.name;

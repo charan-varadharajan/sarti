@@ -28,3 +28,7 @@ reminders, encrypted outbox, and conflicts. FastAPI owns WebAuthn verification,
 active-device state, family/resource authorization, sealed grants, and the opaque
 relay. It does not process plaintext family content or implement AI, email,
 backup/recovery, remote push, export, or deletion workflows.
+
+ADR-037 adds an optional, disabled Sarti-memory → Gemini token-processing path,
+separate from encrypted sync/backup. Native/local parsing remains primary.
+Disclosure v3 and an explicit action are required; live validation is deferred.

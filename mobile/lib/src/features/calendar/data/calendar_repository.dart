@@ -652,6 +652,110 @@ class CalendarRepository {
     });
   }
 
+  void updateChildName(String id, String name) {
+    requireRecoveryReady();
+    final value = name.trim();
+    final rows = database.raw.select(
+      'SELECT * FROM children WHERE id=? AND household_id=? AND is_placeholder=0',
+      [id, load()?.householdId],
+    );
+    if (rows.isEmpty || value.isEmpty || value.length > 120) {
+      throw ArgumentError('Invalid child profile.');
+    }
+    CloudAlias.validate(rows.single['cloud_alias'] as String, childName: value);
+    database.transaction(() {
+      database.raw.execute('UPDATE children SET display_name=? WHERE id=?', [
+        value,
+        id,
+      ]);
+      queueChildProfile(id);
+    });
+  }
+
+  void saveFamilyDetails(String name, Map<String, String> guardianNames) {
+    requireRecoveryReady();
+    final family = load() ?? (throw StateError('Missing family.'));
+    bool valid(String value) =>
+        value.trim().isNotEmpty && value.trim().length <= 120;
+    if (!valid(name) ||
+        guardianNames.entries.any(
+          (e) => !valid(e.value) || !family.guardians.any((g) => g.id == e.key),
+        )) {
+      throw ArgumentError('Invalid family profile.');
+    }
+    database.transaction(() {
+      database.raw.execute('UPDATE households SET display_name=? WHERE id=?', [
+        name.trim(),
+        family.householdId,
+      ]);
+      for (final entry in guardianNames.entries) {
+        database.raw.execute(
+          'UPDATE guardians SET display_name=? WHERE id=? AND household_id=?',
+          [entry.value.trim(), entry.key, family.householdId],
+        );
+      }
+      database.raw.execute(
+        'INSERT OR REPLACE INTO app_preferences VALUES (?,?)',
+        ['family-profile-dirty-${family.householdId}', 'true'],
+      );
+      _queueFamilyDetails();
+    });
+  }
+
+  void publishPendingFamilyDetails() {
+    database.transaction(_queueFamilyDetails);
+  }
+
+  void _queueFamilyDetails() {
+    final family = load();
+    if (family == null || recoveryPending) return;
+    final marker = 'family-profile-dirty-${family.householdId}';
+    if (database.raw.select('SELECT 1 FROM app_preferences WHERE key=?', [
+      marker,
+    ]).isEmpty) {
+      return;
+    }
+    final resource = database.raw.select(
+      "SELECT resource_id FROM resource_catalog WHERE family_id=? AND kind='family_profile'",
+      [family.householdId],
+    );
+    if (resource.isEmpty) return;
+    final key = 'household-vector-${family.householdId}';
+    final stored = database.raw.select(
+      'SELECT value FROM app_preferences WHERE key=?',
+      [key],
+    );
+    final vector = stored.isEmpty
+        ? <String, int>{}
+        : Map<String, int>.from(
+            jsonDecode(stored.single['value'] as String) as Map,
+          );
+    vector[deviceId] = (vector[deviceId] ?? 0) + 1;
+    database.raw.execute(
+      'INSERT OR REPLACE INTO app_preferences VALUES (?,?)',
+      [key, jsonEncode(vector)],
+    );
+    database.raw.execute(
+      'INSERT INTO outbox(operation_id,family_id,resource_id,kind,payload_json,vector_json,created_at) VALUES (?,?,?,?,?,?,?)',
+      [
+        newId(),
+        family.householdId,
+        resource.single['resource_id'],
+        'household_shared',
+        jsonEncode({
+          'householdId': family.householdId,
+          'name': family.name,
+          'guardians': [
+            for (final g in family.guardians) {'id': g.id, 'name': g.name},
+          ],
+        }),
+        jsonEncode(vector),
+        DateTime.now().toUtc().toIso8601String(),
+      ],
+    );
+    database.raw.execute('DELETE FROM app_preferences WHERE key=?', [marker]);
+  }
+
   void queueChildProfile(String childId) {
     final row = database.raw.select(
       'SELECT * FROM children WHERE id = ? AND is_placeholder = 0',
@@ -883,6 +987,31 @@ class CalendarRepository {
       throw StateError('Invalid calendar write scope.');
     }
     database.transaction(() => _queueEvent(event));
+  }
+
+  void saveReviewedEvents(List<CalendarEvent> events) {
+    requireRecoveryReady();
+    final family = load() ?? (throw StateError('Missing family.'));
+    if (events.isEmpty ||
+        events.length > 32 ||
+        events.map((e) => e.id).toSet().length != events.length ||
+        events.any(
+          (e) =>
+              e.title.trim().isEmpty ||
+              e.durationMinutes <= 0 ||
+              e.householdId != family.householdId ||
+              e.calendarResourceId != family.calendarResourceId ||
+              database.raw.select('SELECT 1 FROM events WHERE id=?', [
+                e.id,
+              ]).isNotEmpty,
+        )) {
+      throw ArgumentError('Invalid reviewed events.');
+    }
+    database.transaction(() {
+      for (final event in events) {
+        _queueEvent(event);
+      }
+    });
   }
 
   bool isShared(String eventId) => database.raw.select(
@@ -1182,18 +1311,30 @@ class CalendarRepository {
           jsonDecode(row['payload_json'] as String) as Map<String, dynamic>;
       return payload['id'] == event.id;
     }).firstOrNull;
-    if (candidate == null) {
-      final persisted = database.raw.select(
-        'SELECT e.*,v.vector_json FROM events e JOIN event_versions v ON v.event_id=e.id WHERE e.id=?',
-        [event.id],
-      );
-      if (persisted.isNotEmpty) {
-        candidate = {
-          'operation_id': newId(),
-          'payload_json': _eventFromRow(persisted.single).encode(),
-          'vector_json': persisted.single['vector_json'],
-        };
-      }
+    // Persisted causal state is authoritative after a downloaded resolution;
+    // an older acknowledged outbox row must not reopen or overwrite it.
+    final persisted = database.raw.select(
+      'SELECT e.*,v.vector_json FROM events e JOIN event_versions v ON v.event_id=e.id WHERE e.id=?',
+      [event.id],
+    );
+    if (persisted.isNotEmpty) {
+      final stored = persisted.single;
+      final same =
+          candidate != null &&
+          compareVectors(
+                Map<String, int>.from(
+                  jsonDecode(candidate['vector_json'] as String) as Map,
+                ),
+                Map<String, int>.from(
+                  jsonDecode(stored['vector_json'] as String) as Map,
+                ),
+              ) ==
+              VectorRelation.equal;
+      candidate = {
+        'operation_id': same ? candidate['operation_id'] : newId(),
+        'payload_json': _eventFromRow(stored).encode(),
+        'vector_json': stored['vector_json'],
+      };
     }
     final matching = candidate;
     if (matching != null) {
@@ -1288,6 +1429,18 @@ class CalendarRepository {
         : Map<String, int>.from(
             jsonDecode(row['remote_vector_json'] as String) as Map,
           );
+    final latest = database.raw.select(
+      'SELECT vector_json FROM event_versions WHERE event_id=?',
+      [selected.id],
+    );
+    if (latest.isNotEmpty) {
+      final current = recoveryVector(latest.single['vector_json']);
+      if (current == null ||
+          (compareVectors(current, localVector) != VectorRelation.equal &&
+              compareVectors(current, remoteVector) != VectorRelation.equal)) {
+        throw StateError('This conflict changed. Review the latest event.');
+      }
+    }
     final resolvedVector = mergeVectors(localVector, remoteVector);
     resolvedVector[deviceId] = (resolvedVector[deviceId] ?? 0) + 1;
     database.transaction(() {
@@ -1296,6 +1449,11 @@ class CalendarRepository {
         [conflictId],
       );
       _saveEventRows(next, vector: resolvedVector);
+      _retireDominatedConflicts(
+        next.id,
+        next.calendarResourceId,
+        resolvedVector,
+      );
       database.raw.execute(
         'INSERT INTO outbox(operation_id, family_id, resource_id, kind, payload_json, vector_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
         [
@@ -1312,6 +1470,38 @@ class CalendarRepository {
     });
   }
 
+  void _retireDominatedConflicts(
+    String eventId,
+    String resource,
+    Map<String, int> vector,
+  ) {
+    for (final row in database.raw.select(
+      "SELECT * FROM conflicts WHERE status='open' AND resource_id=?",
+      [resource],
+    )) {
+      final local = _recoveryPayload(row['local_payload_json']);
+      final remote = _recoveryPayload(row['remote_payload_json']);
+      final lv = recoveryVector(row['local_vector_json']);
+      final rv = recoveryVector(row['remote_vector_json']);
+      if (local['id'] != eventId ||
+          remote['id'] != eventId ||
+          lv == null ||
+          rv == null) {
+        continue;
+      }
+      bool covered(Map<String, int> parent) => {
+        VectorRelation.before,
+        VectorRelation.equal,
+      }.contains(compareVectors(parent, vector));
+      if (covered(lv) && covered(rv)) {
+        database.raw.execute(
+          "UPDATE conflicts SET status='resolved' WHERE id=?",
+          [row['id']],
+        );
+      }
+    }
+  }
+
   void _saveRemote(
     CalendarEvent event,
     String operationId,
@@ -1320,6 +1510,7 @@ class CalendarRepository {
     database.transaction(() {
       _saveEventRows(event, vector: vector);
       _retireRetentionConflict(event.id, vector);
+      _retireDominatedConflicts(event.id, event.calendarResourceId, vector);
       database.raw.execute('INSERT INTO applied_operations VALUES (?, ?)', [
         operationId,
         DateTime.now().toUtc().toIso8601String(),

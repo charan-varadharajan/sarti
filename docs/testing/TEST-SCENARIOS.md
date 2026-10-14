@@ -382,3 +382,32 @@ Native same-platform tests exercise real encryption and the prepared UI with
 synthetic relay/authority; the separate HTTP host exercises server integration.
 WebAuthn, protected-secret storage, push and physical lifecycle are not claimed
 from these fixtures. Android→iOS backup portability remains explicitly not run.
+
+## Combined remaining bugs — 2026-10-14
+
+Prepared fixture/direct target entry; source stores use SQLCipher, sync fixtures
+use real libsodium but synthetic relay/authority, and cloud UI uses an explicit
+capturable synthetic broker. Teardown unmounts UI, closes stores, clears temp files.
+Native shortcut: `./test --ios --scenario regressions` or Android equivalent.
+The CI runner executes only the eight allowlisted native scenario entrypoints;
+BACKUP-XPLAT-002 and all portability transfers stay excluded.
+
+| Stable scenario | Coverage |
+| --- | --- |
+| NLP-BATCH-001 | Separate times/children with explicit shared context; shared-child single event |
+| NLP-DURATION-001 | Noon/midnight, durations/end range, invalid/conflicting timing |
+| NLP-BATCH-MOB-001 | Editable per-proposal durations; no writes until final batch approval |
+| NLP-DST-MOB-001 | Explicit end range uses elapsed DST duration; conflicting explicit duration requires clarification |
+| NLP-BATCH-SEC-001 | Invalid cross-family second write rolls back all events/outbox |
+| UNDO-MOB-001 | Preview without mutation, dirty/reverted Save, Cancel and transient Undo |
+| Existing natural-language flow | Explicit Delete from saved-event preview |
+| FAMILY-HUB-MOB-001 | Direct family screen, owner names/child edits, offline management guidance |
+| FAMILY-HUB-SYNC-001 | Encrypted profile edits reach authorized peer; guardian/foreign edits denied |
+| CONFLICT-RETIRE-001 | Only causally covered event conflicts retire; stale cards and old snapshots cannot overwrite/reopen |
+| AAD-HTTP-001 extension | Real HTTP/PostgreSQL merged resolution removes remote obsolete card |
+| CLOUD-BROKER-MOB-001 | Explicit action, fresh-label minimized payload, no pre-approval save |
+| CLOUD-BROKER-001 | Exact schema, captured fixed provider request, bounds/errors/no automatic retries |
+| CLOUD-API/QUOTA/MIG-001 | Real auth/revocation, atomic multi-connection caps, expiry/account purge and schema round-trip |
+
+Live provider testing deferred explicitly; native device/model compatibility,
+real passkeys/protected storage/delivery remain separate acceptance checks.

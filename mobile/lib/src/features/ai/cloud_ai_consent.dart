@@ -2,12 +2,12 @@ import 'package:flutter/foundation.dart';
 import 'package:sarti_mobile/src/core/database/sarti_database.dart';
 import 'package:sarti_mobile/src/features/ai/gemini_ai_provider.dart';
 
-typedef GeminiProviderFactory = GeminiAiProvider Function(String apiKey);
+typedef GeminiProviderFactory = GeminiAiProvider Function();
 
 class CloudAiConsentStore {
   const CloudAiConsentStore(this.database);
 
-  static const disclosureVersion = 2;
+  static const disclosureVersion = 3;
   static const _key = 'cloud_ai_consent_v$disclosureVersion';
 
   final SartiDatabase database;
@@ -46,24 +46,16 @@ class CloudAiConsentController extends ChangeNotifier {
   }
 }
 
-/// Creates the Gemini adapter only after consent and only when a key exists.
-/// Calling code must request a provider at the point of use; constructing this
-/// gate never initializes the provider.
+/// Point-of-use broker gate; never accepts or stores provider credentials.
 class CloudAiGate {
   CloudAiGate({
     required this.consent,
-    required this.apiKey,
-    GeminiProviderFactory? providerFactory,
-  }) : _providerFactory = providerFactory ?? GeminiAiProvider.new;
-
+    required this.available,
+    required this.providerFactory,
+  });
   final CloudAiConsentController consent;
-  final String apiKey;
-  final GeminiProviderFactory _providerFactory;
-
-  bool get available => apiKey.trim().isNotEmpty;
-
-  GeminiAiProvider? createProvider() {
-    if (!consent.enabled || !available) return null;
-    return _providerFactory(apiKey);
-  }
+  final bool available;
+  final GeminiProviderFactory providerFactory;
+  GeminiAiProvider? createProvider() =>
+      consent.enabled && available ? providerFactory() : null;
 }

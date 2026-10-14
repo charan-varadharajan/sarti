@@ -151,8 +151,8 @@ void main() {
         repos[1].load()!.events.single.title,
       );
       expect(repos[1].openConflicts(), isEmpty);
-      // Remote conflict-card retirement is separately tracked as BUG-017.
-      expect(repos[0].openConflicts(), hasLength(1));
+      // BUG-017: the merged resolution retires both covered alternatives.
+      expect(repos[0].openConflicts(), isEmpty);
       // ADULT-HTTP-001: independent private key, real encrypted upload and
       // owner exclusion enforced by the actual HTTP/PostgreSQL server.
       final adult = CalendarController(repos[1], timezone: 'America/Vancouver');

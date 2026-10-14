@@ -86,3 +86,13 @@ authenticated catch-up → explicit recovered-intent/conflict/profile-sharing re
 → explicit current-policy history review → normal calendar/retention.
 Any failed check preserves the pause and recovered content. Stable cursor only
 means available messages were processed; expired relay history may be absent.
+
+## Explicit optional cloud assistance (accepted ADR-037)
+
+Local/native preview → separate current-consent v3 action → local fail-closed
+label/token filtering → authenticated Sarti capability/proposal API → atomic
+metadata-only attempt reservation → in-memory provider call → bounded response
+validation → phone evidence checks → editable preview. Calendar save remains
+separate approval. Neither Sarti nor Gemini is inside this optional path's E2EE
+boundary; synchronization and backups remain encrypted before transmission.
+Default disabled; live provider testing deferred by maintainer.

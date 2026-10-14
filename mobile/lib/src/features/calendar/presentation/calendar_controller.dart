@@ -76,6 +76,20 @@ class CalendarController extends ChangeNotifier {
     onLocalMutation?.call();
   }
 
+  void saveFamilyDetails(String name, Map<String, String> guardianNames) {
+    if (!canManageFamily) throw StateError('Family admin required.');
+    repository.saveFamilyDetails(name, guardianNames);
+    refresh();
+    onLocalMutation?.call();
+  }
+
+  void renameChild(String id, String name) {
+    if (!canManageFamily) throw StateError('Family admin required.');
+    repository.updateChildName(id, name);
+    refresh();
+    onLocalMutation?.call();
+  }
+
   void goToToday() {
     range = CalendarRange.today;
     _todayRequest++; // Repeated taps are navigation intents, not range changes.
@@ -94,6 +108,7 @@ class CalendarController extends ChangeNotifier {
     required DateTime localStart,
     required int durationMinutes,
     required List<String> childIds,
+    String? eventTimezone,
     RecurrenceRule? recurrence,
     String? pickupGuardianId,
     List<EventParticipant> participants = const [],
@@ -117,7 +132,7 @@ class CalendarController extends ChangeNotifier {
       title: title,
       notes: notes,
       localStart: localStart,
-      timezone: timezone,
+      timezone: eventTimezone ?? existing?.timezone ?? timezone,
       durationMinutes: durationMinutes,
       childIds: childIds,
       recurrence: recurrence,
@@ -139,6 +154,15 @@ class CalendarController extends ChangeNotifier {
     refresh();
     onLocalMutation?.call();
     return saved;
+  }
+
+  void saveReviewedEvents(List<CalendarEvent> events) {
+    repository.saveReviewedEvents(events);
+    for (final event in events) {
+      reminders?.replaceFor(event);
+    }
+    refresh();
+    onLocalMutation?.call();
   }
 
   void _saveChangedEvent(CalendarEvent event) {

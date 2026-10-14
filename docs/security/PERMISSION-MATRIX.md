@@ -82,3 +82,10 @@ excludes personal resources even from key preparation. New child/profile resourc
 require explicit recipient review; deleted/missing calendars are not resurrected.
 Server independently rejects revoked devices, stale epochs, foreign resources and
 replays. Incomplete history stays read-only; no old credentials are restored.
+
+Family/guardian/child name edits require the existing owner cache for offline UI
+and current resource permission for server uploads. Display-name editing never
+changes membership, role, resource grants or revocation. The hub routes removal
+through existing current-server authorization. Optional cloud API requires an
+active authenticated device and disclosure v3 request, no family-content access
+API. Token/response validation and quota are independent of encrypted sync.

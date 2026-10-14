@@ -20,6 +20,31 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-10-14 (build 5; development, not publicly released)
+
+### Fixed
+- BUG-013: review multiple event proposals independently, then save the batch
+  atomically; recognize noon/midnight, explicit durations/end ranges, visible
+  one-hour defaults, per-proposal edits and manual duration/end-time display.
+- BUG-014: transient, closable Undo opens the saved event preview with explicit
+  Delete, Cancel and dirty/valid Save; stale previews cannot overwrite changes.
+- BUG-017: retire only conflicts covered by both causal parents; persisted state
+  prevents old snapshots/outbox rows reopening a resolved conflict.
+- BUG-021: unified Family hub for names, children, pastel profiles, existing
+  guardian invitations/removal and retention, with clear offline/access states.
+- BUG-012: native iOS prepared journeys on main/PR CI with simulator discovery,
+  per-scenario summaries and failure logs/screenshots; portability stays excluded.
+- BUG-005: accepted ADR-037 disabled server broker, runtime-only credential,
+  strict minimized input, atomic caps and v3 consent/action; direct mobile Gemini
+  SDK removed. Live provider testing explicitly deferred; native/local remains
+  primary and no cloud fallback is enabled.
+
+### Changed
+- PostgreSQL 0010 adds metadata-only attempt counts and expiry/account purge;
+  local schema stays v9. Generated cloud API contract and privacy/trust docs
+  updated. No billing activation, deployment or real family-data cloud request.
+
+
 ## [0.4.0] — 2026-10-13 (build 4; development, not publicly released)
 
 ### Fixed
