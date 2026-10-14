@@ -1,6 +1,7 @@
 # ADR-032: Portable encrypted backup and family relay
 
 - Status: Accepted
+- Extension (2026-10-13): ADR-038 adds a separate adult-scoped snapshot/recovery path and excludes private state from family snapshots; see its explicit personal recovery exception.
 - Date: 2026-10-12
 - Supersedes: ADR-025 payload, restore, and export destination rules
 - Approval: User approved the v2 key envelope and subsequently approved the

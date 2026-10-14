@@ -522,11 +522,11 @@ void main() {
       ),
     );
     db.raw.execute(
-      'DROP TABLE child_sync; DROP TABLE resource_catalog; ALTER TABLE children DROP COLUMN is_placeholder; ALTER TABLE outbox DROP COLUMN envelope_json; PRAGMA user_version = 5;',
+      'DROP TABLE child_profile_versions; DROP TABLE appointment_shares; DROP TABLE personal_calendars; DROP TABLE event_participants; DROP TABLE participant_profiles; DROP TABLE child_sync; DROP TABLE resource_catalog; ALTER TABLE children DROP COLUMN is_placeholder; ALTER TABLE outbox DROP COLUMN envelope_json; PRAGMA user_version = 5;',
     );
     db.close();
     db = SartiDatabase.open(path, key);
-    expect(db.raw.userVersion, 6);
+    expect(db.raw.userVersion, SartiDatabase.schemaVersion);
     final migrated = CalendarRepository(db, deviceId: newId()).load()!;
     expect(migrated.children.single.name, 'Mia migration');
     expect(migrated.events.single.childIds, [child.id]);

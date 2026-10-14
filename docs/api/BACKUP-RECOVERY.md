@@ -54,3 +54,31 @@ actions. Physical two-phone passkeys, Keychain/Keystore, process interruption,
 background/network behavior and production provider retention remain release
 validation requirements. A malicious server can withhold or replay snapshots;
 the UI exposes snapshot time and restoration remains explicit.
+
+## Personal snapshots — ADR-038
+
+Personal endpoints replace `/backup` with `/personal-backup` and authorize the
+current active adult/membership, including guardians. Each adult has a separate
+revisioned snapshot per family; another owner cannot retrieve or delete it.
+Both APIs accept v2 ciphertext only; no permanent decryption key is held server-side.
+The encrypted SQLCipher payload contains versioned `backup-scope-v1` identity,
+validated against the authenticated adult before activation. An adult snapshot
+excludes other adults' private content/keys/operations; family snapshots exclude
+all private content and compact deleted encrypted pages before packaging.
+
+Personal recovery preserves authorized historical resource keys, applied IDs and
+event/profile vectors so old relay messages cannot overwrite newer restored edits.
+It clears old sessions/device credentials/outbox envelopes/cursors/sequences;
+current server epochs still gate future grants and writes. Household access starts
+conservatively read-only pending authenticated refresh. These exceptions apply to
+personal snapshots only; the preceding ADR-032 family restore behavior remains.
+Recovery requires an empty local family and the correct phrase; wrong adult,
+wrong phrase, malformed scope, integrity damage or corruption fails without
+replacing the existing store. Choose My private backup from the calendar menu;
+on a replacement installation choose the personal snapshot in recovery selection.
+
+Each newly exported SQLCipher snapshot uses a fresh independent database key.
+The v2 envelope wraps that snapshot key, never the live phone database key. A
+family backup phrase therefore cannot unlock a separately acquired live phone
+DB containing private appointments. Snapshot keys are erased from temporary
+buffers after packaging; source DB encryption is unchanged.

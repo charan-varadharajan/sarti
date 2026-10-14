@@ -90,3 +90,13 @@ saves to its starting family and the shared CalendarController.canManageFamily
 predicate (the existing owner-cache policy, also used by bootstrap). Invalid
 cache data fails closed. No resource/API/schema policy changes. Prepared family
 and encrypted-delivery regressions are added; verification failures remain open.
+
+## Adult/pet extension (ADR-038)
+
+Calendar domain adds typed adult/pet references; repository owns personal resource
+bindings, profile vectors and atomic shared copies. `household_profiles_screen`
+provides own-adult/pet creation and explicit child colour edits. Calendar editor
+separates Private from Save and share and supports exact-version household-copy
+review. ResourceKeySync provisions personal/profile kinds without sharing personal
+keys. Backend authorization and replacement modules enforce adult ownership;
+backup modules partition and validate adult snapshots. No new dependency/service.

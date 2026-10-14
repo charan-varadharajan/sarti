@@ -12,6 +12,16 @@ family_backups = sa.Table(
     sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
 )
 
+personal_backups = sa.Table(
+    "personal_backups",
+    metadata,
+    sa.Column("family_id", postgresql.UUID(as_uuid=True), primary_key=True),
+    sa.Column("adult_id", postgresql.UUID(as_uuid=True), primary_key=True),
+    sa.Column("revision", sa.BigInteger(), nullable=False),
+    sa.Column("ciphertext", sa.LargeBinary(), nullable=False),
+    sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
+)
+
 adults = sa.Table(
     "adults",
     metadata,
@@ -97,6 +107,11 @@ resources = sa.Table(
     sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
     sa.Column("family_id", postgresql.UUID(as_uuid=True), nullable=False),
     sa.Column("kind", sa.Text(), nullable=False),
+    sa.Column("private_adult_id", postgresql.UUID(as_uuid=True)),
+    sa.CheckConstraint(
+        "(kind = 'personal_calendar') = (private_adult_id IS NOT NULL)",
+        name="ck_resource_private_owner",
+    ),
     sa.Column("key_epoch", sa.Integer(), nullable=False),
     sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
     sa.Column("deleted_at", sa.DateTime(timezone=True)),

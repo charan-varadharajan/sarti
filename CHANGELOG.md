@@ -20,6 +20,29 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-10-13 (build 2; development, not publicly released)
+
+### Added — adult and pet appointments (ADR-038)
+- Private-by-default adult calendars, explicit separate household copies and
+  pickup sharing; changed shared copies require exact-version review.
+- Adult/pet profiles, typed event assignment, selectable named pastels and
+  explicit existing-child colour editing with encrypted causal synchronization.
+- Adult-scoped encrypted backups/recovery; family snapshots exclude private
+  state and use fresh independent SQLCipher keys. Personal recovery preserves
+  historical keys/causal state without restoring old device identity.
+- PostgreSQL migration 0008/local SQLCipher v7, API/OpenAPI/security/schema/flow
+  docs and prepared unit/API/security/native/real-HTTP scenarios.
+- BUG-022: record existing family-only recovery continuation gap separately;
+  personal recovery is protected, full family continuation requires its own decision.
+
+### Fixed — current remediation
+- BUG-020: automated child-editor tests settle rebuilds before Add, scroll to
+  the real target and verify chosen colours; original security assertions retained.
+- BUG-015: named pastels and deliberate child colour changes synchronize without
+  silently recolouring historical profiles or overwriting divergent edits.
+- Bump repository version to 0.2.0+2 for the private-beta schema/authorization
+  extension under ADR-030. No public release tag or production deployment.
+
 ### Added
 - BUG-016: record approved selection of `kalender` for calendar layouts, pending
   version/dependency review and integration through Sarti's presentation layer.

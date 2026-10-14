@@ -86,3 +86,16 @@ An already reordered legacy multi-author envelope cannot safely be reconstructed
 retain local content/cursor and recover from authorized snapshot/original author
 data. Migration 0006 preserves existing ciphertext with version 1; downgrade
 refuses to remove version tags while protocol-2 rows exist. Deploy backend first.
+
+## ADR-038 routing
+
+Adult private writes use the bound personal resource; household sharing creates
+an independent event and queues both atomically. Private/shared mappings stay
+local. Changed household vectors require explicit exact-version review before
+replacement. Typed participant references and `participant_upserted` payloads
+use separately granted shared profile resources. `child_updated` uses durable
+child vectors. Identical concurrent child snapshots merge causality; different
+edits fail closed. Restored events retain causal state on the personal recovery
+path; apply compares persisted vectors even when the previous outbox was cleared.
+Old clients do not understand these new operation kinds/local schema and must
+upgrade together with backend migration 0008 for this private beta contract.

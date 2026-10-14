@@ -102,3 +102,36 @@ erDiagram
     }
     families ||--o{ memberships : authorizes
 ```
+
+## PostgreSQL v8 — personal ownership and backups (ADR-038)
+
+`resources.private_adult_id` is non-null exactly for `personal_calendar` resources.
+A partial unique index permits one live personal calendar per adult/family. The
+kind constraint also permits `participant_profile`. Names/colours/event details
+remain encrypted; owner-wide household authorization cannot bypass this column.
+
+`personal_backups` is keyed by `(family_id, adult_id)` with positive revision,
+bounded 94-byte–10-MiB ciphertext and update time. Hard family/adult deletion
+cascades; family soft deletion purges personal snapshots through a trigger.
+Downgrade refuses populated personal/profile resources or personal backups.
+
+```mermaid
+erDiagram
+    families ||--o{ resources : scopes
+    resources {
+        uuid id PK
+        uuid family_id FK
+        text kind
+        uuid private_adult_id "null for household resources"
+        integer key_epoch
+    }
+    families ||--o{ personal_backups : contains
+    adults ||--o{ personal_backups : owns
+    personal_backups {
+        uuid family_id PK,FK
+        uuid adult_id PK,FK
+        bigint revision
+        bytea ciphertext
+        timestamp updated_at
+    }
+```

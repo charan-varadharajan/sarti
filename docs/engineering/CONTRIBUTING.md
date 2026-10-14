@@ -36,7 +36,7 @@ Required quality gates still apply; implementation completion and verified
 acceptance must be reported separately.
 
 For simple local Flutter execution use `./test` (unit/widgets), `./test --ios`
-or `./test --android` (prepared calendar/child/grid/guardian UI journeys). Logs are saved in
+or `./test --android` (prepared calendar/child/grid/guardian/adult-pet UI journeys). Logs are saved in
 ignored `test-results/`. See `../testing/TEST-SCENARIOS.md` for selection and
 coverage limits. These shortcuts do not replace the full gates below.
 
@@ -132,3 +132,7 @@ severity.
 
 New ADRs use the next three-digit number in `docs/architecture/adr/` and must
 be added to `docs/architecture/ADR-INDEX.md`.
+
+For the adult/pet work on 2026-10-13, the maintainer explicitly authorized inspecting
+only failed tests, spot fixes and rerunning until passing. This task-specific
+instruction overrides report-only failure handling for that authorized work.

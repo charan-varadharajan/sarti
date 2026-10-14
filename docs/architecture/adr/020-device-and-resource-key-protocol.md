@@ -1,6 +1,7 @@
 # ADR-020: Device and resource key protocol
 
 - Status: Accepted
+- Extension (2026-10-13): Resource kinds/private ownership are extended by accepted ADR-038; cryptographic primitives are unchanged.
 - Date: 2026-10-11
 
 The mobile app uses libsodium through the maintained Dart `sodium` package. Each

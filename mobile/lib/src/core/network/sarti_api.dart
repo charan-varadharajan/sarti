@@ -101,6 +101,15 @@ class ResourceKeyGrant {
   final Uint8List signature;
 }
 
+abstract interface class ExtendedResourceApi {
+  Future<RemoteResource> provisionResource(
+    String familyId,
+    String resourceId,
+    String kind, {
+    bool shareWithCalendarGuardians = false,
+  });
+}
+
 abstract interface class ResourceKeyApi {
   Future<List<RemoteFamily>> listFamilies();
   Future<RemoteResource> provisionChild(
@@ -156,7 +165,12 @@ abstract interface class GuardianApi {
   Future<void> revokeGuardian(String familyId, String adultId);
 }
 
-class SartiApiClient implements EncryptedRelay, ResourceKeyApi, GuardianApi {
+class SartiApiClient
+    implements
+        EncryptedRelay,
+        ResourceKeyApi,
+        GuardianApi,
+        ExtendedResourceApi {
   SartiApiClient(this.baseUri, {HttpClient? httpClient, this.sessionToken})
     : _http = httpClient ?? HttpClient();
 
@@ -351,6 +365,19 @@ class SartiApiClient implements EncryptedRelay, ResourceKeyApi, GuardianApi {
     String familyId,
     String resourceId, {
     bool shareWithCalendarGuardians = false,
+  }) => provisionResource(
+    familyId,
+    resourceId,
+    'child_profile',
+    shareWithCalendarGuardians: shareWithCalendarGuardians,
+  );
+
+  @override
+  Future<RemoteResource> provisionResource(
+    String familyId,
+    String resourceId,
+    String kind, {
+    bool shareWithCalendarGuardians = false,
   }) async {
     final value = await _json(
       'POST',
@@ -358,7 +385,7 @@ class SartiApiClient implements EncryptedRelay, ResourceKeyApi, GuardianApi {
       authenticated: true,
       body: {
         'resource_id': resourceId,
-        'kind': 'child_profile',
+        'kind': kind,
         'share_with_calendar_guardians': shareWithCalendarGuardians,
       },
     );
@@ -424,9 +451,16 @@ class SartiApiClient implements EncryptedRelay, ResourceKeyApi, GuardianApi {
     );
   }
 
-  Future<RemoteBackup?> downloadBackup(String familyId) async {
+  Future<RemoteBackup?> downloadBackup(
+    String familyId, {
+    bool personal = false,
+  }) async {
     try {
-      final response = await _backupRequest('GET', familyId);
+      final response = await _backupRequest(
+        'GET',
+        familyId,
+        personal: personal,
+      );
       final bytes = await response.fold<List<int>>([], (all, chunk) {
         if (all.length + chunk.length > 10 * 1024 * 1024) {
           throw StateError('Backup exceeds size limit.');
@@ -447,19 +481,25 @@ class SartiApiClient implements EncryptedRelay, ResourceKeyApi, GuardianApi {
   Future<void> uploadBackup(
     String familyId,
     Uint8List bytes,
-    int revision,
-  ) async {
+    int revision, {
+    bool personal = false,
+  }) async {
     final response = await _backupRequest(
       'PUT',
       familyId,
       bytes: bytes,
       revision: revision,
+      personal: personal,
     );
     await response.drain<void>();
   }
 
-  Future<void> deleteBackup(String familyId) async {
-    final response = await _backupRequest('DELETE', familyId);
+  Future<void> deleteBackup(String familyId, {bool personal = false}) async {
+    final response = await _backupRequest(
+      'DELETE',
+      familyId,
+      personal: personal,
+    );
     await response.drain<void>();
   }
 
@@ -468,6 +508,7 @@ class SartiApiClient implements EncryptedRelay, ResourceKeyApi, GuardianApi {
     String familyId, {
     Uint8List? bytes,
     int? revision,
+    bool personal = false,
   }) async {
     final token = sessionToken;
     if (token == null) throw StateError('Authentication required.');
@@ -476,7 +517,9 @@ class SartiApiClient implements EncryptedRelay, ResourceKeyApi, GuardianApi {
     }
     final request = await _http.openUrl(
       method,
-      baseUri.resolve('/v1/families/$familyId/backup'),
+      baseUri.resolve(
+        '/v1/families/$familyId/${personal ? 'personal-backup' : 'backup'}',
+      ),
     );
     request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
     request.headers.contentType = ContentType.binary;

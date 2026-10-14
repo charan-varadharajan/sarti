@@ -229,6 +229,13 @@ class GuardianCoordinator extends ChangeNotifier {
             ),
           )
           .toSet(),
+      participantResourceIds: permissions.keys
+          .where(
+            (id) => owner.resources.any(
+              (r) => r.id == id && r.kind == 'participant_profile',
+            ),
+          )
+          .toSet(),
       guardianId: review.adultId!,
       guardianName: name,
     );

@@ -33,6 +33,7 @@ void main() {
       await tester.enterText(find.byType(TextField).first, 'Mia');
       await tester.ensureVisible(find.byKey(const Key('share-child-profile')));
       await tester.tap(find.byKey(const Key('share-child-profile')));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Add'));
       await tester.pumpAndSettle();
       final child = controller.family!.children.single;
@@ -82,7 +83,7 @@ void main() {
         tester
             .widget<CircleAvatar>(find.byType(CircleAvatar).first)
             .backgroundColor,
-        const Color(0xff8e6cef),
+        Color(child.colorArgb),
       );
       await tester.runAsync(() async {
         expect((await fixture.b.sync()).applied, 0);

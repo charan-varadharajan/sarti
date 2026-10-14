@@ -118,7 +118,8 @@ void main() {
       // A replacement installation starts with an independently generated key.
       await BackupRecovery.activate(path, secrets);
       final recovered = base64Url.decode(secrets.values['database-key-v1']!);
-      expect(recovered, originalKey);
+      expect(recovered, hasLength(32));
+      expect(recovered, isNot(originalKey));
       final db = SartiDatabase.open(path, recovered);
       expect(
         db.raw
@@ -157,6 +158,7 @@ void main() {
   });
   test('activation retries after protected storage fails', () async {
     await stage(await snapshot());
+    final stagedKey = secrets.values['backup-recovery-pending-v1'];
     secrets.failWrite = true;
     await expectLater(
       BackupRecovery.activate(target.path, secrets),
@@ -165,7 +167,7 @@ void main() {
     expect(File('${target.path}.recovery').existsSync(), isTrue);
     secrets.failWrite = false;
     await BackupRecovery.activate(target.path, secrets);
-    expect(secrets.values['database-key-v1'], base64UrlEncode(originalKey));
+    expect(secrets.values['database-key-v1'], stagedKey);
   });
   test('existing local calendar cannot be overwritten', () async {
     target.raw.execute('INSERT INTO households VALUES (?, ?, ?, ?)', [
@@ -191,7 +193,7 @@ void main() {
     expect(secrets.values['backup-recovery-pending-v1'], journal);
     expect(File('${target.path}.recovery').existsSync(), isTrue);
     await BackupRecovery.activate(target.path, secrets);
-    expect(secrets.values['database-key-v1'], base64UrlEncode(originalKey));
+    expect(secrets.values['database-key-v1'], journal);
   });
   test('wrong phrase cannot stage data or change secrets', () async {
     await expectLater(

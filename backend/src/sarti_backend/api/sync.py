@@ -559,7 +559,7 @@ def list_resource_devices(
 ) -> list[ResourceDevice]:
     database: TransactionalDatabase = request.app.state.database
     with database.connect() as connection:
-        epoch, _ = require_resource_permission(
+        epoch, kind = require_resource_permission(
             connection,
             family_id=family_id,
             resource_id=resource_id,
@@ -579,9 +579,11 @@ def list_resource_devices(
         ).mappings()
         result = []
         for row in rows:
+            if kind == "personal_calendar" and row["adult_id"] != actor.adult_id:
+                continue
             permission = (
                 "admin"
-                if row["role"] == "owner"
+                if row["role"] == "owner" or kind == "personal_calendar"
                 else connection.execute(
                     select(permissions.c.permission).where(
                         and_(

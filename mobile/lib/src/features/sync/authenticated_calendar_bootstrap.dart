@@ -151,7 +151,15 @@ class _AuthenticatedCalendarBootstrapState
       final lastDeviceId = await _sessions.lastDeviceId();
       if (!mounted) return;
       if (lastDeviceId != null) {
-        _activateOffline(deviceId: lastDeviceId, needsAuthentication: true);
+        final lastAdultId = await widget.secrets.read(
+          'authenticated-adult-id-v1',
+        );
+        if (!mounted) return;
+        _activateOffline(
+          deviceId: lastDeviceId,
+          adultId: lastAdultId,
+          needsAuthentication: true,
+        );
       } else {
         setState(() => _loading = false);
       }
@@ -171,9 +179,13 @@ class _AuthenticatedCalendarBootstrapState
     });
   }
 
-  CalendarController _newController(String deviceId, {void Function()? sync}) {
+  CalendarController _newController(
+    String deviceId, {
+    String? adultId,
+    void Function()? sync,
+  }) {
     return CalendarController(
-      CalendarRepository(widget.database, deviceId: deviceId),
+      CalendarRepository(widget.database, deviceId: deviceId, adultId: adultId),
       timezone: widget.timezone,
       reminders: widget.reminders,
       onFamilyCreated: (family) {
@@ -192,10 +204,17 @@ class _AuthenticatedCalendarBootstrapState
     );
   }
 
-  void _activateOffline({String? deviceId, bool needsAuthentication = false}) {
+  void _activateOffline({
+    String? deviceId,
+    String? adultId,
+    bool needsAuthentication = false,
+  }) {
     if (!mounted) return;
     setState(() {
-      _controller = _newController(deviceId ?? widget.keys.deviceId);
+      _controller = _newController(
+        deviceId ?? widget.keys.deviceId,
+        adultId: adultId,
+      );
       _loading = false;
       _needsAuthentication = needsAuthentication;
       _message = needsAuthentication
@@ -234,6 +253,7 @@ class _AuthenticatedCalendarBootstrapState
     late final AuthenticatedSyncRuntime runtime;
     final controller = _newController(
       session.deviceId,
+      adultId: session.adultId,
       sync: () => unawaited(
         runtime.synchronize().catchError((Object _) => _showSyncIssue()),
       ),
@@ -275,6 +295,7 @@ class _AuthenticatedCalendarBootstrapState
       },
       synchronizeFamily: (familyId) async {
         await resourceKeys.prepare(familyId);
+        controller.refresh();
         return engine.synchronize(familyId);
       },
       sendWakeUp: api.sendSyncWakeUp,
@@ -321,24 +342,56 @@ class _AuthenticatedCalendarBootstrapState
     );
   }
 
-  Future<void> _openBackup({bool discover = false}) async {
+  Future<void> _chooseRecovery() async {
+    final personal = await showDialog<bool>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Choose your encrypted snapshot'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text(
+              'Family calendar (excludes private appointments)',
+            ),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('My private backup and calendar'),
+          ),
+        ],
+      ),
+    );
+    if (personal != null && mounted) {
+      await _openBackup(discover: true, personal: personal);
+    }
+  }
+
+  Future<void> _openBackup({
+    bool discover = false,
+    bool personal = false,
+  }) async {
     final api = _api;
     if (api == null || api.sessionToken == null) return;
     try {
       final families = (await api.listFamilies())
-          .where((f) => f.role == 'owner' && f.status == 'active')
+          .where((f) => (personal || f.role == 'owner') && f.status == 'active')
           .toList();
+      final adultId = personal
+          ? await widget.secrets.read('authenticated-adult-id-v1')
+          : null;
+      if (personal && adultId == null) return;
       final local = _controller?.family;
       if (local != null) families.removeWhere((f) => f.id != local.householdId);
       if (families.isEmpty || !mounted) return;
       // P0 has one local family; discover only backups this owner can access.
       for (final family in families) {
-        var backup = await api.downloadBackup(family.id);
+        var backup = await api.downloadBackup(family.id, personal: personal);
         if (discover && backup == null) continue;
         if (!mounted) return;
         await Navigator.of(context).push(
           MaterialPageRoute<void>(
             builder: (context) => BackupScreen(
+              personal: personal,
               hasBackup: backup != null,
               canCreate: local != null,
               updatedAt: backup?.updatedAt,
@@ -353,19 +406,24 @@ class _AuthenticatedCalendarBootstrapState
                     phrase: phrase,
                     sodium: widget.sodium,
                     familyId: family.id,
+                    adultId: adultId,
                   );
                   await api.uploadBackup(
                     family.id,
                     bytes,
                     backup?.revision ?? 0,
+                    personal: personal,
                   );
-                  backup = await api.downloadBackup(family.id);
+                  backup = await api.downloadBackup(
+                    family.id,
+                    personal: personal,
+                  );
                 } finally {
                   key.fillRange(0, key.length, 0);
                 }
               },
               remove: () async {
-                await api.deleteBackup(family.id);
+                await api.deleteBackup(family.id, personal: personal);
                 backup = null;
               },
               restore: (phrase) async {
@@ -376,6 +434,7 @@ class _AuthenticatedCalendarBootstrapState
                   current: widget.database,
                   sodium: widget.sodium,
                   secrets: widget.secrets,
+                  adultId: adultId,
                 );
                 await _runtime?.dispose();
                 _runtime = null;
@@ -460,6 +519,9 @@ class _AuthenticatedCalendarBootstrapState
                 CloudAiConsentStore(widget.database),
               ),
               emailInbox: _emailInbox,
+              onPersonalBackup: _api?.sessionToken == null
+                  ? null
+                  : () => unawaited(_openBackup(personal: true)),
               onBackup: _api?.sessionToken == null || !_canManageFamily
                   ? null
                   : () => unawaited(_openBackup()),
@@ -482,7 +544,7 @@ class _AuthenticatedCalendarBootstrapState
                 top: MediaQuery.paddingOf(context).top,
                 right: 16,
                 child: TextButton(
-                  onPressed: () => unawaited(_openBackup(discover: true)),
+                  onPressed: () => unawaited(_chooseRecovery()),
                   child: const Text('Restore encrypted backup'),
                 ),
               ),

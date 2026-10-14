@@ -50,3 +50,13 @@ weekly planning with explicit confirmation before any generated change.
 Detailed stories and measurable acceptance criteria must be added before the
 corresponding feature is implemented. Adding a deferred capability requires
 explicit approval and a scope update.
+
+## Approved extension — ADR-038
+
+2026-10-13: The maintainer requested adult appointments with deliberate household
+sharing, pet appointments and selectable pastel profile colours. ADR-038 records
+concrete behavior and the necessary private-resource/backup authorization change.
+The maintainer explicitly approved ADR-038 on 2026-10-13. Adult private
+resources, explicit household copies, pets and profile colours are implemented;
+see ADULT-AND-PET-APPOINTMENTS.md and the verification report. This is a specific
+authorized P0 extension, not general approval for Stage 4 or other deferred work.

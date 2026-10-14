@@ -37,6 +37,7 @@ class SessionStore {
 
   Future<void> save(AuthenticatedSession session) async {
     await _secrets.write(_lastDeviceKey, session.deviceId);
+    await _secrets.write('authenticated-adult-id-v1', session.adultId);
     await _secrets.write(
       _sessionKey,
       jsonEncode({

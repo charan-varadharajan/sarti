@@ -78,3 +78,27 @@ IDs/vectors and are encrypted under the calendar key; child names remain under
 individual child keys; family/guardian names use the family-profile key. New
 members read above the captured approval baseline. Key rotation on removal
 still protects future updates and cannot erase historical copies.
+
+## Personal calendar lifecycle (ADR-038)
+
+- Creation: a random resource UUID is associated locally with one adult; its
+  random 256-bit libsodium resource key is persisted in SQLCipher before publish.
+- Storage: device secrets remain platform protected; resource keys remain in the
+  SQLCipher store. Offline draft identity binds only once when authenticated.
+- Sharing: the personal key is never shared with other household adults. Explicit
+  appointment sharing uses a distinct event/household key, with no private mapping.
+- Rotation/revocation: replacement advances only accessible household resources
+  and the caller's personal resource. Other adults never get future personal keys.
+- Recovery: own adult-scoped phrase-encrypted snapshot may restore historical
+  resource keys and causal state; current-directory epochs authorize new grants.
+  Old device identity/session/envelopes/sequences are never restored.
+- Destruction: existing local reset destroys the SQLCipher key/store; personal
+  snapshot deletion is adult-scoped. Family deletion purges server snapshots.
+  Already copied plaintext, historical ciphertext/keys and provider backups cannot
+  be remotely erased by unsharing. Production account deletion remains outstanding.
+
+Adult replacement also advances that adult's live personal resources when a
+household membership is inactive. Membership still gates server access; rotating
+owned personal epochs prevents a previously revoked phone retaining a future key
+if the adult later rejoins. It never rotates another adult's personal resource
+through a household-owner bypass.

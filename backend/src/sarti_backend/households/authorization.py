@@ -38,7 +38,7 @@ def require_resource_permission(
 ) -> tuple[int, str]:
     role = require_active_member(connection, family_id, adult_id)
     resource = connection.execute(
-        select(resources.c.key_epoch, resources.c.kind).where(
+        select(resources.c.key_epoch, resources.c.kind, resources.c.private_adult_id).where(
             and_(
                 resources.c.id == resource_id,
                 resources.c.family_id == family_id,
@@ -48,7 +48,10 @@ def require_resource_permission(
     ).one_or_none()
     if resource is None:
         raise TenantAccessDenied
-    if role != "owner":
+    if resource.kind == "personal_calendar":
+        if resource.private_adult_id != adult_id:
+            raise PermissionDenied
+    elif role != "owner":
         permission = connection.execute(
             select(permissions.c.permission).where(
                 and_(

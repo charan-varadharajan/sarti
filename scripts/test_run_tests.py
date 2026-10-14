@@ -17,7 +17,7 @@ class TestRunner(TestCase):
     def test_native_allowlist_excludes_backup_portability(self):
         args = argparse.Namespace(ios=True, android=False, scenario="all")
         selected = commands(args, "simulator")
-        self.assertEqual(len(selected), 4)
+        self.assertEqual(len(selected), 5)
         self.assertTrue(all("backup" not in " ".join(command) for command in selected))
         args.scenario = "child"
         self.assertEqual(len(commands(args, "simulator")), 1)

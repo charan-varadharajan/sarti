@@ -1,6 +1,6 @@
 # BUG-020 — Optional family setup
 
-Date: 2026-10-13. Implemented candidate; verification failed, BUG-020 remains open.
+Date: 2026-10-13. Resolved for automated scope; final follow-up results below.
 
 ## Scope and decisions
 
@@ -44,10 +44,19 @@ and dispose controllers/databases/keys. No physical phone or real family data.
 
 ## Executed results
 
-Only statuses and the Flutter runner's final failed-name summary were reviewed;
-assertion/exception traces, native build-vs-execution phase and other logs were
-not inspected. No failed case was diagnosed or retried. Native commands were
-independently planned compatibility checks, not retries of the failed unit suite.
+The maintainer authorized failed-test-only inspection, spot fixes and reruns on
+2026-10-13. Failed cases tapped Add before a scheduled state rebuild had enabled
+its callback (including after colour/sharing selection). The next action could
+therefore act on a still-open dialog. Tests now settle pending frames before Add;
+all original persistence, permission and sharing assertions remain intact. No
+application exception was hidden or assertion relaxed.
+
+Follow-up checks: focused family setup + child-sync tests PASS (23); full Flutter
+suite PASS (158, 2 opt-in skips); Dart format and analysis PASS. Native reruns are
+in progress. Follow-up logs use bug020-focused.log, bug020-flutter-rerun.log,
+bug020-format-rerun.log and bug020-analyze-rerun.log.
+
+Original results (superseded by follow-up checks where listed above):
 
 | Check | Result / ignored log |
 | --- | --- |
@@ -78,6 +87,20 @@ unchanged. Backup portability excluded; no cloud inference activated.
 Security regressions are included in the failed suite; this is not a claim that
 all security/functional acceptance passes. No security failure cause was inferred.
 
-Follow CONTRIBUTING.md: obtain maintainer follow-up before inspecting failure
-traces, making targeted fixes and rerunning affected gates. Keep BUG-020 open;
-do not start another bug or claim setup/BUG-015 complete.
+Maintainer follow-up authorized focused diagnosis and reruns. BUG-020 remains
+open pending native verification; BUG-015 editing/legacy-colour work remains open.
+
+## Final follow-up — 2026-10-13
+
+BUG-020 is resolved for automated scope in 0.2.0+2. Full final Flutter suite:
+169 passed, two opt-in HTTP cases skipped here and executed separately through
+backend fixture hosts. Seven FAMILY scenarios plus CAL-MOB-001 and
+CHILD-NATIVE-001 pass on both iPhone 18 Pro/iOS 27 and Android API 35.
+The stale native fixed-purple assertion now compares the selected child colour;
+the calendar child tap ensures its actual visible position. No weakened persistence,
+sharing, isolation or revocation assertion. See adr038-ios.log / adr038-android.log
+and final adult/colour reruns for the combined change. Formatting and analysis
+pass; provider/physical-phone claims remain excluded. Historical failed results
+above are retained as the investigation trail, not the current acceptance result.
+ADR-038 API/schema changes belong to the separately approved adult/pet feature,
+not the original setup fix. Source signing/project/plist changes remain excluded.

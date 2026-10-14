@@ -1,4 +1,5 @@
 import 'family_setup_screen.dart';
+import 'household_profiles_screen.dart';
 import 'child_profile_editor.dart';
 
 import 'package:flutter/material.dart';
@@ -20,6 +21,7 @@ class CalendarScreen extends StatelessWidget {
     this.nativeAi,
     this.emailInbox,
     this.onBackup,
+    this.onPersonalBackup,
     this.onGuardians,
     this.canWrite = true,
     this.canManageChildren = true,
@@ -29,7 +31,7 @@ class CalendarScreen extends StatelessWidget {
   final CloudAiConsentController? cloudAiConsent;
   final NativeEventAiProvider? nativeAi;
   final EmailSuggestionInbox? emailInbox;
-  final VoidCallback? onBackup;
+  final VoidCallback? onBackup, onPersonalBackup;
   final VoidCallback? onGuardians;
   final bool canWrite, canManageChildren;
 
@@ -43,6 +45,31 @@ class CalendarScreen extends StatelessWidget {
         appBar: AppBar(
           title: Text(family.name),
           actions: [
+            PopupMenuButton<String>(
+              tooltip: 'People, pets & private backup',
+              onSelected: (value) {
+                if (value == 'profiles') {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) =>
+                          HouseholdProfilesScreen(controller: controller),
+                    ),
+                  );
+                }
+                if (value == 'private-backup') onPersonalBackup?.call();
+              },
+              itemBuilder: (_) => [
+                const PopupMenuItem(
+                  value: 'profiles',
+                  child: Text('People & pets'),
+                ),
+                if (onPersonalBackup != null)
+                  const PopupMenuItem(
+                    value: 'private-backup',
+                    child: Text('My private backup'),
+                  ),
+              ],
+            ),
             if (onGuardians != null)
               IconButton(
                 tooltip: "Family guardians",
@@ -88,7 +115,8 @@ class CalendarScreen extends StatelessWidget {
                   ),
                 ),
               ),
-            if (family.openConflicts > 0 && canWrite)
+            if (family.openConflicts > 0 &&
+                (canWrite || controller.repository.adultId != null))
               IconButton(
                 tooltip: 'Resolve conflicts',
                 onPressed: () => _showConflicts(context),
@@ -105,7 +133,7 @@ class CalendarScreen extends StatelessWidget {
               ),
           ],
         ),
-        floatingActionButton: !canWrite
+        floatingActionButton: !canWrite && controller.repository.adultId == null
             ? null
             : FloatingActionButton.extended(
                 onPressed: () => _editEvent(context),
@@ -149,14 +177,29 @@ class CalendarScreen extends StatelessWidget {
                 todayRequest: controller.todayRequest,
                 clock: controller.clock,
                 readOnly: !canWrite,
-                onEdit: (event) => canWrite
+                canEdit: (event) =>
+                    canWrite ||
+                    event.calendarResourceId ==
+                        controller.repository.personalResourceId,
+                onEdit: (event) =>
+                    canWrite ||
+                        event.calendarResourceId ==
+                            controller.repository.personalResourceId
                     ? _editEvent(context, event)
                     : _viewEvent(context, event),
                 onCancel: (event) {
-                  if (canWrite) controller.cancel(event);
+                  if (canWrite ||
+                      event.calendarResourceId ==
+                          controller.repository.personalResourceId) {
+                    controller.cancel(event);
+                  }
                 },
                 onDelete: (event) {
-                  if (canWrite) controller.delete(event);
+                  if (canWrite ||
+                      event.calendarResourceId ==
+                          controller.repository.personalResourceId) {
+                    controller.delete(event);
+                  }
                 },
               ),
             ),
@@ -288,6 +331,16 @@ class CalendarScreen extends StatelessWidget {
     var recurring = event?.recurrence != null;
     var selectedChildren = {...?event?.childIds};
     var pickup = event?.pickupGuardianId;
+    final selectedParticipants = {
+      for (final p in event?.participants ?? <EventParticipant>[]) p.id: p.kind,
+    };
+    var adultAppointment =
+        event != null &&
+        event.calendarResourceId == controller.repository.personalResourceId;
+    var share = event != null && controller.repository.isShared(event.id);
+    String? error;
+    String? reviewedSharedVector;
+
     final accepted = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -334,6 +387,102 @@ class CalendarScreen extends StatelessWidget {
                   value: recurring,
                   onChanged: (value) => setState(() => recurring = value),
                 ),
+                if (controller.repository.adultId != null ||
+                    controller.canManageFamily)
+                  SwitchListTile(
+                    key: const Key('adult-appointment'),
+                    title: const Text('My private appointment'),
+                    subtitle: Text(
+                      controller.repository.adultId == null
+                          ? 'Encrypted on this phone. Authenticate to publish or recover this private draft.'
+                          : 'Only you can read this unless you explicitly share a copy.',
+                    ),
+                    value: adultAppointment,
+                    onChanged: event == null
+                        ? (value) => setState(() {
+                            adultAppointment = value;
+                            share = false;
+                          })
+                        : null,
+                  ),
+                if (adultAppointment)
+                  SwitchListTile(
+                    key: const Key('share-adult-appointment'),
+                    title: const Text('Share with household'),
+                    subtitle: const Text(
+                      'All calendar guardians can read the shared copy, including pickup details. Unsharing cannot erase previously seen information.',
+                    ),
+                    value: share,
+                    onChanged: canWrite
+                        ? (value) => setState(() => share = value)
+                        : null,
+                  ),
+                for (final profile in family.participants)
+                  CheckboxListTile(
+                    key: Key('event-participant-${profile.id}'),
+                    title: Text(profile.name),
+                    subtitle: Text(profile.kind),
+                    secondary: CircleAvatar(
+                      backgroundColor: Color(profile.colorArgb),
+                      child: Icon(
+                        profile.kind == 'pet' ? Icons.pets : Icons.person,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    value: selectedParticipants.containsKey(profile.id),
+                    onChanged: (value) => setState(() {
+                      if (value == true) {
+                        selectedParticipants[profile.id] = profile.kind;
+                      } else {
+                        selectedParticipants.remove(profile.id);
+                      }
+                      if (event == null &&
+                          profile.adultId ==
+                              controller.repository.currentAdultId &&
+                          value == true) {
+                        adultAppointment = true;
+                        share = false;
+                      }
+                    }),
+                  ),
+                if (error != null && adultAppointment && event != null)
+                  TextButton(
+                    key: const Key('review-household-copy'),
+                    onPressed: () async {
+                      final copy = controller.repository.householdCopy(
+                        event.id,
+                      );
+                      if (copy == null) return;
+                      final replace = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Review changed household copy'),
+                          content: Text(
+                            '${copy.event.title}\n${copy.event.localStart}\nPickup: ${copy.event.pickupGuardianId == null ? 'Unassigned' : 'Assigned'}\nYour private event is unchanged. Saving this preview will replace the household copy.',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('Keep reviewing'),
+                            ),
+                            FilledButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: const Text('Use my preview'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (replace == true && context.mounted) {
+                        setState(() {
+                          reviewedSharedVector = copy.vector;
+                          error = null;
+                        });
+                      }
+                    },
+                    child: const Text('Review household copy'),
+                  ),
+                if (error != null)
+                  Text(error!, key: const Key('event-save-error')),
                 for (final child in family.children)
                   CheckboxListTile(
                     key: Key('event-child-${child.id}'),
@@ -373,33 +522,59 @@ class CalendarScreen extends StatelessWidget {
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Save'),
+              onPressed: !canWrite && (!adultAppointment || share)
+                  ? null
+                  : () {
+                      try {
+                        controller.save(
+                          id: event?.id,
+                          title: title.text,
+                          localStart: start,
+                          durationMinutes: event?.durationMinutes ?? 60,
+                          childIds: selectedChildren.toList(),
+                          participants: [
+                            for (final p in selectedParticipants.entries)
+                              EventParticipant(id: p.key, kind: p.value),
+                          ],
+                          adultAppointment: adultAppointment,
+                          shareWithHousehold: share,
+                          reviewedSharedVector: reviewedSharedVector,
+                          pickupGuardianId: pickup,
+                          recurrence: recurring
+                              ? RecurrenceRule(
+                                  frequency: RecurrenceFrequency.weekly,
+                                  weekdays: {start.weekday},
+                                )
+                              : null,
+                        );
+                        Navigator.pop(context, true);
+                      } catch (_) {
+                        setState(
+                          () => error = 'Could not save. Check your details and review any changes to the household copy.',
+                        );
+                      }
+                    },
+              child: Text(
+                adultAppointment && share ? 'Save and share' : 'Save',
+              ),
             ),
           ],
         ),
       ),
     );
-    if (accepted == true && title.text.trim().isNotEmpty) {
-      controller.save(
-        id: event?.id,
-        title: title.text.trim(),
-        localStart: start,
-        durationMinutes: event?.durationMinutes ?? 60,
-        childIds: selectedChildren.toList(),
-        pickupGuardianId: pickup,
-        recurrence: recurring
-            ? RecurrenceRule(
-                frequency: RecurrenceFrequency.weekly,
-                weekdays: {start.weekday},
-              )
-            : null,
-      );
-    }
+    if (accepted != true) return;
   }
 
   Future<void> _showConflicts(BuildContext context) async {
-    final conflicts = controller.repository.openConflicts();
+    final conflicts = controller.repository
+        .openConflicts()
+        .where(
+          (c) =>
+              canWrite ||
+              c.local.calendarResourceId ==
+                  controller.repository.personalResourceId,
+        )
+        .toList();
     await showModalBottomSheet<void>(
       context: context,
       builder: (context) => ListView(

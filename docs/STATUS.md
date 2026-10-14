@@ -2,19 +2,31 @@
 
 - Current stage: Stage 3 — AI proposals, email intake, push notifications, and backup/recovery
 - Updated: 2026-10-13
-- Stage state: remediation in progress; BUG-001/002/003/004 remediation delivered; provider/device validation and BUG-005/012/013/014/015/017/020/021 outstanding
-- Repository version: `0.1.0+1`; no public release tag
+- Stage state: remediation in progress; BUG-001/002/003/004 remediation delivered; provider/device validation and BUG-005/012/013/014/017/021/022 outstanding
+- Repository version: `0.2.0+2`; no public release tag
 
 ## Current result
 
-BUG-020 optional family setup is implemented as a verification candidate:
-optional names/Skip setup, optional child additions and a shared colour/profile
-editor. Existing sharing and owner checks are preserved; no API/schema/crypto/
-dependency change. Analysis PASS, full Flutter suite FAIL with four reported
-family scenarios; failure traces remain uninspected. Native calendar/child
-commands also FAIL on both iOS and Android. BUG-020 and associated BUG-015 work
-remain open. See
-`testing/BUG-020-VERIFICATION.md`; interaction: `product/FAMILY-SETUP-FLOW.md`.
+ADR-038 adult/pet extension is implemented and passes all executed final checks:
+private-by-default adult resources, explicit household copies, pastel profiles,
+pets, own encrypted backups and safe private recovery. Flutter 169 pass/2 opt-in
+skips; backend including both enabled HTTP/Dart contracts 31 pass at 91.52%;
+iOS/Android 19 distinct prepared scenarios each. Analysis, format, security,
+version, audit and current Docker/health gates pass. See
+`testing/ADR-038-VERIFICATION.md`. BUG-022 records the separate family-only
+recovery continuation gap. Physical/provider acceptance remains pending;
+Stage 3 is not declared release-ready.
+
+
+BUG-020 setup and BUG-015 colours are resolved for automated scope. The final
+Flutter suite passes 169 cases (2 opt-in skips executed through the separate
+HTTP hosts); both native platforms pass the prepared family/calendar/child/adult
+journeys and explicit old-child colour correction. Physical acceptance remains.
+See `testing/BUG-020-VERIFICATION.md` and `testing/ADR-038-VERIFICATION.md`.
+
+
+ADR-038 was explicitly approved and is implemented; final verification is
+recorded above. No Stage 4 work or production deployment is authorized by this change.
 
 
 BUG-018 Today navigation is resolved for automated scope:
@@ -154,13 +166,13 @@ remain acceptance gaps. No Stage 4 work is authorized.
 
 | Check | Result |
 | --- | --- |
-| Backend Pytest unit + PostgreSQL integration | PASS on 2026-10-13; full coverage gate, see BUG-011 report |
-| Alembic upgrade to head | PASS on 2026-10-13; schema version 7 (BUG-004 upgrade passed on 2026-10-13) |
+| Backend Pytest unit + PostgreSQL integration | PASS on 2026-10-13; 31 tests including enabled HTTP/Dart contracts, coverage 91.52%; ADR-038 report |
+| Alembic upgrade to head | PASS on 2026-10-13; PostgreSQL version 8; SQLCipher version 7; ADR-038 report |
 | Ruff / strict Mypy / Bandit | Passed |
 | OpenAPI contract | Passed |
 | Docker current-source smoke | Passed using cached runtime + current source/migrations; clean rebuild not rerun after prior Docker Hub timeout |
 | Flutter format / analyze | Passed; no issues |
-| Flutter unit/widget tests | PASS on 2026-10-13; full suite, see BUG-011 report |
+| Flutter unit/widget tests | PASS on 2026-10-13; 169 passed, 2 host-dependent skips separately executed; ADR-038 report |
 | Native child sync | `CHILD-NATIVE-001` passed on Android API 35 and iPhone 18 Pro / iOS 27.0; controlled relay and two logical guardian devices |
 | Prepared mobile emulator scenario | `CAL-MOB-001` passed on Android API 35 and iPhone 18 Pro / iOS 27.0 on 2026-10-12 |
 | Cross-platform encrypted backup | `BACKUP-XPLAT-001` passed: iPhone 18 Pro / iOS 27.0 simulator exports real `.srtbk`; Android 15 / API 35 emulator restores identical ciphertext; physical devices, auth/relay and protected storage excluded |
@@ -180,9 +192,9 @@ BUG-002 and BUG-003 verification reports; provider/device results are not inferr
 
 - BUG-017: receiving a resolution can leave an obsolete conflict card open;
   preserve alternatives while implementing causal retirement separately.
-- BUG-004: new-guardian invitation/approval and subsequent permission management
-  still lack a complete shipping mobile journey. Child/calendar key delivery is
-  now connected for existing authorized guardians; onboarding remains separate.
+- Guardian invitation/approval and scoped initial state are implemented and
+  automated checks pass. Physical camera/share/link/passkey/provider validation
+  remains; do not infer it from fixtures or local HTTP contracts.
 - Run the shipping backup journey on physical replacement phones, including
   platform protected storage and interruption/retry. Automated SQLCipher/API/UI
   coverage is complete for BUG-002; fresh future sync grants remain BUG-004.

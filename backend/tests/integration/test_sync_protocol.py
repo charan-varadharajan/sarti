@@ -14,7 +14,7 @@ from test_stage2_api import Api, StubWebAuthn, b64
 from alembic import command
 from sarti_backend.core.config import Settings
 from sarti_backend.db.database import Database
-from sarti_backend.db.schema import memberships, sync_operations
+from sarti_backend.db.schema import memberships, personal_backups, resources, sync_operations
 from sarti_backend.main import create_app
 
 pytestmark = pytest.mark.integration
@@ -27,6 +27,14 @@ async def protocol_flow() -> None:
     # preceding fixture runs. No production database is used by the runner.
     with database.transaction() as c:
         c.execute(sync_operations.delete())
+        # Remove only synthetic extension fixtures before exercising v6's guard;
+        # populated v8 resources intentionally prevent a downgrade past v8.
+        c.execute(personal_backups.delete())
+        c.execute(
+            resources.delete().where(
+                resources.c.kind.in_(("personal_calendar", "participant_profile"))
+            )
+        )
         c.execute(update(memberships).values(sync_start_cursor=0))
     app = create_app(Settings(environment="test", database_url=url), database, StubWebAuthn())
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

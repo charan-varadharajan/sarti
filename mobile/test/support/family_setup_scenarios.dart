@@ -48,6 +48,7 @@ void familySetupScenarios() {
       await tester.ensureVisible(find.byKey(Key('child-colour-$colour')));
       await tester.tap(find.byKey(Key('child-colour-$colour')));
     }
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('child-save')));
     await tester.pumpAndSettle();
   }
@@ -97,7 +98,7 @@ void familySetupScenarios() {
       expect(children.map((c) => c.colorArgb).toSet(), hasLength(2));
       expect(
         children.singleWhere((c) => c.name == 'Mia').colorArgb,
-        0xffad1457,
+        0xfff3bfd1,
       );
       expect(
         h.database.raw
@@ -161,6 +162,7 @@ void familySetupScenarios() {
       await tester.enterText(find.byKey(const Key('child-name')), 'Mia');
       await tester.ensureVisible(find.byKey(const Key('child-alias')));
       await tester.enterText(find.byKey(const Key('child-alias')), 'mia');
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('child-save')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('child-error')), findsOneWidget);
@@ -242,6 +244,7 @@ void familySetupScenarios() {
       );
       await tester.ensureVisible(find.byKey(const Key('child-colour-teal')));
       await tester.tap(find.byKey(const Key('child-colour-teal')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('child-save')));
       await tester.pumpAndSettle();
       expect(h.repository.load()!.children, hasLength(7));
@@ -251,7 +254,7 @@ void familySetupScenarios() {
             .children
             .singleWhere((c) => c.name == 'Additional child')
             .colorArgb,
-        0xff00695c,
+        0xffb8e2dc,
       );
     },
   );
@@ -279,6 +282,7 @@ void familySetupScenarios() {
       await tester.tap(find.byKey(const Key('child-colour-teal')));
       await tester.ensureVisible(find.byKey(const Key('share-child-profile')));
       await tester.tap(find.byKey(const Key('share-child-profile')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('child-save')));
       await tester.pumpAndSettle();
       await tester.runAsync(() async {
@@ -287,7 +291,7 @@ void familySetupScenarios() {
       });
       final received = f.b.repository.load()!.children.single;
       expect(received.name, 'Harper');
-      expect(received.colorArgb, 0xff00695c);
+      expect(received.colorArgb, 0xffb8e2dc);
       expect(
         f.operations
             .where((op) => op.resourceId == received.id)

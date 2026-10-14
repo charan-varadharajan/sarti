@@ -55,6 +55,52 @@ class ResourceKeySync {
         .where((f) => f.id == familyId && f.status == 'active')
         .single;
     final resources = {for (final r in family.resources) r.id: r};
+    if (repository.adultId != null) {
+      final personal = resources.values
+          .where((r) => r.kind == 'personal_calendar')
+          .toList();
+      if (personal.length > 1) throw StateError('Ambiguous personal resource.');
+      if (personal.isNotEmpty) {
+        final id = personal.single.id;
+        final previous = repository.personalResourceId;
+        database.transaction(() {
+          if (previous != null && previous != id) {
+            if (database.raw.select(
+              "SELECT 1 FROM outbox WHERE resource_id=? AND state='uploaded'",
+              [previous],
+            ).isNotEmpty) {
+              throw StateError('Private resource recovery requires review.');
+            }
+            final pending = database.raw.select(
+              'SELECT operation_id,payload_json FROM outbox WHERE resource_id=?',
+              [previous],
+            );
+            for (final row in pending) {
+              final payload = Map<String, Object?>.from(
+                jsonDecode(row['payload_json'] as String) as Map,
+              );
+              payload['calendarResourceId'] = id;
+              database.raw.execute(
+                'UPDATE outbox SET resource_id=?,payload_json=?,envelope_json=NULL WHERE operation_id=?',
+                [id, jsonEncode(payload), row['operation_id']],
+              );
+            }
+            database.raw.execute(
+              'UPDATE events SET calendar_resource_id=? WHERE calendar_resource_id=?',
+              [id, previous],
+            );
+            database.raw.execute(
+              'DELETE FROM resource_keys WHERE resource_id=?',
+              [previous],
+            );
+          }
+          database.raw.execute(
+            'INSERT OR REPLACE INTO personal_calendars VALUES (?,?,?)',
+            [repository.adultId, familyId, id],
+          );
+        });
+      }
+    }
     final children = database.raw.select(
       'SELECT id FROM children WHERE household_id = ? AND is_placeholder = 0',
       [familyId],
@@ -82,6 +128,34 @@ class ResourceKeySync {
         );
       }
     }
+    if (api case final ExtendedResourceApi extended) {
+      final personal = database.raw.select(
+        'SELECT resource_id FROM personal_calendars WHERE household_id=? AND adult_id=?',
+        [familyId, repository.adultId],
+      );
+      final participants = database.raw.select(
+        "SELECT id FROM participant_profiles WHERE household_id=? AND (kind='pet' OR adult_id=?)",
+        [familyId, repository.adultId],
+      );
+      for (final (id, kind) in [
+        for (final row in personal)
+          (row['resource_id'] as String, 'personal_calendar'),
+        for (final row in participants)
+          (row['id'] as String, 'participant_profile'),
+      ]) {
+        if (!resources.containsKey(id)) {
+          if (database.resourceKey(id, 1) == null) {
+            database.setResourceKey(id, 1, sodium.randombytes.buf(32));
+          }
+          resources[id] = await extended.provisionResource(
+            familyId,
+            id,
+            kind,
+            shareWithCalendarGuardians: kind == 'participant_profile',
+          );
+        }
+      }
+    }
     for (final resource in resources.values) {
       final previous = database.raw.select(
         'SELECT family_id, kind FROM resource_catalog WHERE resource_id = ?',
@@ -103,6 +177,8 @@ class ResourceKeySync {
         'child_profile',
         'calendar',
         'family_profile',
+        'personal_calendar',
+        'participant_profile',
       }.contains(resource.kind)) {
         continue;
       }

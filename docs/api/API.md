@@ -119,3 +119,17 @@ owner device. PUT accepts a bounded v2 binary snapshot and an expected revision;
 GET returns ciphertext and revision/time headers, never a recovery key. The
 shipping app discovers a backup after login and restores only after explicit
 phrase confirmation. See [backup protocol](BACKUP-RECOVERY.md).
+
+## Adult and pet calendar extension — ADR-038
+
+Resource creation additionally accepts `personal_calendar` (active adult's own
+resource only; sharing flag rejected) and `participant_profile` (encrypted shared
+profile labels). No profile name or appointment text appears in provisioning JSON.
+Private-resource ownership overrides owner-wide household access on listings,
+directories, key grants and sync. Explicit appointment sharing sends a different
+event under the existing household calendar, without private identifiers/mappings.
+
+`PUT/GET/DELETE /v1/families/{family_id}/personal-backup` use the authenticated
+adult scope, not a caller-selected adult ID. Binary format, limits, revision
+headers, no-store responses and structured errors match family backup endpoints.
+See `BACKUP-RECOVERY.md`; generated `backend/openapi.json` is authoritative.

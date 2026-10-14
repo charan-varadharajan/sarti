@@ -153,8 +153,8 @@ assigns explicit resource permissions. New guardian state is delivered as
 separately encrypted family/child/calendar resources above an approval baseline;
 no owner backup or plaintext content is shared through the server. Strict link
 parsing cannot change the API host or permissions. Client read-only gates and
-server authorization are independent. Backend authorization/security checks pass, but mobile and cross-layer
-verification fails; BUG-004 remains unaccepted. Physical native share, clipboard,
+server authorization are independent. Backend/mobile/cross-layer automated checks pass; BUG-004 is resolved for
+automated scope. Physical native share, clipboard,
 camera, link and passkey compatibility is not inferred.
 
 ## Optional cloud AI boundary — ADR-036
@@ -174,3 +174,18 @@ Unicode/boundary/ambiguous mappings, unsupported/sensitive/injection input with
 zero calls, strict grounded output and local fallback. `CLOUD-CONSENT-002` and
 privacy widget coverage verify renewed consent and qualified claims. Provider
 handling/network anonymity are not established by these tests.
+
+## Adult-private resources — ADR-038
+
+Owner-wide household permissions exclude personal calendars. Server authorization
+checks `private_adult_id` before applying owner bypasses. Listings, device
+directories, grants, relay filtering, invitation assignments and replacement
+epochs apply this boundary. Personal backups are separately adult-scoped; family
+snapshots sanitize private state and compact encrypted pages before packaging.
+Historical keys/causal state in an adult's own phrase-encrypted snapshot support
+safe personal recovery, not restoration of an old authenticated device identity.
+Current keys still require active-device authorization and epoch checks.
+A changed household copy cannot be replaced until explicitly reviewed; its exact
+vector is rechecked in the atomic save. Local queries/conflict actions exclude
+other bound adults' private resources when switching authenticated accounts.
+See `../testing/ADR-038-VERIFICATION.md` for executed evidence and gaps.

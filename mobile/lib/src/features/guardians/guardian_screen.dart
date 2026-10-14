@@ -61,8 +61,9 @@ class _GuardianScreenState extends State<GuardianScreen> {
         ? Map<String, String>.from(review.permissions)
         : <String, String>{
             for (final r in resources)
-              if (r.kind != 'child_profile' ||
-                  family.children.any((child) => child.id == r.id))
+              if (r.kind != 'personal_calendar' &&
+                  (r.kind != 'child_profile' ||
+                      family.children.any((child) => child.id == r.id)))
                 r.id: r.kind == 'calendar' ? 'write' : 'read',
           };
     final name = TextEditingController(

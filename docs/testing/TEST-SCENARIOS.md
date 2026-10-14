@@ -282,3 +282,42 @@ under test. Widgets/controllers/database/key material are torn down. The existin
 child native suite separately checks shared-editor compatibility with encrypted
 profile delivery. Passkeys, platform secret stores and real transport are not
 established by the controlled relay. Results: BUG-020-VERIFICATION.md.
+
+## Adult/pet journeys — accepted ADR-038
+
+Maintainer requested adult-private appointments, deliberate household sharing,
+pet appointments and selectable pastel colours on 2026-10-13. These scenarios are implemented; executed results and platform limits are in
+`ADR-038-VERIFICATION.md`. ADR-038 is accepted by explicit maintainer approval.
+Prepare independent adult devices/resources directly; enter the target calendar
+or editor without UI onboarding. Tear down databases, keys and synthetic relay state.
+
+| Stable ID | Target / required assertion |
+| --- | --- |
+| ADULT-PRIVATE-001 | Adult editor: private offline save/reconnect; spouse and owner cannot read |
+| ADULT-SHARE-001 | Explicit household preview/share and spouse pickup; only shared copy delivered |
+| ADULT-SEC-001 | Resource/grant/relay/restore deny other adults and cross-family requests |
+| ADULT-CONFLICT-001 | Shared edits, retries and unsharing preserve genuine conflicts |
+| ADULT-RECOVERY-001 | Family backup excludes others' private content; separate adult recovery validated |
+| PROFILE-COLOUR-001 | Pastel choices persist/sync; legacy colours preserved; labels/contrast usable |
+| PET-CAL-001 | Prepared pet: create/edit/sync household appointment |
+
+Additional stable coverage: `ADULT-UI-001` enters a prepared calendar directly,
+saves through the private editor and verifies sharing defaults off;
+`ADULT-DRAFT-001` binds unpublished local drafts once and rejects inheritance by
+a later account; `ADULT-RECOVERY-002` stages/activates the real encrypted snapshot,
+rejects the wrong adult and preserves a newer unsynced edit against old relay data;
+`ADULT-API-001` checks metadata-only provisioning and personal binary routes;
+`ADULT-HTTP-001` extends the existing real PostgreSQL/HTTP/Dart host with private
+crypto, owner exclusion and an explicit distinct household copy. The combined
+host uses prepared authenticated synthetic principals, not real passkeys.
+
+`./test --ios --scenario adult` / `./test --android --scenario adult` select the
+ten prepared adult/pet/native SQLCipher/libsodium/recovery scenarios. `all`
+includes them. These are same-platform recovery checks, not either cross-platform
+backup portability direction; Android-to-iOS remains deliberately unrun.
+
+`PROFILE-CHILD-001`: seed a legacy-colour child and current guardian grants,
+enter People & pets directly, deliberately choose a pastel and verify the
+same ID/name/new colour at the encrypted receiving device. Initial synchronization
+retains the legacy colour until the explicit edit. This closes BUG-015's existing
+profile correction coverage rather than inferring it from creation tests.

@@ -1,6 +1,6 @@
 # Local SQLCipher database
 
-Schema version 6 opens only after a 32-byte key is applied and
+Schema version 7 opens only after a 32-byte key is applied and
 `PRAGMA cipher_version` succeeds. Foreign keys are enabled before migrations.
 Migrations run under `BEGIN IMMEDIATE` and roll back on failure.
 
@@ -76,3 +76,30 @@ ADR-036 retains stored `cloud_alias` values for profile/schema compatibility but
 excludes them from cloud payloads. Request labels/reverse mappings are temporary
 memory objects; no label table is added. Consent uses `cloud_ai_consent_v2` in
 existing encrypted preferences; v1 opt-in does not enable it. No migration.
+
+## Local v7 — adult/pet appointments (ADR-038)
+
+| Table | Purpose |
+| --- | --- |
+| `personal_calendars` | Adult UUID → household/personal resource UUID; one local family per adult |
+| `participant_profiles` | Encrypted typed adult/pet names, colours, adult reference and causal vector |
+| `event_participants` | Typed adult/pet references without changing existing event/child columns |
+| `appointment_shares` | Private/shared event mapping and reviewed household vector; never relayed |
+| `child_profile_versions` | Durable child-profile causal vectors, preserved across personal recovery |
+
+v7 creates new tables atomically and preserves existing events, pending envelopes,
+keys, IDs and colours. No old profiles are silently recoloured. Child colour edits
+reuse the child resource with versioned `child_updated` operations; concurrent
+identical snapshots merge vectors, differing edits fail closed for review.
+Private event queries/conflicts include only the current bound adult's resource.
+A local draft identity lives in encrypted preferences until its first authenticated
+binding; it cannot rebind a previously published adult identity.
+
+```mermaid
+erDiagram
+    households ||--o{ personal_calendars : scopes
+    households ||--o{ participant_profiles : profiles
+    events ||--o{ event_participants : assigns
+    events ||--o| appointment_shares : private_mapping
+    children ||--o| child_profile_versions : causal_state
+```

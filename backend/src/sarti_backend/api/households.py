@@ -21,7 +21,7 @@ from sarti_backend.db.schema import (
     resources,
     sync_operations,
 )
-from sarti_backend.households.authorization import require_owner
+from sarti_backend.households.authorization import require_active_member, require_owner
 
 
 class TransactionalDatabase(Protocol):
@@ -34,7 +34,9 @@ class ResourceResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     id: UUID
-    kind: Literal["family_profile", "child_profile", "calendar"]
+    kind: Literal[
+        "family_profile", "child_profile", "calendar", "personal_calendar", "participant_profile"
+    ]
     key_epoch: int
     permission: Literal["read", "write", "admin"] | None = None
 
@@ -65,7 +67,7 @@ class FamilyCreate(BaseModel):
 class ResourceCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    kind: Literal["child_profile"]
+    kind: Literal["child_profile", "personal_calendar", "participant_profile"]
     resource_id: UUID | None = None
     share_with_calendar_guardians: bool = False
 
@@ -164,12 +166,17 @@ def create_family(
             if existing_family.created_by != actor.adult_id:
                 raise ConflictDetected("The offline family identifier is unavailable.")
             existing_resources = connection.execute(
-                select(resources.c.id, resources.c.kind, resources.c.key_epoch).where(
-                    and_(resources.c.family_id == family_id, resources.c.deleted_at.is_(None))
-                )
+                select(
+                    resources.c.id,
+                    resources.c.kind,
+                    resources.c.key_epoch,
+                    resources.c.private_adult_id,
+                ).where(and_(resources.c.family_id == family_id, resources.c.deleted_at.is_(None)))
             ).all()
             if not any(
-                row.id == calendar_id and row.kind == "calendar" for row in existing_resources
+                row.id == calendar_id and row.kind == "calendar"
+                for row in existing_resources
+                if row.private_adult_id is None or row.private_adult_id == actor.adult_id
             ):
                 raise ConflictDetected("The offline family identity does not match.")
             return FamilyResponse(
@@ -179,6 +186,7 @@ def create_family(
                 resources=[
                     ResourceResponse(id=row.id, kind=row.kind, key_epoch=row.key_epoch)
                     for row in existing_resources
+                    if row.private_adult_id is None or row.private_adult_id == actor.adult_id
                 ],
             )
         identifier_in_use = connection.execute(
@@ -260,7 +268,12 @@ def list_families(request: Request, actor: Authenticated) -> list[FamilyResponse
                 ).all()
             )
             resource_rows = connection.execute(
-                select(resources.c.id, resources.c.kind, resources.c.key_epoch).where(
+                select(
+                    resources.c.id,
+                    resources.c.kind,
+                    resources.c.key_epoch,
+                    resources.c.private_adult_id,
+                ).where(
                     and_(
                         resources.c.family_id == membership.family_id,
                         resources.c.deleted_at.is_(None),
@@ -278,11 +291,19 @@ def list_families(request: Request, actor: Authenticated) -> list[FamilyResponse
                             id=row.id,
                             kind=row.kind,
                             key_epoch=row.key_epoch,
-                            permission="admin" if membership.role == "owner" else allowed[row.id],
+                            permission="admin"
+                            if membership.role == "owner" or row.private_adult_id == actor.adult_id
+                            else allowed[row.id],
                         )
                         for row in resource_rows
                         if membership.status == "active"
-                        and (membership.role == "owner" or row.id in allowed)
+                        and (
+                            row.private_adult_id == actor.adult_id
+                            or (
+                                row.private_adult_id is None
+                                and (membership.role == "owner" or row.id in allowed)
+                            )
+                        )
                     ],
                 )
             )
@@ -304,10 +325,27 @@ def create_resource(
     database: TransactionalDatabase = request.app.state.database
     resource_id = payload.resource_id or uuid4()
     with database.transaction() as connection:
-        require_owner(connection, family_id, actor.adult_id)
+        if payload.kind in {"personal_calendar", "participant_profile"}:
+            require_active_member(connection, family_id, actor.adult_id)
+            if payload.kind == "personal_calendar" and payload.share_with_calendar_guardians:
+                raise PermissionDenied
+        else:
+            require_owner(connection, family_id, actor.adult_id)
         connection.execute(
             select(families.c.id).where(families.c.id == family_id).with_for_update()
         )
+        if payload.kind == "personal_calendar":
+            current = connection.execute(
+                select(resources.c.id).where(
+                    and_(
+                        resources.c.family_id == family_id,
+                        resources.c.private_adult_id == actor.adult_id,
+                        resources.c.deleted_at.is_(None),
+                    )
+                )
+            ).scalar_one_or_none()
+            if current is not None and current != resource_id:
+                raise ConflictDetected("Receive the existing personal resource before publishing.")
         existing = (
             connection.execute(select(resources).where(resources.c.id == resource_id))
             .mappings()
@@ -318,6 +356,10 @@ def create_resource(
                 existing["family_id"] != family_id
                 or existing["kind"] != payload.kind
                 or existing["deleted_at"] is not None
+                or (
+                    payload.kind == "personal_calendar"
+                    and existing["private_adult_id"] != actor.adult_id
+                )
             ):
                 raise ConflictDetected()
             return ResourceResponse(
@@ -328,11 +370,18 @@ def create_resource(
                 id=resource_id,
                 family_id=family_id,
                 kind=payload.kind,
+                private_adult_id=actor.adult_id if payload.kind == "personal_calendar" else None,
                 key_epoch=1,
                 created_at=datetime.now(UTC),
                 deleted_at=None,
             )
         )
+        if payload.kind == "participant_profile":
+            connection.execute(
+                permissions.insert().values(
+                    resource_id=resource_id, adult_id=actor.adult_id, permission="admin"
+                )
+            )
         if payload.share_with_calendar_guardians:
             # Explicit owner choice applies only at initial provisioning. A
             # retry must never expand access to guardians who joined later.
@@ -345,6 +394,7 @@ def create_resource(
                         memberships.c.family_id == family_id,
                         memberships.c.status == "active",
                         memberships.c.role == "guardian",
+                        memberships.c.adult_id != actor.adult_id,
                         resources.c.family_id == family_id,
                         resources.c.kind == "calendar",
                         resources.c.deleted_at.is_(None),
@@ -674,7 +724,13 @@ def approve_invitation(
         allowed = set(
             connection.execute(
                 select(resources.c.id)
-                .where(and_(resources.c.family_id == family_id, resources.c.deleted_at.is_(None)))
+                .where(
+                    and_(
+                        resources.c.family_id == family_id,
+                        resources.c.deleted_at.is_(None),
+                        resources.c.private_adult_id.is_(None),
+                    )
+                )
                 .order_by(resources.c.id)
                 .with_for_update()
             ).scalars()
@@ -817,7 +873,13 @@ def revoke_guardian(
         epochs = (
             connection.execute(
                 update(resources)
-                .where(and_(resources.c.family_id == family_id, resources.c.deleted_at.is_(None)))
+                .where(
+                    and_(
+                        resources.c.family_id == family_id,
+                        resources.c.deleted_at.is_(None),
+                        resources.c.private_adult_id.is_(None),
+                    )
+                )
                 .values(key_epoch=resources.c.key_epoch + 1)
                 .returning(resources.c.key_epoch)
             )

@@ -2,6 +2,20 @@ import 'dart:convert';
 
 import 'package:timezone/timezone.dart' as tz;
 
+class EventParticipant {
+  const EventParticipant({required this.id, required this.kind});
+  final String id;
+  final String kind;
+  Map<String, Object?> toJson() => {'id': id, 'kind': kind};
+  factory EventParticipant.fromJson(Map<String, Object?> json) {
+    final kind = json['kind'];
+    if (!{'adult', 'pet'}.contains(kind) || json['id'] is! String) {
+      throw const FormatException('Invalid participant.');
+    }
+    return EventParticipant(id: json['id']! as String, kind: kind! as String);
+  }
+}
+
 enum EventStatus { scheduled, cancelled }
 
 enum RecurrenceFrequency { daily, weekly, monthly }
@@ -53,6 +67,7 @@ class CalendarEvent {
     required this.childIds,
     required this.revision,
     required this.updatedAt,
+    this.participants = const [],
     this.notes,
     this.status = EventStatus.scheduled,
     this.recurrence,
@@ -62,6 +77,7 @@ class CalendarEvent {
     this.deleted = false,
   });
 
+  final List<EventParticipant> participants;
   final String id;
   final String householdId;
   final String calendarResourceId;
@@ -81,6 +97,9 @@ class CalendarEvent {
   final bool deleted;
 
   CalendarEvent copyWith({
+    String? id,
+    String? calendarResourceId,
+    List<EventParticipant>? participants,
     String? title,
     DateTime? localStart,
     String? timezone,
@@ -95,9 +114,10 @@ class CalendarEvent {
     DateTime? updatedAt,
     bool? deleted,
   }) => CalendarEvent(
-    id: id,
+    id: id ?? this.id,
+    participants: participants ?? this.participants,
     householdId: householdId,
-    calendarResourceId: calendarResourceId,
+    calendarResourceId: calendarResourceId ?? this.calendarResourceId,
     title: title ?? this.title,
     notes: notes,
     localStart: localStart ?? this.localStart,
@@ -126,6 +146,8 @@ class CalendarEvent {
     'status': status.name,
     'recurrence': recurrence?.toJson(),
     'childIds': childIds,
+    if (participants.isNotEmpty)
+      'participants': participants.map((p) => p.toJson()).toList(),
     'pickupGuardianId': pickupGuardianId,
     'dropoffGuardianId': dropoffGuardianId,
     'reminderMinutes': reminderMinutes,
@@ -139,6 +161,12 @@ class CalendarEvent {
   factory CalendarEvent.fromJson(Map<String, Object?> json) {
     final timezone = json['timezone']! as String;
     return CalendarEvent(
+      participants: (json['participants'] as List? ?? const [])
+          .map(
+            (p) =>
+                EventParticipant.fromJson(Map<String, Object?>.from(p as Map)),
+          )
+          .toList(),
       id: json['id']! as String,
       householdId: json['householdId']! as String,
       calendarResourceId: json['calendarResourceId']! as String,

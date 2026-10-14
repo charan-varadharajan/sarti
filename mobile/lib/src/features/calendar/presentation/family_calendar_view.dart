@@ -20,6 +20,7 @@ class FamilyCalendarView extends StatefulWidget {
     required this.onDelete,
     this.initialDate,
     this.readOnly = false,
+    this.canEdit,
     this.todayRequest = 0,
     this.clock = DateTime.now,
   });
@@ -32,6 +33,7 @@ class FamilyCalendarView extends StatefulWidget {
   final ValueChanged<CalendarEvent> onDelete;
   final DateTime? initialDate;
   final bool readOnly;
+  final bool Function(CalendarEvent)? canEdit;
   final int todayRequest;
   final DateTime Function() clock;
 
@@ -321,14 +323,42 @@ class _FamilyCalendarViewState extends State<FamilyCalendarView> {
       .where((child) => event.childIds.contains(child.id))
       .toList();
 
+  List<ParticipantProfile> _participants(CalendarEvent event) => widget
+      .family
+      .participants
+      .where(
+        (p) => event.participants.any(
+          (ref) => ref.id == p.id && ref.kind == p.kind,
+        ),
+      )
+      .toList();
+  Color _eventColour(CalendarEvent event) {
+    final people = _participants(event);
+    final children = _children(event);
+    return people.isNotEmpty
+        ? Color(people.first.colorArgb)
+        : children.isNotEmpty
+        ? Color(children.first.colorArgb)
+        : Theme.of(context).colorScheme.primary;
+  }
+
   String _description(CalendarDisplayOccurrence occurrence) {
     final event = occurrence.event;
-    final names = _children(event).map((child) => child.name).join(', ');
+    final names = [
+      ..._children(event).map((child) => child.name),
+      ..._participants(event).map((p) => p.name),
+    ].join(', ');
     final recurrence = event.recurrence == null
         ? ''
         : ' · ${event.recurrence!.frequency.name}';
     final pickup = event.pickupGuardianId == null ? '' : ' · pickup assigned';
-    return '${occurrenceTimeLabel(occurrence, widget.timezone)}${names.isEmpty ? '' : ' · $names'}$recurrence$pickup';
+    final visibility =
+        event.calendarResourceId == widget.family.calendarResourceId
+        ? ' · Household'
+        : widget.family.sharedPrivateEventIds.contains(event.id)
+        ? ' · Shared with household'
+        : ' · Private';
+    return '${occurrenceTimeLabel(occurrence, widget.timezone)}${names.isEmpty ? '' : ' · $names'}$recurrence$pickup$visibility';
   }
 
   Widget _tile(
@@ -338,9 +368,7 @@ class _FamilyCalendarViewState extends State<FamilyCalendarView> {
   ) {
     final occurrence = value as CalendarDisplayOccurrence;
     final children = _children(occurrence.event);
-    final color = children.isEmpty
-        ? Theme.of(context).colorScheme.primary
-        : Color(children.first.colorArgb);
+    final color = _eventColour(occurrence.event);
     return Semantics(
       label: '${occurrence.event.title}, ${_description(occurrence)}',
       button: true,
@@ -384,6 +412,11 @@ class _FamilyCalendarViewState extends State<FamilyCalendarView> {
                             (child) => CircleAvatar(
                               radius: 7,
                               backgroundColor: Color(child.colorArgb),
+                              foregroundColor:
+                                  Color(child.colorArgb).computeLuminance() >
+                                      0.179
+                                  ? Colors.black
+                                  : Colors.white,
                               child: Text(
                                 child.name.characters.first,
                                 style: const TextStyle(fontSize: 9),
@@ -423,13 +456,15 @@ class _FamilyCalendarViewState extends State<FamilyCalendarView> {
                 itemCount: occurrences.length,
                 itemBuilder: (context, index) {
                   final occurrence = occurrences[index];
-                  final children = _children(occurrence.event);
                   final date = tz.TZDateTime.from(occurrence.start, _location);
                   return ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: children.isEmpty
-                          ? Theme.of(context).colorScheme.primaryContainer
-                          : Color(children.first.colorArgb),
+                      backgroundColor: _eventColour(occurrence.event),
+                      foregroundColor:
+                          _eventColour(occurrence.event).computeLuminance() >
+                              0.179
+                          ? Colors.black
+                          : Colors.white,
                       child: const Icon(Icons.event),
                     ),
                     title: Text(occurrence.event.title),
@@ -437,9 +472,12 @@ class _FamilyCalendarViewState extends State<FamilyCalendarView> {
                       '${date.month}/${date.day} ${_description(occurrence)}',
                     ),
                     onTap: () => widget.onEdit(occurrence.event),
-                    trailing: widget.readOnly
+                    trailing:
+                        !(widget.canEdit?.call(occurrence.event) ??
+                            !widget.readOnly)
                         ? null
                         : PopupMenuButton<String>(
+                            tooltip: 'Event actions',
                             onSelected: (action) => action == 'delete'
                                 ? widget.onDelete(occurrence.event)
                                 : widget.onCancel(occurrence.event),

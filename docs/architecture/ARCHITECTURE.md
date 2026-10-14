@@ -183,3 +183,13 @@ metadata can still be identifying; pseudonymization is not anonymity. The
 shipping bootstrap remains local/native; safe credential delivery and live
 provider validation are still BUG-005. No backend cloud broker is introduced.
 Public copy follows `../product/PRIVACY-MESSAGING.md`.
+
+## Adult-private calendar extension (ADR-038)
+
+Accepted 2026-10-13. Household and adult-private calendars have distinct resource
+IDs and keys. A household owner has no implied access to another adult's private
+resource. Explicit sharing queues a separate household copy atomically with the
+private write; the private mapping never enters that copy. Typed adult/pet profile
+references augment existing child assignments. See
+`../product/ADULT-AND-PET-APPOINTMENTS.md` and ADR-038 for exact sharing, recovery,
+revocation and deployment compatibility boundaries.

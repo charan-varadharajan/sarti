@@ -240,7 +240,25 @@ class SyncEngine {
           if (result == RemoteApplyResult.applied) applied++;
           continue;
         }
-        if (decoded['kind'] == 'child_created') {
+        if (decoded['kind'] == 'participant_upserted') {
+          if (database.raw.select(
+            "SELECT 1 FROM resource_catalog WHERE resource_id=? AND family_id=? AND kind='participant_profile'",
+            [envelope.resourceId, familyId],
+          ).isEmpty) {
+            throw StateError('Invalid participant resource.');
+          }
+          final result = repository.applyParticipant(
+            operationId: envelope.operationId,
+            familyId: familyId,
+            resourceId: envelope.resourceId,
+            vector: envelope.logicalVersion,
+            payload: Map<String, Object?>.from(decoded['payload']! as Map),
+          );
+          if (result == RemoteApplyResult.applied) applied++;
+          continue;
+        }
+        if (decoded['kind'] == 'child_created' ||
+            decoded['kind'] == 'child_updated') {
           final resource = database.raw.select(
             "SELECT 1 FROM resource_catalog WHERE resource_id = ? AND family_id = ? AND kind = 'child_profile'",
             [envelope.resourceId, familyId],
@@ -253,6 +271,8 @@ class SyncEngine {
             familyId: familyId,
             resourceId: envelope.resourceId,
             keyEpoch: envelope.keyEpoch,
+            vector: envelope.logicalVersion,
+            allowUpdate: decoded['kind'] == 'child_updated',
             payload: Map<String, Object?>.from(decoded['payload']! as Map),
           );
           if (result == RemoteApplyResult.applied) applied++;
@@ -261,7 +281,8 @@ class SyncEngine {
         final calendar = repository.load();
         if (calendar == null ||
             calendar.householdId != familyId ||
-            calendar.calendarResourceId != envelope.resourceId) {
+            (calendar.calendarResourceId != envelope.resourceId &&
+                repository.personalResourceId != envelope.resourceId)) {
           throw StateError('Invalid calendar resource scope.');
         }
         if (decoded['kind'] == 'family_created') {

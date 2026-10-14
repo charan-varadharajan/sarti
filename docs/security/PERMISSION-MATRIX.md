@@ -43,3 +43,23 @@ resources; active guardian lists contain only permitted ones. The server relay
 baseline cannot be bypassed by resetting a client cursor. UI permissions are
 cached only in SQLCipher; the API remains independently authoritative. Names,
 colours, key plaintext and recovery phrases are absent from invitation transport.
+
+## ADR-038 exceptions and additions
+
+The preceding owner-wide resource rules apply to household resources only.
+
+| Action | Private author | Other household owner/guardian | Outsider/revoked device |
+| --- | --- | --- | --- |
+| List/read/write/admin personal resource | Own active adult/device only | Denied, even owner | Denied |
+| Receive/grant personal key | Own active adult/device only | Denied | Denied |
+| Retrieve/replace/delete personal backup | Own adult scope; active membership | Own snapshot only, never author's | Denied |
+| Read explicit household copy | Calendar permission required | Calendar permission required | Denied future access |
+| Provision shared adult/pet profile resource | Active member; shared metadata only | Owners can administer household profiles | Denied |
+
+Personal-resource creation rejects a sharing flag and cannot reuse another
+adult's resource ID. Invitations exclude personal resources at UI and API layers.
+Replacement advances the author's accessible personal epoch, never another
+adult's personal epoch merely because the caller owns the family. Guardian
+removal rotates household resources without granting any personal resource key.
+Pickup/profile references confer no additional access. UI adult/pet names are
+editable labels, not verified authentication identities.

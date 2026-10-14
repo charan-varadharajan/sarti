@@ -1,6 +1,7 @@
 # ADR-022: Calendar time, permissions, and reminders
 
 - Status: Accepted
+- Extension (2026-10-13): Owner-wide access excludes adult-private resources under accepted ADR-038.
 - Date: 2026-10-11
 
 Households have one owner and zero or more guardians. Children are profiles and

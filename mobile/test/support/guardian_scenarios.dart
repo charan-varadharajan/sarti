@@ -152,7 +152,7 @@ void guardianScenarios() {
       expect(find.byTooltip('Add child'), findsNothing);
       await tester.tap(find.byTooltip('Show agenda'));
       await tester.pumpAndSettle();
-      expect(find.byType(PopupMenuButton<String>), findsNothing);
+      expect(find.byTooltip('Event actions'), findsNothing);
       expect(
         g.f.b.database.raw
             .select('SELECT COUNT(*) AS n FROM outbox')

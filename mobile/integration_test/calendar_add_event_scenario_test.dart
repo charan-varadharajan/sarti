@@ -33,7 +33,10 @@ void main() {
       const Offset(0, -400),
     );
     await tester.pumpAndSettle();
+    await tester.ensureVisible(mia);
+    await tester.pumpAndSettle();
     await tester.tap(mia);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 

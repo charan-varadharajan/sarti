@@ -14,9 +14,9 @@ import 'package:sodium/sodium.dart';
 /// The relay/directory are fixtures; no production authentication is simulated
 /// as evidence of passkey or provider compatibility.
 class ChildSyncFixture {
-  ChildSyncFixture(this.sodium) {
-    a = ChildSyncDevice(this, newId());
-    b = ChildSyncDevice(this, newId());
+  ChildSyncFixture(this.sodium, {bool personal = false}) {
+    a = ChildSyncDevice(this, newId(), adultId: personal ? newId() : null);
+    b = ChildSyncDevice(this, newId(), adultId: personal ? newId() : null);
     familyId = newId();
     calendarId = newId();
     a.repository.createFamily(
@@ -43,6 +43,7 @@ class ChildSyncFixture {
   late final ChildSyncDevice a, b;
   late final String familyId, calendarId;
   final Map<String, RemoteResource> resources = {};
+  final Map<String, String> privateOwners = {}, participantAuthors = {};
   final List<ResourceKeyGrant> grants = [];
   final List<RelayEnvelope> operations = [];
   final Set<String> denied = {};
@@ -62,8 +63,9 @@ class ChildSyncFixture {
   }
 }
 
-class ChildSyncDevice implements ResourceKeyApi, EncryptedRelay {
-  ChildSyncDevice(this.fixture, this.id) {
+class ChildSyncDevice
+    implements ResourceKeyApi, EncryptedRelay, ExtendedResourceApi {
+  ChildSyncDevice(this.fixture, this.id, {String? adultId}) {
     final box = fixture.sodium.crypto.box.keyPair();
     final sign = fixture.sodium.crypto.sign.keyPair();
     keys = DeviceKeyMaterial(
@@ -75,7 +77,7 @@ class ChildSyncDevice implements ResourceKeyApi, EncryptedRelay {
       deviceId: newId(),
     );
     database = SartiDatabase.open(':memory:', keys.databaseKey.extractBytes());
-    repository = CalendarRepository(database, deviceId: id);
+    repository = CalendarRepository(database, deviceId: id, adultId: adultId);
     keySync = ResourceKeySync(
       database: database,
       repository: repository,
@@ -118,9 +120,40 @@ class ChildSyncDevice implements ResourceKeyApi, EncryptedRelay {
       id: fixture.familyId,
       role: id == fixture.a.id ? 'owner' : 'guardian',
       status: 'active',
-      resources: fixture.resources.values.toList(),
+      resources: fixture.resources.values
+          .where(
+            (r) =>
+                !fixture.privateOwners.containsKey(r.id) ||
+                fixture.privateOwners[r.id] == id,
+          )
+          .toList(),
     ),
   ];
+  @override
+  Future<RemoteResource> provisionResource(
+    String familyId,
+    String resourceId,
+    String kind, {
+    bool shareWithCalendarGuardians = false,
+  }) async {
+    if (kind == 'personal_calendar') {
+      if (shareWithCalendarGuardians) throw const SartiApiException(403);
+      fixture.privateOwners.putIfAbsent(resourceId, () => id);
+      if (fixture.privateOwners[resourceId] != id) {
+        throw const SartiApiException(403);
+      }
+    } else if (kind == 'participant_profile') {
+      fixture.participantAuthors.putIfAbsent(resourceId, () => id);
+      if (shareWithCalendarGuardians) {
+        fixture.childPermissions[resourceId] = 'read';
+      }
+    }
+    return fixture.resources.putIfAbsent(
+      resourceId,
+      () => RemoteResource(id: resourceId, kind: kind, keyEpoch: 1),
+    );
+  }
+
   @override
   Future<RemoteResource> provisionChild(
     String familyId,
@@ -142,6 +175,26 @@ class ChildSyncDevice implements ResourceKeyApi, EncryptedRelay {
     String familyId,
     String resourceId,
   ) async {
+    final privateOwner = fixture.privateOwners[resourceId];
+    if (privateOwner != null) {
+      if (privateOwner != id || fixture.denied.contains(id)) {
+        throw const SartiApiException(403);
+      }
+      return [
+        ResourceDevice(
+          deviceId: id,
+          encryptionPublicKey: keys.encryptionPublicKey,
+          signingPublicKey: keys.signingPublicKey,
+          permission: 'admin',
+          hasCurrentGrant: fixture.grants.any(
+            (g) =>
+                g.resourceId == resourceId &&
+                g.recipientDeviceId == id &&
+                g.keyEpoch == fixture.resources[resourceId]!.keyEpoch,
+          ),
+        ),
+      ];
+    }
     if (fixture.denied.contains(id) ||
         (id == fixture.b.id &&
             resourceId != fixture.calendarId &&
@@ -161,7 +214,9 @@ class ChildSyncDevice implements ResourceKeyApi, EncryptedRelay {
             deviceId: d.id,
             encryptionPublicKey: d.keys.encryptionPublicKey,
             signingPublicKey: d.keys.signingPublicKey,
-            permission: d.id == fixture.a.id
+            permission:
+                d.id == fixture.a.id ||
+                    fixture.participantAuthors[resourceId] == d.id
                 ? 'admin'
                 : resourceId == fixture.calendarId
                 ? fixture.calendarGuardianPermission
@@ -224,6 +279,10 @@ class ChildSyncDevice implements ResourceKeyApi, EncryptedRelay {
 
   @override
   Future<void> upload(RelayEnvelope envelope) async {
+    if (fixture.privateOwners.containsKey(envelope.resourceId) &&
+        fixture.privateOwners[envelope.resourceId] != id) {
+      throw const SartiApiException(403);
+    }
     fixture.attempts.add(envelope);
     if (fixture.offline) throw StateError('Fixture offline.');
     if (!fixture.operations.any((e) => e.operationId == envelope.operationId)) {
@@ -251,6 +310,15 @@ class ChildSyncDevice implements ResourceKeyApi, EncryptedRelay {
       (int n, e) => e.serverSequence > n ? e.serverSequence : n,
     );
     if (fixture.reverseDownload) rows = rows.reversed.toList();
+    if (fixture.injected == null) {
+      rows = rows
+          .where(
+            (e) =>
+                !fixture.privateOwners.containsKey(e.resourceId) ||
+                fixture.privateOwners[e.resourceId] == id,
+          )
+          .toList();
+    }
     return RelayPage(rows, next);
   }
 }

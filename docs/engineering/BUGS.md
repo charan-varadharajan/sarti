@@ -23,29 +23,25 @@ in-repository record while Sarti has no external tracker.
 
 ## Open defects
 
-### BUG-020 — Create family bypasses optional guided profile setup
-- Severity: Medium
-- Component: Family onboarding
-- Discovered: 2026-10-13, maintainer physical-iPhone testing
-- Blocking: Clear progressive family setup
-- Summary: Create family immediately opens a default My family/Me calendar;
-  there is no guided opportunity to name the family, add children or choose colours.
-- Evidence: Onboarding invokes createFamily('My family', 'Me') directly.
-- Required action: Offer a concise optional setup flow with clear skip/continue
-  choices. Preserve ADR-022 progressive onboarding: adding all children/details
-  must not be mandatory before using the calendar. Coordinate colour selection
-  with existing BUG-015; do not duplicate that fix.
-- Implementation update (2026-10-13): Optional draft names/Skip setup and optional
-  child step implemented; common child editor adds named colour choices and
-  unused defaults with explicit palette reuse. Profile sharing remains opt-in;
-  family/owner checks are revalidated at save. No API/schema/ADR change.
-- Verification: Analysis PASS; full Flutter suite FAIL. Runner summary lists
-  FAMILY-MOB-002/003/005 and FAMILY-SYNC-001. Failure traces uninspected; native
-  calendar/child commands also FAIL on both iOS and Android. BUG-020 remains
-  open. See
-  `../testing/BUG-020-VERIFICATION.md`.
-- Workaround: Add children later through the owner control (BUG-019 is fixed);
-  current colour-selection limitation remains BUG-015.
+### BUG-022 — Family-only recovery drops causal state and historical relay keys
+- Severity: High
+- Component: ADR-032 family backup restore and resumed synchronization
+- Discovered: 2026-10-13, code review during ADR-038 private recovery work
+- Blocking: Full family-recovery-plus-sync acceptance; not a reported production incident
+- Summary: Family recovery clears event vectors and historical resource keys.
+  A historical relay page can fail decryption after replacement; a later readable
+  concurrent change can overwrite a restored unsynced edit when no vector remains.
+- Evidence: BackupRecovery.stage clears resource_keys/event_versions for the
+  family-only path. applyRemote can preserve restored alternatives only when
+  causal state exists. The new personal path retains this state and has a tested
+  stale-message regression; it does not silently change accepted family behavior.
+- Required action: Design and approve the ADR-032 family recovery continuation,
+  test a restored pending edit against resumed relay messages and current grants.
+  A full family/server/device reproduction has not been executed for this finding.
+- Workaround: Retain the original phone/snapshot until replacement and resumed
+  synchronization are validated. Personal snapshots protect their own restored
+  causal state; they are not a general replacement for family recovery.
+- Status: Open; recorded separately from authorized adult/pet implementation.
 
 ### BUG-021 — No complete, discoverable family management hub
 - Severity: Medium
@@ -62,6 +58,13 @@ in-repository record while Sarti has no external tracker.
   removal routes, clearly explained offline/unconfigured actions and explicit
   profile-edit synchronization semantics. No permissions or key revocation
   controls may be bypassed. Coordinate BUG-015 and BUG-020. Pending.
+- ADR-038 update: People & pets now exposes own-adult/pet profiles and child
+  colours. Existing invite/removal remains under Family guardians. Family-name
+  and general guardian-name editing remain outside this delivered screen.
+- Requested extension (2026-10-13): Adult appointments with explicit sharing,
+  pet profiles and pastel colours. ADR-038 was explicitly approved and implemented
+  with separate personal resources/backups. General family/guardian name editing
+  remains pending; feature verification is documented separately.
 - Workaround: Existing Family guardians action when signed in to a configured
   service; it is unavailable in an offline-only build.
 
@@ -78,30 +81,6 @@ in-repository record while Sarti has no external tracker.
 - Workaround: Review the latest event before acting on an old conflict card.
 - Required action: Define causal retirement of superseded conflict rows and test
   remote resolution/stale-card actions. Deferred from BUG-011; no fix included.
-
-### BUG-015 — Every child added through the app receives the same colour
-- Severity: Medium
-- Component: `features/calendar/presentation/calendar_screen.dart`, child profiles
-- Discovered: 2026-10-12 during maintainer simulator testing
-- Blocking: P0 child-specific colour-coded schedule acceptance
-- Summary: Multiple children have identical calendar colour indicators.
-- Root cause: The add-child UI hardcodes `0xFF8E6CEF` for every new profile;
-  there is no colour selection or distinct default assignment.
-- Workaround: None through the shipping child UI; review child assignments
-  explicitly rather than relying on colour.
-- Related implementation candidate (2026-10-13, BUG-020): Shared new-child form
-  includes named palette choices, unused defaults and explicit reuse when full.
-  Custom-colour/multiple-child verification is failing; creation portion is not
-  yet accepted. Existing colour edits and shared-event indicators remain pending.
-- Proposed action: Choose distinct defaults from an accessible palette using
-  existing household colours, and let parents choose a colour before creation.
-  Keep names/labels alongside colour; handle palette exhaustion explicitly.
-  Existing duplicate-colour profiles need a deliberate correction path that
-  preserves encrypted synchronization semantics; do not silently recolour only
-  one device. Calendar currently shows the first assigned child's colour for
-  shared events; define clear indicators for multiple children as part of design.
-  Add prepared two-child widget/native tests, persistence/encrypted-delivery
-  checks and shared-event/palette edge cases. Pending implementation; no tests run.
 
 ### BUG-014 — Event-added Undo action persists indefinitely
 - Severity: Medium
@@ -228,6 +207,30 @@ in-repository record while Sarti has no external tracker.
 ---
 
 ## Resolved defects
+
+### BUG-020 — Optional guided family setup
+- Severity: Medium; fixed in 0.2.0+2 (2026-10-13).
+- Fix commit: recorded after commit; implementation candidate was d056258.
+- Disposition: Optional names/Skip setup, optional children, named colours and
+  access checks preserve progressive onboarding. Failed drivers now settle
+  rebuilds and scroll to real targets without relaxing assertions.
+- Verification: Full Flutter 169 pass/2 opt-in skips; seven family setup cases,
+  prepared calendar and child sync pass on iOS/Android. Physical retest remains.
+  See `../testing/BUG-020-VERIFICATION.md` and ADR-038 verification.
+
+### BUG-015 — Child-specific selectable calendar colours
+- Severity: Medium; fixed in 0.2.0+2 (2026-10-13).
+- Fix commit: recorded after commit.
+- Disposition: Named pastel choices, unused new-child defaults, explicit reuse
+  when exhausted, and owner-controlled correction of old colours with encrypted
+  causal updates. Upgrade never silently recolours old records. Shared events
+  use a primary profile colour plus complete participant labels/tooltips; larger
+  child blocks also show individual avatars.
+- Verification: Two-child/choice/exhaustion and encrypted-receiver cases pass;
+  PROFILE-CHILD-001 proves deliberate legacy recolouring on both native platforms.
+  Full Flutter 169 pass/2 skips; physical accessibility/user acceptance remains.
+  See `../testing/ADR-038-VERIFICATION.md`.
+
 
 ### BUG-018 — Today segment does not return to the current date
 - Severity: Medium

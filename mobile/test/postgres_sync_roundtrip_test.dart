@@ -53,7 +53,11 @@ void main() {
           ],
         );
         db.setResourceKey(calendarId, 1, key);
-        final repo = CalendarRepository(db, deviceId: id);
+        final repo = CalendarRepository(
+          db,
+          deviceId: id,
+          adultId: person['adult_id'] as String,
+        );
         repos.add(repo);
         final api = SartiApiClient(
           Uri.parse(config['baseUrl'] as String),
@@ -149,6 +153,67 @@ void main() {
       expect(repos[1].openConflicts(), isEmpty);
       // Remote conflict-card retirement is separately tracked as BUG-017.
       expect(repos[0].openConflicts(), hasLength(1));
+      // ADULT-HTTP-001: independent private key, real encrypted upload and
+      // owner exclusion enforced by the actual HTTP/PostgreSQL server.
+      final adult = CalendarController(repos[1], timezone: 'America/Vancouver');
+      addTearDown(adult.dispose);
+      final private = adult.save(
+        title: 'Private eye exam',
+        localStart: DateTime(2026, 10, 13, 17),
+        durationMinutes: 60,
+        childIds: const [],
+        adultAppointment: true,
+      );
+      await apis[1].provisionResource(
+        familyId,
+        private.calendarResourceId,
+        'personal_calendar',
+      );
+      dbs[1].setResourceKey(
+        private.calendarResourceId,
+        1,
+        sodium.randombytes.buf(32),
+      );
+      await engines[1].synchronize(familyId);
+      await engines[0].synchronize(familyId);
+      expect(
+        repos[0].load()!.events.where((e) => e.title == 'Private eye exam'),
+        isEmpty,
+      );
+      expect(dbs[0].resourceKey(private.calendarResourceId, 1), isNull);
+      await expectLater(
+        apis[0].resourceDevices(familyId, private.calendarResourceId),
+        throwsA(
+          isA<SartiApiException>().having(
+            (e) => e.statusCode,
+            'owner access',
+            403,
+          ),
+        ),
+      );
+      adult.save(
+        id: private.id,
+        title: 'Shared pickup request',
+        localStart: private.localStart,
+        durationMinutes: 60,
+        childIds: const [],
+        adultAppointment: true,
+        shareWithHousehold: true,
+      );
+      await engines[1].synchronize(familyId);
+      await engines[0].synchronize(familyId);
+      final received = repos[0].load()!.events.singleWhere(
+        (e) => e.title == 'Shared pickup request',
+      );
+      expect(received.id, isNot(private.id));
+      expect(received.calendarResourceId, calendarId);
+      expect(
+        (await apis[0].download(
+          familyId,
+          0,
+        )).operations.every((e) => e.resourceId != private.calendarResourceId),
+        isTrue,
+      );
     },
     skip: configValue.isEmpty
         ? 'Run via explicit PostgreSQL/HTTP fixture host'

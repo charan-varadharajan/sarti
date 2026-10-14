@@ -21,6 +21,19 @@ class ChildProfile {
   final String cloudAlias;
 }
 
+class ParticipantProfile {
+  const ParticipantProfile({
+    required this.id,
+    required this.name,
+    required this.kind,
+    required this.colorArgb,
+    this.adultId,
+  });
+  final String id, name, kind;
+  final int colorArgb;
+  final String? adultId;
+}
+
 class GuardianProfile {
   const GuardianProfile({required this.id, required this.name});
 
@@ -49,6 +62,8 @@ class FamilyCalendar {
     required this.guardians,
     required this.events,
     required this.openConflicts,
+    this.participants = const [],
+    this.sharedPrivateEventIds = const {},
   });
 
   final String householdId;
@@ -58,6 +73,8 @@ class FamilyCalendar {
   final List<GuardianProfile> guardians;
   final List<CalendarEvent> events;
   final int openConflicts;
+  final List<ParticipantProfile> participants;
+  final Set<String> sharedPrivateEventIds;
 
   Map<String, String> get cloudChildAliases => {
     for (final child in children) child.name: child.cloudAlias,
@@ -67,10 +84,51 @@ class FamilyCalendar {
 enum RemoteApplyResult { applied, duplicate, conflict, stale }
 
 class CalendarRepository {
-  CalendarRepository(this.database, {required this.deviceId});
+  CalendarRepository(this.database, {required this.deviceId, this.adultId}) {
+    final draft = database.raw.select(
+      "SELECT value FROM app_preferences WHERE key='local-draft-adult'",
+    );
+    if (adultId != null && draft.isNotEmpty) {
+      final old = draft.single['value'] as String;
+      database.transaction(() {
+        if (database.raw.select(
+          "SELECT 1 FROM outbox WHERE state='uploaded' AND resource_id IN (SELECT resource_id FROM personal_calendars WHERE adult_id=?)",
+          [old],
+        ).isNotEmpty) {
+          throw StateError('Published private identity cannot be rebound.');
+        }
+        database.raw.execute(
+          'UPDATE personal_calendars SET adult_id=? WHERE adult_id=?',
+          [adultId, old],
+        );
+        database.raw.execute(
+          'UPDATE participant_profiles SET adult_id=? WHERE adult_id=?',
+          [adultId, old],
+        );
+        for (final row in database.raw.select(
+          "SELECT operation_id,payload_json FROM outbox WHERE kind='participant_upserted' AND state='pending'",
+        )) {
+          final payload = Map<String, Object?>.from(
+            jsonDecode(row['payload_json'] as String) as Map,
+          );
+          if (payload['adultId'] == old) {
+            payload['adultId'] = adultId;
+            database.raw.execute(
+              'UPDATE outbox SET payload_json=?,envelope_json=NULL WHERE operation_id=?',
+              [jsonEncode(payload), row['operation_id']],
+            );
+          }
+        }
+        database.raw.execute(
+          "DELETE FROM app_preferences WHERE key='local-draft-adult'",
+        );
+      });
+    }
+  }
 
   final SartiDatabase database;
   final String deviceId;
+  final String? adultId;
 
   FamilyCalendar? load() {
     final households = database.raw.select('SELECT * FROM households LIMIT 1');
@@ -105,18 +163,21 @@ class CalendarRepository {
         .toList();
     final events = database.raw
         .select(
-          'SELECT * FROM events WHERE household_id = ? AND deleted = 0 ORDER BY local_start',
-          [householdId],
+          'SELECT * FROM events WHERE household_id = ? AND deleted = 0 AND calendar_resource_id IN (?,?) ORDER BY local_start',
+          [
+            householdId,
+            household['calendar_resource_id'] ?? householdId,
+            personalResourceId ?? '',
+          ],
         )
         .map(_eventFromRow)
         .toList();
     final calendarResource = household['calendar_resource_id'] as String?;
     final conflicts =
-        database.raw
-                .select(
-                  "SELECT count(*) AS total FROM conflicts WHERE status = 'open'",
-                )
-                .first['total']
+        database.raw.select(
+              "SELECT count(*) AS total FROM conflicts WHERE status = 'open' AND resource_id IN (?,?)",
+              [calendarResource ?? householdId, personalResourceId ?? ''],
+            ).first['total']
             as int;
     return FamilyCalendar(
       householdId: householdId,
@@ -124,7 +185,41 @@ class CalendarRepository {
       calendarResourceId: calendarResource ?? householdId,
       children: children,
       guardians: guardians,
-      events: events,
+      events: events
+          .where(
+            (event) =>
+                event.calendarResourceId == (calendarResource ?? householdId) ||
+                event.calendarResourceId == personalResourceId,
+          )
+          .where(
+            (event) => !database.raw.select(
+              'SELECT 1 FROM appointment_shares WHERE shared_event_id=?',
+              [event.id],
+            ).isNotEmpty,
+          )
+          .toList(),
+      participants: database.raw
+          .select(
+            'SELECT * FROM participant_profiles WHERE household_id=? ORDER BY display_name',
+            [householdId],
+          )
+          .map(
+            (r) => ParticipantProfile(
+              id: r['id'] as String,
+              name: r['display_name'] as String,
+              kind: r['kind'] as String,
+              colorArgb: r['color_argb'] as int,
+              adultId: r['adult_id'] as String?,
+            ),
+          )
+          .toList(),
+      sharedPrivateEventIds: database.raw
+          .select(
+            'SELECT private_event_id FROM appointment_shares WHERE private_event_id IN (SELECT id FROM events WHERE calendar_resource_id=?)',
+            [personalResourceId],
+          )
+          .map((r) => r['private_event_id'] as String)
+          .toSet(),
       openConflicts: conflicts,
     );
   }
@@ -171,6 +266,7 @@ class CalendarRepository {
     required String invitationId,
     required String profileResourceId,
     required Set<String> childResourceIds,
+    Set<String> participantResourceIds = const {},
     required String guardianId,
     required String guardianName,
   }) {
@@ -246,22 +342,35 @@ class CalendarRepository {
       for (final child in family.children.where(
         (c) => childResourceIds.contains(c.id),
       )) {
-        queue(
-          child.id,
-          'child_created',
-          {
-            'id': child.id,
-            'householdId': family.householdId,
-            'name': child.name,
-            'colorArgb': child.colorArgb,
-            'cloudAlias': child.cloudAlias,
-          },
-          {deviceId: 1},
-        );
+        queue(child.id, 'child_updated', {
+          'id': child.id,
+          'householdId': family.householdId,
+          'name': child.name,
+          'colorArgb': child.colorArgb,
+          'cloudAlias': child.cloudAlias,
+        }, _childVector(child.id));
+      }
+      for (final participant in family.participants.where(
+        (p) => participantResourceIds.contains(p.id),
+      )) {
+        final version =
+            database.raw.select(
+                  'SELECT vector_json FROM participant_profiles WHERE id=?',
+                  [participant.id],
+                ).single['vector_json']
+                as String;
+        queue(participant.id, 'participant_upserted', {
+          'id': participant.id,
+          'householdId': family.householdId,
+          'kind': participant.kind,
+          'name': participant.name,
+          'colorArgb': participant.colorArgb,
+          'adultId': participant.adultId,
+        }, Map<String, int>.from(jsonDecode(version) as Map));
       }
       for (final row in database.raw.select(
-        'SELECT * FROM events WHERE household_id = ?',
-        [family.householdId],
+        'SELECT * FROM events WHERE household_id = ? AND calendar_resource_id = ?',
+        [family.householdId, family.calendarResourceId],
       )) {
         final event = _eventFromRow(row);
         final version = database.raw.select(
@@ -472,18 +581,62 @@ class CalendarRepository {
   }
 
   /// Called inside the caller's transaction for atomic profile/outbox writes.
+  Map<String, int> _childVector(String id) {
+    final rows = database.raw.select(
+      'SELECT vector_json AS value FROM child_profile_versions WHERE child_id=?',
+      [id],
+    );
+    return rows.isEmpty
+        ? {deviceId: 1}
+        : Map<String, int>.from(
+            jsonDecode(rows.single['value'] as String) as Map,
+          );
+  }
+
+  void updateChildColour(String id, int colour) {
+    if (colour < 0 ||
+        colour > 0xffffffff ||
+        database.raw.select(
+          'SELECT 1 FROM children WHERE id=? AND household_id=? AND is_placeholder=0',
+          [id, load()?.householdId],
+        ).isEmpty) {
+      throw ArgumentError('Invalid child colour.');
+    }
+    database.transaction(() {
+      database.raw.execute('UPDATE children SET color_argb=? WHERE id=?', [
+        colour,
+        id,
+      ]);
+      queueChildProfile(id);
+    });
+  }
+
   void queueChildProfile(String childId) {
     final row = database.raw.select(
       'SELECT * FROM children WHERE id = ? AND is_placeholder = 0',
       [childId],
     ).single;
+    final stored = database.raw.select(
+      'SELECT vector_json AS value FROM child_profile_versions WHERE child_id=?',
+      [childId],
+    );
+    final vector = stored.isEmpty
+        ? <String, int>{}
+        : Map<String, int>.from(
+            jsonDecode(stored.single['value'] as String) as Map,
+          );
+    vector[deviceId] = (vector[deviceId] ?? 0) + 1;
+    database.raw.execute(
+      'INSERT OR REPLACE INTO child_profile_versions VALUES (?,?)',
+      [childId, jsonEncode(vector)],
+    );
     database.raw.execute(
       'INSERT INTO outbox(operation_id, family_id, resource_id, kind, payload_json, vector_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
       [
         newId(),
         row['household_id'],
         childId,
-        'child_created',
+        stored.isEmpty ? 'child_created' : 'child_updated',
         jsonEncode({
           'id': childId,
           'householdId': row['household_id'],
@@ -491,7 +644,7 @@ class CalendarRepository {
           'colorArgb': row['color_argb'],
           'cloudAlias': row['cloud_alias'],
         }),
-        jsonEncode({deviceId: 1}),
+        jsonEncode(vector),
         DateTime.now().toUtc().toIso8601String(),
       ],
     );
@@ -503,6 +656,8 @@ class CalendarRepository {
     required String resourceId,
     required int keyEpoch,
     required Map<String, Object?> payload,
+    Map<String, int>? vector,
+    bool allowUpdate = false,
   }) {
     if (payload.length != 5 ||
         payload['id'] != resourceId ||
@@ -524,6 +679,44 @@ class CalendarRepository {
       payload['cloudAlias']! as String,
       childName: payload['name']! as String,
     );
+    if (vector != null) {
+      if (vector.isEmpty ||
+          vector.length > 16 ||
+          !vector.entries.every((e) => isResourceId(e.key) && e.value >= 0)) {
+        throw StateError('Invalid child version.');
+      }
+      final prior = database.raw.select(
+        'SELECT vector_json AS value FROM child_profile_versions WHERE child_id=?',
+        [resourceId],
+      );
+      if (prior.isNotEmpty) {
+        final relation = compareVectors(
+          Map<String, int>.from(
+            jsonDecode(prior.single['value'] as String) as Map,
+          ),
+          vector,
+        );
+        if (relation == VectorRelation.concurrent) {
+          final current = database.raw.select(
+            'SELECT display_name,color_argb,cloud_alias FROM children WHERE id=?',
+            [resourceId],
+          );
+          if (current.isEmpty ||
+              current.single['display_name'] != payload['name'] ||
+              current.single['color_argb'] != payload['colorArgb'] ||
+              current.single['cloud_alias'] != alias) {
+            throw StateError('Concurrent child colour edits require review.');
+          }
+          vector = mergeVectors(
+            Map<String, int>.from(
+              jsonDecode(prior.single['value'] as String) as Map,
+            ),
+            vector,
+          );
+        }
+        if (relation != VectorRelation.before) return RemoteApplyResult.stale;
+      }
+    }
     final existing = database.raw.select(
       'SELECT * FROM children WHERE id = ?',
       [resourceId],
@@ -531,7 +724,8 @@ class CalendarRepository {
     if (existing.isNotEmpty) {
       final row = existing.single;
       if (row['household_id'] != familyId ||
-          (row['is_placeholder'] == 0 &&
+          (!allowUpdate &&
+              row['is_placeholder'] == 0 &&
               (row['display_name'] != payload['name'] ||
                   row['color_argb'] != payload['colorArgb'] ||
                   row['cloud_alias'] != alias))) {
@@ -547,6 +741,12 @@ class CalendarRepository {
       return RemoteApplyResult.duplicate;
     }
     database.transaction(() {
+      if (vector != null) {
+        database.raw.execute(
+          'INSERT OR REPLACE INTO child_profile_versions VALUES (?,?)',
+          [resourceId, jsonEncode(vector)],
+        );
+      }
       database.raw.execute(
         '''INSERT INTO children(id, household_id, display_name,
           color_argb, cloud_alias, is_placeholder) VALUES (?, ?, ?, ?, ?, 0)
@@ -566,83 +766,324 @@ class CalendarRepository {
     return RemoteApplyResult.applied;
   }
 
+  String? get currentAdultId {
+    if (adultId != null) return adultId;
+    final rows = database.raw.select(
+      "SELECT value FROM app_preferences WHERE key='local-draft-adult'",
+    );
+    return rows.isEmpty ? null : rows.single['value'] as String;
+  }
+
+  String ensureDraftAdultId() {
+    final existing = currentAdultId;
+    if (existing != null) return existing;
+    final id = newId();
+    database.raw.execute(
+      "INSERT INTO app_preferences VALUES ('local-draft-adult',?)",
+      [id],
+    );
+    return id;
+  }
+
+  String? get personalResourceId {
+    final actor = currentAdultId;
+    if (actor == null) return null;
+    final rows = database.raw.select(
+      'SELECT resource_id FROM personal_calendars WHERE adult_id=?',
+      [actor],
+    );
+    return rows.isEmpty ? null : rows.single['resource_id'] as String;
+  }
+
+  String ensurePersonalCalendar() {
+    final actor = ensureDraftAdultId();
+    final family = load();
+    if (!isResourceId(actor) || family == null) {
+      throw StateError('Authenticate before creating private appointments.');
+    }
+    final existing = personalResourceId;
+    if (existing != null) return existing;
+    final id = newId();
+    database.raw.execute('INSERT INTO personal_calendars VALUES (?,?,?)', [
+      actor,
+      family.householdId,
+      id,
+    ]);
+    return id;
+  }
+
+  void _queueEvent(CalendarEvent event) {
+    final vector = _nextVector(event.id);
+    _saveEventRows(event, vector: vector);
+    database.raw.execute(
+      'INSERT INTO outbox(operation_id,family_id,resource_id,kind,payload_json,vector_json,created_at) VALUES (?,?,?,?,?,?,?)',
+      [
+        newId(),
+        event.householdId,
+        event.calendarResourceId,
+        event.deleted ? 'event_deleted' : 'event_upserted',
+        event.encode(),
+        jsonEncode(vector),
+        DateTime.now().toUtc().toIso8601String(),
+      ],
+    );
+  }
+
   void saveEvent(CalendarEvent event) {
     if (event.title.trim().isEmpty || event.durationMinutes <= 0) {
       throw ArgumentError('Event title and duration are required.');
     }
-    final operationId = newId();
-    final vector = _nextVector(event.id);
+    final family = load();
+    if (family == null ||
+        event.householdId != family.householdId ||
+        (event.calendarResourceId != family.calendarResourceId &&
+            event.calendarResourceId != personalResourceId)) {
+      throw StateError('Invalid calendar write scope.');
+    }
+    database.transaction(() => _queueEvent(event));
+  }
+
+  bool isShared(String eventId) => database.raw.select(
+    'SELECT 1 FROM appointment_shares WHERE private_event_id=?',
+    [eventId],
+  ).isNotEmpty;
+
+  ({CalendarEvent event, String vector})? householdCopy(String privateId) {
+    final link = database.raw.select(
+      'SELECT shared_event_id FROM appointment_shares WHERE private_event_id=?',
+      [privateId],
+    );
+    if (link.isEmpty) return null;
+    final rows = database.raw.select(
+      'SELECT e.*,v.vector_json FROM events e JOIN event_versions v ON v.event_id=e.id WHERE e.id=?',
+      [link.single['shared_event_id']],
+    );
+    if (rows.isEmpty) return null;
+    return (
+      event: _eventFromRow(rows.single),
+      vector: rows.single['vector_json'] as String,
+    );
+  }
+
+  void saveAdultAppointment(
+    CalendarEvent event, {
+    required bool share,
+    String? reviewedSharedVector,
+  }) {
+    if (event.title.trim().isEmpty || event.durationMinutes <= 0) {
+      throw ArgumentError('Event title and duration are required.');
+    }
+    final family = load()!;
+    if (event.calendarResourceId != personalResourceId ||
+        currentAdultId == null) {
+      throw StateError('Invalid private author.');
+    }
+    database.transaction(() {
+      final links = database.raw.select(
+        'SELECT * FROM appointment_shares WHERE private_event_id=?',
+        [event.id],
+      );
+      if (links.isNotEmpty) {
+        final sharedId = links.single['shared_event_id'] as String;
+        final stored = database.raw.select(
+          'SELECT vector_json FROM event_versions WHERE event_id=?',
+          [sharedId],
+        );
+        if (stored.isNotEmpty &&
+            stored.single['vector_json'] != reviewedSharedVector &&
+            compareVectors(
+                  Map<String, int>.from(
+                    jsonDecode(stored.single['vector_json'] as String) as Map,
+                  ),
+                  Map<String, int>.from(
+                    jsonDecode(links.single['shared_vector_json'] as String)
+                        as Map,
+                  ),
+                ) !=
+                VectorRelation.equal) {
+          throw StateError('Review the household copy before replacing it.');
+        }
+      }
+      _queueEvent(event);
+      if (share || links.isNotEmpty) {
+        final sharedId = links.isEmpty
+            ? newId()
+            : links.single['shared_event_id'] as String;
+        final copy = event.copyWith(
+          id: sharedId,
+          calendarResourceId: family.calendarResourceId,
+          deleted: event.deleted || !share,
+        );
+        _queueEvent(copy);
+        if (share) {
+          final vector = database.raw.select(
+            'SELECT vector_json FROM event_versions WHERE event_id=?',
+            [sharedId],
+          ).single['vector_json'];
+          database.raw.execute(
+            'INSERT OR REPLACE INTO appointment_shares VALUES (?,?,?)',
+            [event.id, sharedId, vector],
+          );
+        } else {
+          database.raw.execute(
+            'DELETE FROM appointment_shares WHERE private_event_id=?',
+            [event.id],
+          );
+        }
+      }
+    });
+  }
+
+  ParticipantProfile saveParticipant({
+    String? id,
+    required String name,
+    required String kind,
+    required int colour,
+  }) {
+    final family = load() ?? (throw StateError('Create a family first.'));
+    if (!{'adult', 'pet'}.contains(kind) ||
+        name.trim().isEmpty ||
+        name.trim().length > 120 ||
+        colour < 0 ||
+        colour > 0xffffffff) {
+      throw ArgumentError('Invalid participant profile.');
+    }
+    final actor = kind == 'adult' ? ensureDraftAdultId() : null;
+    final profileId = id ?? newId();
+    final previous = database.raw.select(
+      'SELECT * FROM participant_profiles WHERE id=?',
+      [profileId],
+    );
+    if (previous.isNotEmpty &&
+        (previous.single['household_id'] != family.householdId ||
+            previous.single['kind'] != kind)) {
+      throw StateError('Profile scope mismatch.');
+    }
+    if (kind == 'adult' &&
+        (actor == null ||
+            (previous.isNotEmpty && previous.single['adult_id'] != actor))) {
+      throw StateError('Only edit your own adult profile.');
+    }
+    final vector = previous.isEmpty
+        ? <String, int>{}
+        : Map<String, int>.from(
+            jsonDecode(previous.single['vector_json'] as String) as Map,
+          );
+    vector[deviceId] = (vector[deviceId] ?? 0) + 1;
     database.transaction(() {
       database.raw.execute(
-        '''INSERT INTO events(
-          id, household_id, calendar_resource_id, title, notes, local_start,
-          timezone, duration_minutes, status, recurrence_json,
-          pickup_guardian_id, dropoff_guardian_id, revision, updated_at, deleted
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(id) DO UPDATE SET
-          title=excluded.title, notes=excluded.notes,
-          local_start=excluded.local_start, timezone=excluded.timezone,
-          duration_minutes=excluded.duration_minutes, status=excluded.status,
-          recurrence_json=excluded.recurrence_json,
-          pickup_guardian_id=excluded.pickup_guardian_id,
-          dropoff_guardian_id=excluded.dropoff_guardian_id,
-          revision=excluded.revision, updated_at=excluded.updated_at,
-          deleted=excluded.deleted''',
+        'INSERT OR REPLACE INTO participant_profiles VALUES (?,?,?,?,?,?,?)',
         [
-          event.id,
-          event.householdId,
-          event.calendarResourceId,
-          event.title.trim(),
-          event.notes,
-          event.localStart.toIso8601String(),
-          event.timezone,
-          event.durationMinutes,
-          event.status.name,
-          event.recurrence == null
-              ? null
-              : jsonEncode(event.recurrence!.toJson()),
-          event.pickupGuardianId,
-          event.dropoffGuardianId,
-          event.revision,
-          event.updatedAt.toUtc().toIso8601String(),
-          event.deleted ? 1 : 0,
+          profileId,
+          family.householdId,
+          kind,
+          name.trim(),
+          colour,
+          kind == 'adult' ? actor : null,
+          jsonEncode(vector),
         ],
       );
-      database.raw.execute('DELETE FROM event_children WHERE event_id = ?', [
-        event.id,
-      ]);
-      for (final childId in event.childIds) {
-        database.raw.execute('INSERT INTO event_children VALUES (?, ?)', [
-          event.id,
-          childId,
-        ]);
-      }
-      database.raw.execute('DELETE FROM reminders WHERE event_id = ?', [
-        event.id,
-      ]);
-      for (final minutes in event.reminderMinutes) {
-        database.raw.execute('INSERT INTO reminders VALUES (?, ?)', [
-          event.id,
-          minutes,
-        ]);
-      }
       database.raw.execute(
-        'INSERT OR REPLACE INTO event_versions(event_id, vector_json) VALUES (?, ?)',
-        [event.id, jsonEncode(vector)],
-      );
-      database.raw.execute(
-        'INSERT INTO outbox(operation_id, family_id, resource_id, kind, payload_json, vector_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO outbox(operation_id,family_id,resource_id,kind,payload_json,vector_json,created_at) VALUES (?,?,?,?,?,?,?)',
         [
-          operationId,
-          event.householdId,
-          event.calendarResourceId,
-          event.deleted ? 'event_deleted' : 'event_upserted',
-          event.encode(),
+          newId(),
+          family.householdId,
+          profileId,
+          'participant_upserted',
+          jsonEncode({
+            'id': profileId,
+            'householdId': family.householdId,
+            'kind': kind,
+            'name': name.trim(),
+            'colorArgb': colour,
+            'adultId': kind == 'adult' ? actor : null,
+          }),
           jsonEncode(vector),
           DateTime.now().toUtc().toIso8601String(),
         ],
       );
     });
+    return ParticipantProfile(
+      id: profileId,
+      name: name.trim(),
+      kind: kind,
+      colorArgb: colour,
+      adultId: kind == 'adult' ? actor : null,
+    );
+  }
+
+  RemoteApplyResult applyParticipant({
+    required String operationId,
+    required String familyId,
+    required String resourceId,
+    required Map<String, int> vector,
+    required Map<String, Object?> payload,
+  }) {
+    if (payload.length != 6 ||
+        payload['id'] != resourceId ||
+        payload['householdId'] != familyId ||
+        !{'adult', 'pet'}.contains(payload['kind']) ||
+        payload['name'] is! String ||
+        (payload['name'] as String).trim().isEmpty ||
+        (payload['name'] as String).length > 120 ||
+        payload['colorArgb'] is! int ||
+        (payload['colorArgb'] as int) < 0 ||
+        (payload['colorArgb'] as int) > 0xffffffff ||
+        (payload['kind'] == 'adult' &&
+            (payload['adultId'] is! String ||
+                !isResourceId(payload['adultId'] as String))) ||
+        (payload['kind'] == 'pet' && payload['adultId'] != null) ||
+        vector.isEmpty ||
+        vector.length > 16 ||
+        !vector.entries.every((e) => isResourceId(e.key) && e.value >= 0)) {
+      throw StateError('Invalid participant profile.');
+    }
+    if (database.raw.select(
+      'SELECT 1 FROM applied_operations WHERE operation_id=?',
+      [operationId],
+    ).isNotEmpty) {
+      return RemoteApplyResult.duplicate;
+    }
+    final old = database.raw.select(
+      'SELECT * FROM participant_profiles WHERE id=?',
+      [resourceId],
+    );
+    if (old.isNotEmpty) {
+      if (old.single['household_id'] != familyId ||
+          old.single['kind'] != payload['kind'] ||
+          old.single['adult_id'] != payload['adultId']) {
+        throw StateError('Profile scope mismatch.');
+      }
+      final relation = compareVectors(
+        Map<String, int>.from(
+          jsonDecode(old.single['vector_json'] as String) as Map,
+        ),
+        vector,
+      );
+      if (relation == VectorRelation.concurrent) {
+        throw StateError('Concurrent profile edits require review.');
+      }
+      if (relation != VectorRelation.before) return RemoteApplyResult.stale;
+    }
+    database.transaction(() {
+      database.raw.execute(
+        'INSERT OR REPLACE INTO participant_profiles VALUES (?,?,?,?,?,?,?)',
+        [
+          resourceId,
+          familyId,
+          payload['kind'],
+          payload['name'],
+          payload['colorArgb'],
+          payload['adultId'],
+          jsonEncode(vector),
+        ],
+      );
+      database.raw.execute('INSERT INTO applied_operations VALUES (?,?)', [
+        operationId,
+        DateTime.now().toUtc().toIso8601String(),
+      ]);
+    });
+    return RemoteApplyResult.applied;
   }
 
   RemoteApplyResult applyRemote({
@@ -660,11 +1101,27 @@ class CalendarRepository {
       'SELECT operation_id, payload_json, vector_json FROM outbox WHERE resource_id = ? ORDER BY created_at DESC',
       [event.calendarResourceId],
     );
-    final matching = localRows.where((row) {
+    var candidate = localRows.map((r) => Map<String, Object?>.from(r)).where((
+      row,
+    ) {
       final payload =
           jsonDecode(row['payload_json'] as String) as Map<String, dynamic>;
       return payload['id'] == event.id;
     }).firstOrNull;
+    if (candidate == null) {
+      final persisted = database.raw.select(
+        'SELECT e.*,v.vector_json FROM events e JOIN event_versions v ON v.event_id=e.id WHERE e.id=?',
+        [event.id],
+      );
+      if (persisted.isNotEmpty) {
+        candidate = {
+          'operation_id': newId(),
+          'payload_json': _eventFromRow(persisted.single).encode(),
+          'vector_json': persisted.single['vector_json'],
+        };
+      }
+    }
+    final matching = candidate;
     if (matching != null) {
       final localVector = Map<String, int>.from(
         jsonDecode(matching['vector_json'] as String) as Map,
@@ -704,7 +1161,8 @@ class CalendarRepository {
 
   List<CalendarConflict> openConflicts() => database.raw
       .select(
-        "SELECT * FROM conflicts WHERE status = 'open' ORDER BY created_at",
+        "SELECT * FROM conflicts WHERE status = 'open' AND resource_id IN (?,?) ORDER BY created_at",
+        [load()?.calendarResourceId, personalResourceId],
       )
       .map(
         (row) => CalendarConflict(
@@ -730,6 +1188,10 @@ class CalendarRepository {
     );
     if (rows.isEmpty) throw StateError('Conflict is no longer open.');
     final row = rows.first;
+    if (row['resource_id'] != load()?.calendarResourceId &&
+        row['resource_id'] != personalResourceId) {
+      throw StateError('Invalid conflict scope.');
+    }
     final selected = CalendarEvent.fromJson(
       Map<String, Object?>.from(
         jsonDecode(
@@ -791,11 +1253,13 @@ class CalendarRepository {
 
   void _saveEventRows(CalendarEvent event, {Map<String, int>? vector}) {
     final existingEvent = database.raw.select(
-      'SELECT household_id FROM events WHERE id = ?',
+      'SELECT household_id, calendar_resource_id FROM events WHERE id = ?',
       [event.id],
     );
     if (existingEvent.isNotEmpty &&
-        existingEvent.single['household_id'] != event.householdId) {
+        (existingEvent.single['household_id'] != event.householdId ||
+            existingEvent.single['calendar_resource_id'] !=
+                event.calendarResourceId)) {
       throw StateError('Invalid event scope.');
     }
     for (final childId in event.childIds) {
@@ -835,6 +1299,29 @@ class CalendarRepository {
         event.deleted ? 1 : 0,
       ],
     );
+    database.raw.execute('DELETE FROM event_participants WHERE event_id=?', [
+      event.id,
+    ]);
+    for (final participant in event.participants) {
+      if (!isResourceId(participant.id) ||
+          !{'adult', 'pet'}.contains(participant.kind)) {
+        throw StateError('Invalid participant reference.');
+      }
+      final profile = database.raw.select(
+        'SELECT household_id,kind FROM participant_profiles WHERE id=?',
+        [participant.id],
+      );
+      if (profile.isNotEmpty &&
+          (profile.single['household_id'] != event.householdId ||
+              profile.single['kind'] != participant.kind)) {
+        throw StateError('Participant scope mismatch.');
+      }
+      database.raw.execute('INSERT INTO event_participants VALUES (?,?,?)', [
+        event.id,
+        participant.id,
+        participant.kind,
+      ]);
+    }
     database.raw.execute('DELETE FROM event_children WHERE event_id = ?', [
       event.id,
     ]);
@@ -890,6 +1377,18 @@ class CalendarRepository {
         .map((value) => value['minutes_before'] as int)
         .toList();
     return CalendarEvent(
+      participants: database.raw
+          .select(
+            'SELECT profile_id,kind FROM event_participants WHERE event_id=?',
+            [eventId],
+          )
+          .map(
+            (r) => EventParticipant(
+              id: r['profile_id'] as String,
+              kind: r['kind'] as String,
+            ),
+          )
+          .toList(),
       id: eventId,
       householdId: row['household_id'] as String,
       calendarResourceId: row['calendar_resource_id'] as String,

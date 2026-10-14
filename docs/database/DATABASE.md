@@ -21,5 +21,10 @@ grants, and relay ciphertext. Field-level designs and classifications are in
 | `0004` | PostgreSQL | Removes plaintext sender/subject/body/status from `email_suggestions`; adds device-scoped sealed-ciphertext deliveries; version 4 | Real PostgreSQL upgrade and API integration; encrypted delivery unit tests |
 | `0005` | PostgreSQL | One opaque, bounded, revisioned backup per family; cascade and soft-delete purge; version 5 | Upgrade/downgrade/re-upgrade and owner/tenant/device API tests |
 
+| Local v7 | SQLCipher | Personal resource bindings, typed adult/pet profiles/assignments, private/shared mapping, durable child vectors; ADR-038 | Encrypted upgrade and regression; prior rows/colours/envelopes retained |
+| `0006` | PostgreSQL | Versioned sync metadata for deterministic AAD | Real JSONB/crypto round trip; legacy preservation |
+| `0007` | PostgreSQL | Guardian approval relay baseline | Approval/retained-state tests; guarded downgrade |
+| `0008` | PostgreSQL | Private adult resource ownership, unique live binding, participant kind, scoped personal backups and purge | PostgreSQL upgrade/downgrade and owner/guardian/outsider/device security tests |
+
 Alembic upgrades run before backend startup. Local migrations use immediate
 transactions and update `user_version` only after success.

@@ -11,7 +11,9 @@ class BackupScreen extends StatefulWidget {
     required this.remove,
     required this.generatePhrase,
     this.updatedAt,
+    this.personal = false,
   });
+  final bool personal;
   final bool hasBackup;
   final bool canCreate;
   final DateTime? updatedAt;
@@ -66,12 +68,16 @@ class _BackupScreenState extends State<BackupScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Encrypted backup')),
+    appBar: AppBar(
+      title: Text(widget.personal ? 'My private backup' : 'Family backup'),
+    ),
     body: ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        const Text(
-          'Sarti stores your encrypted backup. Your 12-word recovery phrase stays with you. Login alone cannot unlock it.',
+        Text(
+          widget.personal
+              ? 'Only your account can retrieve this encrypted snapshot. Use a separate recovery phrase for your private appointments; login alone cannot unlock it.'
+              : 'Family backups exclude private adult appointments. Your 12-word recovery phrase stays with you. Login alone cannot unlock it.',
         ),
         if (widget.updatedAt != null)
           Text('Latest snapshot: ${widget.updatedAt!.toLocal()}'),

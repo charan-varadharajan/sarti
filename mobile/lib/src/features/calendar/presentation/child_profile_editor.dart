@@ -10,12 +10,12 @@ class ChildColour {
 
 abstract final class ChildColours {
   static const values = [
-    ChildColour('Blue', 0xff1565c0),
-    ChildColour('Green', 0xff2e7d32),
-    ChildColour('Purple', 0xff6a1b9a),
-    ChildColour('Orange', 0xff9a4d00),
-    ChildColour('Rose', 0xffad1457),
-    ChildColour('Teal', 0xff00695c),
+    ChildColour('Blue', 0xffb8d8f0),
+    ChildColour('Green', 0xffc5e1c1),
+    ChildColour('Purple', 0xffd9c7ef),
+    ChildColour('Orange', 0xffffd4b3),
+    ChildColour('Rose', 0xfff3bfd1),
+    ChildColour('Teal', 0xffb8e2dc),
   ];
 
   static int? firstUnused(Iterable<int> used) {

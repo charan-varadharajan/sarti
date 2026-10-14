@@ -6,7 +6,7 @@ import 'package:sqlite3/sqlite3.dart';
 class SartiDatabase {
   SartiDatabase._(this.raw, this.path);
 
-  static const schemaVersion = 6;
+  static const schemaVersion = 7;
 
   final Database raw;
   final String path;
@@ -231,6 +231,42 @@ class SartiDatabase {
           ) STRICT;
         ''');
         raw.userVersion = 6;
+      });
+    }
+    if (raw.userVersion < 7) {
+      transaction(() {
+        raw.execute('''
+          CREATE TABLE child_profile_versions (
+            child_id TEXT PRIMARY KEY REFERENCES children(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+            vector_json TEXT NOT NULL
+          ) STRICT;
+          CREATE TABLE participant_profiles (
+            id TEXT PRIMARY KEY,
+            household_id TEXT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+            kind TEXT NOT NULL CHECK(kind IN ('adult', 'pet')),
+            display_name TEXT NOT NULL,
+            color_argb INTEGER NOT NULL,
+            adult_id TEXT,
+            vector_json TEXT NOT NULL DEFAULT '{}'
+          ) STRICT;
+          CREATE TABLE event_participants (
+            event_id TEXT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+            profile_id TEXT NOT NULL,
+            kind TEXT NOT NULL CHECK(kind IN ('adult', 'pet')),
+            PRIMARY KEY(event_id, profile_id)
+          ) STRICT;
+          CREATE TABLE personal_calendars (
+            adult_id TEXT PRIMARY KEY,
+            household_id TEXT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+            resource_id TEXT NOT NULL UNIQUE
+          ) STRICT;
+          CREATE TABLE appointment_shares (
+            private_event_id TEXT PRIMARY KEY REFERENCES events(id) ON DELETE CASCADE,
+            shared_event_id TEXT NOT NULL UNIQUE,
+            shared_vector_json TEXT NOT NULL
+          ) STRICT;
+        ''');
+        raw.userVersion = 7;
       });
     }
   }

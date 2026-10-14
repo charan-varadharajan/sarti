@@ -92,6 +92,10 @@ class CalendarController extends ChangeNotifier {
     required List<String> childIds,
     RecurrenceRule? recurrence,
     String? pickupGuardianId,
+    List<EventParticipant> participants = const [],
+    bool adultAppointment = false,
+    bool shareWithHousehold = false,
+    String? reviewedSharedVector,
     List<int> reminderMinutes = const [30],
   }) {
     final current = family ?? (throw StateError('Create a family first.'));
@@ -101,7 +105,10 @@ class CalendarController extends ChangeNotifier {
     final saved = CalendarEvent(
       id: id ?? newId(),
       householdId: current.householdId,
-      calendarResourceId: current.calendarResourceId,
+      calendarResourceId: adultAppointment
+          ? repository.ensurePersonalCalendar()
+          : current.calendarResourceId,
+      participants: participants,
       title: title,
       notes: notes,
       localStart: localStart,
@@ -114,15 +121,34 @@ class CalendarController extends ChangeNotifier {
       revision: (existing?.revision ?? 0) + 1,
       updatedAt: DateTime.now().toUtc(),
     );
-    repository.saveEvent(saved);
+    if (adultAppointment) {
+      repository.saveAdultAppointment(
+        saved,
+        share: shareWithHousehold,
+        reviewedSharedVector: reviewedSharedVector,
+      );
+    } else {
+      repository.saveEvent(saved);
+    }
     reminders?.replaceFor(saved);
     refresh();
     onLocalMutation?.call();
     return saved;
   }
 
+  void _saveChangedEvent(CalendarEvent event) {
+    if (event.calendarResourceId == repository.personalResourceId) {
+      repository.saveAdultAppointment(
+        event,
+        share: repository.isShared(event.id),
+      );
+    } else {
+      repository.saveEvent(event);
+    }
+  }
+
   void cancel(CalendarEvent event) {
-    repository.saveEvent(
+    _saveChangedEvent(
       event.copyWith(
         status: EventStatus.cancelled,
         revision: event.revision + 1,
@@ -135,7 +161,7 @@ class CalendarController extends ChangeNotifier {
   }
 
   void delete(CalendarEvent event) {
-    repository.saveEvent(
+    _saveChangedEvent(
       event.copyWith(
         deleted: true,
         revision: event.revision + 1,

@@ -881,7 +881,11 @@
         "additionalProperties": false,
         "properties": {
           "kind": {
-            "const": "child_profile",
+            "enum": [
+              "child_profile",
+              "personal_calendar",
+              "participant_profile"
+            ],
             "title": "Kind",
             "type": "string"
           },
@@ -960,7 +964,9 @@
             "enum": [
               "family_profile",
               "child_profile",
-              "calendar"
+              "calendar",
+              "personal_calendar",
+              "participant_profile"
             ],
             "title": "Kind",
             "type": "string"
@@ -2015,6 +2021,188 @@
         "summary": "Approve Invitation",
         "tags": [
           "households"
+        ]
+      }
+    },
+    "/v1/families/{family_id}/personal-backup": {
+      "delete": {
+        "operationId": "delete_backup_v1_families__family_id__personal_backup_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "family_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Family Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Backup",
+        "tags": [
+          "encrypted-backup"
+        ]
+      },
+      "get": {
+        "operationId": "download_backup_v1_families__family_id__personal_backup_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "family_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Family Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download Backup",
+        "tags": [
+          "encrypted-backup"
+        ]
+      },
+      "put": {
+        "operationId": "upload_backup_v1_families__family_id__personal_backup_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "family_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Family Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Backup-Revision",
+            "required": true,
+            "schema": {
+              "minimum": 0,
+              "title": "X-Backup-Revision",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "format": "binary",
+                "maxLength": 10485760,
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Upload Backup",
+        "tags": [
+          "encrypted-backup"
         ]
       }
     },

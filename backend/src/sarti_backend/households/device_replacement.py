@@ -30,12 +30,24 @@ def advance_replacement_epochs(connection: Connection, adult_id: UUID) -> None:
             select(resources.c.id)
             .where(
                 and_(
-                    resources.c.family_id.in_(affected_families),
+                    or_(
+                        resources.c.family_id.in_(affected_families),
+                        resources.c.private_adult_id == adult_id,
+                    ),
                     resources.c.family_id.in_(
                         select(families.c.id).where(families.c.deleted_at.is_(None))
                     ),
                     resources.c.deleted_at.is_(None),
-                    or_(resources.c.family_id.in_(owned_families), resources.c.id.in_(permitted)),
+                    or_(
+                        resources.c.private_adult_id == adult_id,
+                        and_(
+                            resources.c.private_adult_id.is_(None),
+                            or_(
+                                resources.c.family_id.in_(owned_families),
+                                resources.c.id.in_(permitted),
+                            ),
+                        ),
+                    ),
                 )
             )
             .order_by(resources.c.id)

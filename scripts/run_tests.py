@@ -1,4 +1,4 @@
-"""Small local Flutter test entry point; no production services or backup runs."""
+"""Small local Flutter test entry point; no production services or cross-platform backup runs."""
 
 import argparse
 import json
@@ -16,6 +16,7 @@ SCENARIOS = {
     "child": "integration_test/child_profile_sync_test.dart",
     "grid": "integration_test/calendar_grid_scenario_test.dart",
     "guardian": "integration_test/guardian_onboarding_scenario_test.dart",
+    "adult": "integration_test/adult_appointment_scenario_test.dart",
 }
 
 

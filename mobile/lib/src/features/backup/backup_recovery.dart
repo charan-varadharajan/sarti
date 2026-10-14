@@ -19,6 +19,7 @@ class BackupRecovery {
     required SartiDatabase current,
     required Sodium sodium,
     required SecretStore secrets,
+    String? adultId,
   }) async {
     if (current.raw.select('SELECT id FROM households').isNotEmpty) {
       throw const BackupException('Restore requires an empty local calendar.');
@@ -47,6 +48,27 @@ class BackupRecovery {
         if (families.length != 1 || families.single['id'] != familyId) {
           throw const BackupException('Backup belongs to a different family.');
         }
+        final scope = restored.raw.select(
+          "SELECT value FROM app_preferences WHERE key='backup-scope-v1'",
+        );
+        if (adultId != null) {
+          if (scope.isEmpty ||
+              scope.single['value'] != 'adult:$adultId' ||
+              restored.raw.select(
+                'SELECT 1 FROM personal_calendars WHERE adult_id!=?',
+                [adultId],
+              ).isNotEmpty) {
+            throw const BackupException(
+              'Private backup belongs to a different adult.',
+            );
+          }
+        } else if (restored.raw
+            .select('SELECT 1 FROM personal_calendars')
+            .isNotEmpty) {
+          throw const BackupException(
+            'Private content requires adult-specific recovery.',
+          );
+        }
         final integrity = restored.raw.select('PRAGMA integrity_check');
         if (integrity.single.values.single != 'ok' ||
             restored.raw.select('PRAGMA foreign_key_check').isNotEmpty) {
@@ -55,13 +77,19 @@ class BackupRecovery {
         restored.transaction(() {
           for (final table in [
             'outbox',
-            'applied_operations',
+            if (adultId == null) 'applied_operations',
             'sync_state',
-            'resource_keys',
-            'event_versions',
+            if (adultId == null) 'resource_keys',
+            if (adultId == null) 'event_versions',
             'app_preferences',
           ]) {
             restored.raw.execute('DELETE FROM $table');
+          }
+          if (adultId != null) {
+            restored.raw.execute('INSERT INTO app_preferences VALUES (?,?)', [
+              'family-access-$familyId',
+              jsonEncode({'role': 'guardian', 'permission': 'read'}),
+            ]);
           }
         });
       } finally {
@@ -101,13 +129,20 @@ class BackupRecovery {
     required String phrase,
     required Sodium sodium,
     required String familyId,
+    String? adultId,
   }) async {
     final rows = database.raw.select('SELECT id FROM households');
     if (rows.length != 1 || rows.single['id'] != familyId) {
       throw const BackupException('Backup must contain exactly one family.');
     }
+    if (key.length != 32) {
+      throw const BackupException('Invalid snapshot key size.');
+    }
     final folder = Directory.systemTemp.createTempSync('sarti-snapshot-');
-    final hex = key.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    final snapshotKey = sodium.randombytes.buf(32);
+    final hex = snapshotKey
+        .map((b) => b.toRadixString(16).padLeft(2, '0'))
+        .join();
     try {
       final snapshotPath = '${folder.path}/snapshot.db';
       database.raw.execute(
@@ -122,16 +157,64 @@ class BackupRecovery {
       } finally {
         database.raw.execute('DETACH DATABASE backup_snapshot');
       }
+      final sanitized = SartiDatabase.open(snapshotPath, snapshotKey);
+      try {
+        sanitized.raw.execute('PRAGMA secure_delete=ON');
+        sanitized.transaction(() {
+          final excluded = sanitized.raw.select(
+            'SELECT resource_id FROM personal_calendars WHERE (? IS NULL OR adult_id != ?)',
+            [adultId, adultId],
+          );
+          for (final row in excluded) {
+            final resource = row['resource_id'];
+            sanitized.raw.execute('DELETE FROM conflicts WHERE resource_id=?', [
+              resource,
+            ]);
+            sanitized.raw.execute('DELETE FROM outbox WHERE resource_id=?', [
+              resource,
+            ]);
+            sanitized.raw.execute(
+              'DELETE FROM resource_keys WHERE resource_id=?',
+              [resource],
+            );
+            sanitized.raw.execute(
+              'DELETE FROM resource_catalog WHERE resource_id=?',
+              [resource],
+            );
+            sanitized.raw.execute(
+              'DELETE FROM events WHERE calendar_resource_id=?',
+              [resource],
+            );
+            sanitized.raw.execute(
+              'DELETE FROM personal_calendars WHERE resource_id=?',
+              [resource],
+            );
+          }
+          // Private mappings and preferences never belong in family snapshots.
+          if (adultId == null) {
+            sanitized.raw.execute('DELETE FROM appointment_shares');
+          }
+          sanitized.raw.execute('DELETE FROM app_preferences');
+          sanitized.raw.execute(
+            "INSERT OR REPLACE INTO app_preferences(key,value) VALUES ('backup-scope-v1',?)",
+            [adultId == null ? 'family' : 'adult:$adultId'],
+          );
+        });
+        sanitized.raw.execute('VACUUM');
+      } finally {
+        sanitized.close();
+      }
       final output = '${folder.path}/backup.srtbk';
       BackupService.createBackup(
         databasePath: snapshotPath,
         outputPath: output,
         recoveryPhrase: phrase,
-        databaseKey: key,
+        databaseKey: snapshotKey,
         sodium: sodium,
       );
       return File(output).readAsBytesSync();
     } finally {
+      snapshotKey.fillRange(0, snapshotKey.length, 0);
       folder.deleteSync(recursive: true);
     }
   }
