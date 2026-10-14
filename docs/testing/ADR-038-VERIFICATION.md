@@ -110,3 +110,6 @@ A351256A-6255-4285-A1AE-5624594A08FD; Android API 35, emulator-5554.
 Current grid/guardian native suites were not rerun; their unit regressions and
 real HTTP guardian contract pass. CI itself was not observed for this push.
 User local iOS signing edits are excluded. No physical deployment is claimed.
+
+Implementation commit: `12a3c210d95da75e016b1b7aa474390a329003bf`. Verification-only follow-up records this
+identity without changing implementation or test results.

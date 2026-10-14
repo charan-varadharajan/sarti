@@ -210,7 +210,7 @@ in-repository record while Sarti has no external tracker.
 
 ### BUG-020 — Optional guided family setup
 - Severity: Medium; fixed in 0.2.0+2 (2026-10-13).
-- Fix commit: recorded after commit; implementation candidate was d056258.
+- Fix commit: `12a3c21`; implementation candidate was d056258.
 - Disposition: Optional names/Skip setup, optional children, named colours and
   access checks preserve progressive onboarding. Failed drivers now settle
   rebuilds and scroll to real targets without relaxing assertions.
@@ -220,7 +220,7 @@ in-repository record while Sarti has no external tracker.
 
 ### BUG-015 — Child-specific selectable calendar colours
 - Severity: Medium; fixed in 0.2.0+2 (2026-10-13).
-- Fix commit: recorded after commit.
+- Fix commit: `12a3c21`.
 - Disposition: Named pastel choices, unused new-child defaults, explicit reuse
   when exhausted, and owner-controlled correction of old colours with encrypted
   causal updates. Upgrade never silently recolours old records. Shared events
