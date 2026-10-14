@@ -87,6 +87,8 @@ class SartiTestHarness {
   Future<void> openAddEvent(WidgetTester tester) async {
     await tester.tap(find.widgetWithText(FloatingActionButton, 'Event'));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('add-event-manually')));
+    await tester.pumpAndSettle();
   }
 
   Future<void> openNaturalLanguageEvent(WidgetTester tester) async {

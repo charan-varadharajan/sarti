@@ -20,6 +20,15 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
 
 ## [Unreleased]
 
+## [0.5.1] — 2026-10-14 (build 6; development, not publicly released)
+
+### Fixed
+- BUG-023: separate People/Pets destinations; secure Add adult invitation entry,
+  actionable offline/sign-in guardian guidance and plain Choose color labels.
+- BUG-023: clarify automatic blank child aliases; offer Describe an event on
+  the add button; edit durations as hours/minutes and show compact end times
+  with date/DST context where needed. Stored event/profile formats are unchanged.
+
 ## [0.5.0] — 2026-10-14 (build 5; development, not publicly released)
 
 ### Fixed

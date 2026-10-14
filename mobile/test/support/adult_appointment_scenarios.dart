@@ -272,7 +272,7 @@ void adultAppointmentScenarios() {
       await tester.tap(find.byKey(const Key('my-profile')));
       await tester.pumpAndSettle();
       await tester.enterText(find.byKey(const Key('profile-name')), 'Alex');
-      await tester.tap(find.text('Pastel colour'));
+      await tester.tap(find.text('Choose color'));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('profile-colour-rose')));
       await tester.pumpAndSettle();
@@ -302,6 +302,8 @@ void adultAppointmentScenarios() {
       );
       await tester.pumpAndSettle();
       await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('add-event-manually')));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField).first, 'Eye exam');
       final toggle = find.byKey(const Key('adult-appointment'));

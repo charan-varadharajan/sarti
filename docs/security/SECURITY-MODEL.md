@@ -233,3 +233,15 @@ resolved conflict; retirement requires both parent vectors and correct event
 scope. BUG-013 batches roll back all content/outbox on invalid cross-family
 references. BUG-014 stale previews cannot save/delete changed content. Family
 profile editing changes no authorization semantics and stays encrypted.
+
+## Profile and guardian entry (BUG-023)
+
+Add adult remains an authenticated guardian invitation, never a local identity
+or personal-resource grant on behalf of another adult. Offline guardian actions
+only explain service requirements; expired configured sessions offer explicit
+passkey authentication. Existing server authorization and verified-device/key
+handoff are unchanged. Recovery/read-only gates still apply to entry actions.
+Blank child aliases generate locally and persist encrypted; stored aliases are
+excluded from optional cloud requests under ADR-036 and do not make scheduling
+information anonymous. Entry-menu descriptions use existing native/local review
+and never activate cloud inference or save without confirmation.

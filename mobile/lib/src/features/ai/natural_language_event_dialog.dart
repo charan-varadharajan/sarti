@@ -1,3 +1,5 @@
+import '../calendar/presentation/event_duration_input.dart';
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -433,21 +435,15 @@ class _NaturalLanguageEventDialogState
         subtitle: Text(_time?.toString() ?? 'Missing — choose a time'),
         onTap: _chooseTime,
       ),
-      TextField(
+      EventDurationInput(
         controller: _duration,
-        key: const Key('proposal-duration'),
-        keyboardType: TextInputType.number,
-        onChanged: (_) => setState(() {}),
-        decoration: InputDecoration(
-          labelText: 'Duration (minutes)',
-          helperText: _needsDurationClarification
-              ? 'Conflicting or invalid duration — choose before saving'
-              : _proposal!.durationMinutes == null
-              ? (_duration.text == '60'
-                    ? 'Duration: 1 hour (default)'
-                    : 'Edited duration')
-              : 'Duration from your description',
-        ),
+        fieldKey: 'proposal-duration',
+        onChanged: () => setState(() {}),
+        helperText: _needsDurationClarification
+            ? 'Conflicting or invalid duration — choose before saving'
+            : _proposal!.durationMinutes == null
+            ? (_duration.text == '60' ? 'Default: 1 hour' : 'Edited duration')
+            : 'Duration from your description',
       ),
       if (_date != null && _time != null && _validDuration)
         Text('Ends: ${_endPreview()}'),
@@ -502,8 +498,7 @@ class _NaturalLanguageEventDialogState
       _time!.hour,
       _time!.minute,
     );
-    final end = start.add(Duration(minutes: int.parse(_duration.text)));
-    return '${end.year}-${end.month.toString().padLeft(2, '0')}-${end.day.toString().padLeft(2, '0')} ${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')} ${end.timeZoneName}';
+    return formatEventEnd(context, start, int.parse(_duration.text));
   }
 
   String _recurrenceSummary(EventProposal proposal) {

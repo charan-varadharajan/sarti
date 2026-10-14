@@ -1,11 +1,24 @@
 # Project status
 
 - Current stage: Stage 3 — AI proposals, email intake, push notifications, and backup/recovery
-- Updated: 2026-10-13
+- Updated: 2026-10-14
 - Stage state: remediation in progress; BUG-001/002/003/004 remediation delivered; provider/device validation and BUG-005 live provider acceptance deferred; physical/provider validation outstanding
-- Repository version: `0.5.0+5`; no public release tag
+- Repository version: `0.5.1+6`; no public release tag
 
 ## Current result
+
+BUG-023 profile/calendar UI refinement is resolved for automated scope. Separate People/Pets,
+secure Add adult/guardian entry guidance, automatic alias explanation, FAB
+Describe, hours/minutes and compact end previews preserve current ADRs and
+storage/API formats. Flutter 221 pass/2 opt-in skips; native prepared regressions,
+calendar/setup and adult/profile total 36 pass on each iOS/Android platform.
+Backend 41 unit/contract tests, static, version/tooling and existing local health
+checks pass. Normal Android/unsigned iOS builds, dependency audit and secret scan also pass;
+exact results are recorded in
+[BUG-023 verification](testing/BUG-023-VERIFICATION.md). Physical connected
+invitation/passkey acceptance and BUG-005 live provider check remain separate;
+no deployment/cloud activation. Local iOS signing edits remain excluded.
+
 
 Combined remediation for BUG-012/013/014/017/021 implemented and verified;
 BUG-005 credential/broker code is implemented disabled by default under approved

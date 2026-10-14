@@ -160,7 +160,7 @@ class _ChildProfileEditorState extends State<_ChildProfileEditor> {
             decoration: const InputDecoration(
               labelText: 'Private alias (optional)',
               hintText: 'Example: happy-frog-4821',
-              helperText: 'Stored encrypted; cloud AI uses temporary labels.',
+              helperText: 'Leave blank for an automatic alias. Stored encrypted; cloud AI uses temporary labels.',
             ),
           ),
           CheckboxListTile(

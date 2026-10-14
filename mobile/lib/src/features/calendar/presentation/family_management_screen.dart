@@ -4,6 +4,7 @@ import 'calendar_controller.dart';
 import 'household_profiles_screen.dart';
 import 'child_profile_editor.dart';
 import 'calendar_retention_screen.dart';
+import 'guardian_management_action.dart';
 
 class FamilyManagementScreen extends StatelessWidget {
   const FamilyManagementScreen({
@@ -123,8 +124,7 @@ class FamilyManagementScreen extends StatelessWidget {
                     ? 'Connect and sign in to your configured Sarti service. Removal requires current server authorization.'
                     : 'Invitations, device approval and secure removal',
               ),
-              enabled: onGuardians != null,
-              onTap: onGuardians,
+              onTap: () => openGuardianManagement(context, onGuardians),
             ),
             const Text('Children'),
             for (final child in family.children)
@@ -147,17 +147,25 @@ class FamilyManagementScreen extends StatelessWidget {
                 icon: const Icon(Icons.person_add),
                 label: const Text('Add child'),
               ),
-            ListTile(
-              title: const Text('People & pets'),
-              subtitle: const Text('Adult/pet profiles and pastel colours'),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute<void>(
-                  builder: (_) =>
-                      HouseholdProfilesScreen(controller: controller),
+            for (final pets in [false, true])
+              ListTile(
+                title: Text(pets ? 'Pets' : 'People'),
+                subtitle: Text(
+                  pets
+                      ? 'Pet profiles and colors'
+                      : 'Adults, children and colors',
+                ),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (_) => HouseholdProfilesScreen(
+                      controller: controller,
+                      petsOnly: pets,
+                      onGuardians: onGuardians,
+                    ),
+                  ),
                 ),
               ),
-            ),
             ListTile(
               title: const Text('Calendar retention'),
               onTap: () => Navigator.push(

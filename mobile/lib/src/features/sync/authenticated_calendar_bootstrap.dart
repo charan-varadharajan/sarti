@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
+import '../calendar/presentation/guardian_management_action.dart';
+
 import 'package:flutter/material.dart';
 import 'package:sarti_mobile/src/core/auth/native_passkey_adapter.dart';
 import 'package:sarti_mobile/src/core/auth/session_store.dart';
@@ -114,6 +116,39 @@ class _AuthenticatedCalendarBootstrapState
   bool get _canManageFamily => _controller?.canManageFamily ?? false;
 
   Future<void> _openGuardians() async {
+    if (_api == null) {
+      await openGuardianManagement(context, null);
+      return;
+    }
+    if (_api!.sessionToken == null) {
+      final register = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Sign in to manage guardians'),
+          content: const Text(
+            'Connect this phone with a passkey before inviting or removing adults.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Create account'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Sign in'),
+            ),
+          ],
+        ),
+      );
+      if (register == null || !mounted || _authenticating) return;
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      await _authenticate(register: register);
+      if (!mounted || _api?.sessionToken == null) return;
+    }
     final guardians = _guardians;
     if (guardians == null || _guardianRouteOpen || !mounted) return;
     _guardianRouteOpen = true;
@@ -619,9 +654,7 @@ class _AuthenticatedCalendarBootstrapState
                     ),
               canWrite: _canWriteCalendar,
               canManageChildren: _canManageFamily,
-              onGuardians: _api?.sessionToken == null
-                  ? null
-                  : () => unawaited(_openGuardians()),
+              onGuardians: () => unawaited(_openGuardians()),
               nativeAi: NativeEventAiProvider(),
               cloudApi: _api,
               cloudAiConsent: CloudAiConsentController(

@@ -42,6 +42,30 @@ in-repository record while Sarti has no external tracker.
 
 ## Resolved defects
 
+### BUG-023 — Profile navigation and event-entry usability
+- Severity: Medium; component: mobile presentation/bootstrap
+- Discovered: 2026-10-14
+- Summary: guardian action disabled without explanation/action; combined people/
+  pets destinations, missing Add adult, technical colour labels, unclear automatic
+  aliases, minutes-only duration, verbose end time and no FAB Describe option.
+- Cause: session-gated callback and minimal first-pass presentation; blank aliases
+  already generate securely in the repository, but helper copy was unclear.
+- Workaround: configured passkey-authenticated build for invitations, top-bar AI
+  entry, calculate elapsed minutes manually.
+- Fixed: 2026-10-14; version 0.5.1+6; commit: this BUG-023 remediation commit.
+- Disposition: Resolved for automated scope. Separate profiles/actions, plain color
+  copy, automatic-alias guidance, secure guardian/sign-in entry, FAB Describe,
+  hours/minutes and compact date/DST-aware end previews.
+- Verification: Flutter 221 pass/2 explicit HTTP skips, 36 prepared native checks
+  per platform, normal APK/unsigned iOS builds and static/unit/security/audit gates
+  pass. See `../testing/BUG-023-VERIFICATION.md` for exact checks and exclusions.
+- Remaining limitation: Physical connected invitation/passkey acceptance; offline
+  installations still need configured service before issuing invitations/removal.
+- Boundaries: ADR-035/038 adult invitations still require authenticated service;
+  offline membership is never fabricated. ADR-036 excludes stored aliases from
+  optional cloud payloads; aliases do not guarantee anonymity.
+
+
 ### BUG-021 — Family management hub
 - Severity: Medium
 - Fixed: 2026-10-14; version 0.5.0+5; commit: this combined remediation commit

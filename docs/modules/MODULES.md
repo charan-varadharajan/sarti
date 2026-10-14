@@ -137,3 +137,15 @@ routes; name edits reuse encrypted profile kinds/authorization.
 HTTPX provider processing; mobile gate holds no provider key and requires renewed
 consent + explicit action. `scripts/ci_ios_tests.py` selects an available native
 simulator, runs only allowlisted prepared journeys and emits results/artifacts.
+
+## Profile navigation and event input — BUG-023
+
+HouseholdProfilesScreen offers separate People/Pets modes while retaining shared
+profile storage/permissions. Add adult reuses the guardian callback;
+guardian_management_action provides safe offline guidance. Authenticated bootstrap
+requests passkey sign-in for missing sessions before opening GuardianScreen.
+EventDurationInput adapts hours/minutes to existing elapsed-minute values;
+formatEventEnd localizes compact times with next-date/DST context. Calendar FAB
+routes explicit manual/description choices through existing editors, preserving
+recovery/read-only gates and local/native fallback. No API, schema, migration,
+SDK, key lifecycle or inference provider change.

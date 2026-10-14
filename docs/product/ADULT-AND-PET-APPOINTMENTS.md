@@ -5,7 +5,7 @@ in `../testing/ADR-038-VERIFICATION.md`; physical-device acceptance remains sepa
 
 ## Interaction
 
-Calendar → Event → My private appointment → edit details → Save. Adult
+Calendar → Event → Enter event details → My private appointment → edit details → Save. Adult
 appointments use a personal calendar resource and default to private. With an
 own adult profile selected, a new event defaults to private automatically.
 Existing shared events retain their sharing semantics; turning off a flag cannot
@@ -23,12 +23,17 @@ acknowledges that version; a subsequent Save and share replaces it. Another
 intervening edit invalidates that acknowledgement and requires another review.
 Cancel preserves existing records.
 
-People, pets & private backup menu → People & pets → My adult profile or Add pet.
-Saving a profile explicitly shares its name/colour with current calendar guardians.
-Adults edit their own profile; family owners maintain pets and child colours.
-Pets do not authenticate. In Event, select the pet profile for a household
-appointment. Existing guardian invitation/removal remains under Family guardians.
-This screen does not yet implement general family-name or guardian-name editing.
+More → People shows adults and children; More → Pets shows pets separately.
+People → My adult profile edits your own shared profile; Add adult opens the
+secure guardian invitation journey, never another adult's private identity.
+People also offers Add child and child color selection. Pets → Add pet creates
+an admin-managed household profile. All profile pickers say **Choose color**.
+Saving a profile explicitly shares its name/color with calendar guardians;
+appointment visibility remains separate. Family → Invite or remove guardians
+opens the same authorized route. Missing sessions offer passkey sign-in;
+unconfigured offline builds explain the need for a connected installation.
+They never invent invitations or grant keys locally. Family name/guardian display
+name edits are available separately in the Family hub.
 
 Named pastel choices: Blue, Green, Purple, Orange, Rose and Teal. Upgrades retain
 existing colours; users explicitly choose replacements. Names and type labels

@@ -3,16 +3,24 @@ import 'package:flutter/material.dart';
 import '../data/calendar_repository.dart';
 import 'calendar_controller.dart';
 import 'child_profile_editor.dart';
+import 'guardian_management_action.dart';
 
 /// Profile labels/colours are shared separately from appointment visibility.
 class HouseholdProfilesScreen extends StatelessWidget {
-  const HouseholdProfilesScreen({super.key, required this.controller});
+  const HouseholdProfilesScreen({
+    super.key,
+    required this.controller,
+    this.petsOnly = false,
+    this.onGuardians,
+  });
   final CalendarController controller;
+  final bool petsOnly;
+  final VoidCallback? onGuardians;
 
   Future<int?> _colour(BuildContext context, int? current) => showDialog<int>(
     context: context,
     builder: (context) => SimpleDialog(
-      title: const Text('Choose a pastel colour'),
+      title: const Text('Choose color'),
       children: [
         for (final colour in ChildColours.values)
           SimpleDialogOption(
@@ -39,7 +47,7 @@ class HouseholdProfilesScreen extends StatelessWidget {
     final name = TextEditingController(text: profile?.name);
     var colour = profile?.colorArgb ?? ChildColours.values.first.argb;
     String? error;
-    await showDialog<void>(
+    final route = DialogRoute<void>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
@@ -55,7 +63,7 @@ class HouseholdProfilesScreen extends StatelessWidget {
                   decoration: const InputDecoration(labelText: 'Name'),
                 ),
                 ListTile(
-                  title: const Text('Pastel colour'),
+                  title: const Text('Choose color'),
                   leading: CircleAvatar(backgroundColor: Color(colour)),
                   onTap: () async {
                     final selected = await _colour(context, colour);
@@ -104,14 +112,14 @@ class HouseholdProfilesScreen extends StatelessWidget {
         ),
       ),
     );
-    // Dialog text controllers remain alive during its exit animation.
-    await Future<void>.delayed(const Duration(milliseconds: 300));
+    await Navigator.of(context).push(route);
+    await route.completed;
     name.dispose();
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('People & pets')),
+    appBar: AppBar(title: Text(petsOnly ? 'Pets' : 'People')),
     body: ListenableBuilder(
       listenable: controller,
       builder: (context, _) {
@@ -125,25 +133,54 @@ class HouseholdProfilesScreen extends StatelessWidget {
             .firstOrNull;
         return ListView(
           children: [
-            if (controller.repository.currentAdultId != null ||
-                controller.canManageFamily)
+            if (!petsOnly) const ListTile(title: Text('Adults')),
+            if (!petsOnly &&
+                (controller.repository.currentAdultId != null ||
+                    controller.canManageFamily))
               ListTile(
                 key: const Key('my-profile'),
                 leading: const Icon(Icons.person_outline),
                 title: Text(self?.name ?? 'Set up my adult profile'),
                 subtitle: const Text(
-                  'Name and pastel colour; appointments remain private by default',
+                  'Name and color; appointments remain private by default',
                 ),
                 onTap: () => _edit(context, 'adult', self),
               ),
-            if (controller.canManageFamily)
+            if (!petsOnly && controller.canManageFamily) ...[
+              ListTile(
+                key: const Key('add-adult'),
+                leading: const Icon(Icons.person_add_alt_1),
+                title: const Text('Add adult'),
+                subtitle: const Text('Invite an adult to join securely'),
+                onTap: () => openGuardianManagement(context, onGuardians),
+              ),
+              ListTile(
+                key: const Key('people-add-child'),
+                leading: const Icon(Icons.child_care),
+                title: const Text('Add child'),
+                onTap: () => showAddChildProfileDialog(context, controller),
+              ),
+            ],
+            if (petsOnly && controller.canManageFamily)
               ListTile(
                 key: const Key('add-pet'),
                 leading: const Icon(Icons.pets),
                 title: const Text('Add pet'),
                 onTap: () => _edit(context, 'pet'),
               ),
-            for (final child in family.children)
+            if (!petsOnly)
+              for (final guardian in family.guardians.where(
+                (g) => !family.participants.any(
+                  (p) => p.kind == 'adult' && p.adultId == g.id,
+                ),
+              ))
+                ListTile(
+                  leading: const Icon(Icons.person_outline),
+                  title: Text(guardian.name),
+                  subtitle: const Text('Adult'),
+                ),
+            if (!petsOnly) const ListTile(title: Text('Children')),
+            for (final child in petsOnly ? <ChildProfile>[] : family.children)
               ListTile(
                 title: Text(child.name),
                 subtitle: const Text('Child'),
@@ -168,7 +205,10 @@ class HouseholdProfilesScreen extends StatelessWidget {
                         controller.onLocalMutation?.call();
                       },
               ),
-            for (final profile in family.participants.where((p) => p != self))
+            for (final profile in family.participants.where(
+              (p) =>
+                  p != self && (petsOnly ? p.kind == 'pet' : p.kind == 'adult'),
+            ))
               ListTile(
                 title: Text(profile.name),
                 subtitle: Text(profile.kind == 'pet' ? 'Pet' : 'Adult'),

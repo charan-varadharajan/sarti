@@ -19,6 +19,7 @@ import 'package:timezone/data/latest.dart' as zones;
 
 import 'child_sync_fixture.dart';
 import 'sarti_test_harness.dart';
+import 'profile_navigation_scenarios.dart';
 
 class UnavailableTestAi implements NativeAiBridge {
   @override
@@ -48,6 +49,7 @@ class FixtureCloudApi extends SartiApiClient {
 }
 
 void remainingBugScenarios() {
+  profileNavigationScenarios();
   setUpAll(zones.initializeTimeZones);
   test('NLP-BATCH-001 distinct clocks retain both child proposals and shared explicit context', () {
     final proposals = const DeterministicEventParser().parseAll(
@@ -107,8 +109,11 @@ void remainingBugScenarios() {
       await tester.tap(find.text('Preview'));
       await tester.pumpAndSettle();
       expect(find.text('Review suggestion 1 of 2'), findsOneWidget);
-      expect(find.text('Duration: 1 hour (default)'), findsOneWidget);
-      await tester.enterText(find.byKey(const Key('proposal-duration')), '120');
+      expect(find.text('Default: 1 hour'), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const Key('proposal-duration-hours')),
+        '2',
+      );
       await tester.tap(find.text('Review next'));
       await tester.pumpAndSettle();
       expect(f.repository.load()!.events, isEmpty);
@@ -148,12 +153,12 @@ void remainingBugScenarios() {
       await preview('Mia has swimming today from 1:30am to 3:30am');
       expect(
         tester
-            .widget<TextField>(find.byKey(const Key('proposal-duration')))
+            .widget<TextField>(find.byKey(const Key('proposal-duration-hours')))
             .controller!
             .text,
-        '60',
+        '1',
       );
-      expect(find.textContaining('03:30 PDT'), findsOneWidget);
+      expect(find.textContaining('3:30 AM PDT'), findsOneWidget);
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
       await preview('Mia has swimming for 2 hours today from 1:30am to 3:30am');
@@ -195,7 +200,7 @@ void remainingBugScenarios() {
       await tester.pump();
       await tester.tap(find.text('Preview'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('14:00'), findsOneWidget);
+      expect(find.text('Ends: 2:00 PM'), findsOneWidget);
       await tester.tap(find.text('Add to calendar'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Undo'));

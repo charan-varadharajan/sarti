@@ -411,3 +411,28 @@ BACKUP-XPLAT-002 and all portability transfers stay excluded.
 
 Live provider testing deferred explicitly; native device/model compatibility,
 real passkeys/protected storage/delivery remain separate acceptance checks.
+
+## Profile navigation and event-entry refinement (BUG-023)
+
+Shared prepared scenarios in `mobile/test/support/profile_navigation_scenarios.dart`
+run in the remaining-bugs widget suite and native `regressions` journey. Synthetic
+calendarReady SQLCipher state seeds two children and one guardian; add a pet
+through the repository only where needed. Direct target pages avoid onboarding.
+Each test unmounts UI and disposes its database. No real family/provider data.
+
+| Stable ID | Target and assertions |
+| --- | --- |
+| PROFILE-NAV-001 | More → separate People/Pets pages; pet/child lists isolated, correct Add actions |
+| GUARD-ENTRY-001 | Family offline guardian action explains configured service; no membership mutation |
+| GUARD-ENTRY-002 | People Add adult invokes invitation callback; no fake adult profile |
+| GUARD-ENTRY-003 | Prepared nonadmin cannot add adults, children or pets |
+| ALIAS-AUTO-001 | People Add child blank alias generates distinct validated encrypted aliases |
+| EVENT-ENTRY-001 | FAB Describe entry opens unsaved local proposal; Cancel writes nothing |
+| DURATION-UI-001 | Hours/minutes reject invalid remainder; 2h30m persists exactly 150 minutes |
+| DURATION-END-001 | Compact same-day time, next-day date and DST-zone end previews |
+| GUARD-AUTH-001 | Prepared bootstrap with remembered device/no session offers passkey actions; cancel preserves family |
+
+GUARD-AUTH-001 is a widget bootstrap gate, not a real passkey ceremony. Existing
+native calendar/adult journeys exercise the new manual choice and color label;
+NLP-BATCH-MOB-001 and NLP-DST-MOB-001 retain batch confirmation and DST uncertainty.
+Physical connected invitation/passkey/native-model acceptance remains separate.

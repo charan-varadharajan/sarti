@@ -8,6 +8,7 @@ import 'calendar_retention_screen.dart';
 import '../data/calendar_repository.dart';
 import 'household_profiles_screen.dart';
 import 'child_profile_editor.dart';
+import 'event_duration_input.dart';
 
 import 'package:flutter/material.dart';
 import 'package:sarti_mobile/src/features/ai/cloud_ai_consent.dart';
@@ -56,7 +57,7 @@ class CalendarScreen extends StatelessWidget {
           title: Text(family.name),
           actions: [
             PopupMenuButton<String>(
-              tooltip: 'People, pets & private backup',
+              tooltip: 'More',
               onSelected: (value) {
                 if (value == 'family') {
                   Navigator.of(context).push(
@@ -68,11 +69,14 @@ class CalendarScreen extends StatelessWidget {
                     ),
                   );
                 }
-                if (value == 'profiles') {
+                if (value == 'people' || value == 'pets') {
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
-                      builder: (_) =>
-                          HouseholdProfilesScreen(controller: controller),
+                      builder: (_) => HouseholdProfilesScreen(
+                        controller: controller,
+                        petsOnly: value == 'pets',
+                        onGuardians: onGuardians,
+                      ),
                     ),
                   );
                 }
@@ -99,8 +103,13 @@ class CalendarScreen extends StatelessWidget {
                 ),
                 PopupMenuItem(
                   enabled: !controller.repository.recoveryPending,
-                  value: 'profiles',
-                  child: Text('People & pets'),
+                  value: 'people',
+                  child: Text('People'),
+                ),
+                PopupMenuItem(
+                  enabled: !controller.repository.recoveryPending,
+                  value: 'pets',
+                  child: Text('Pets'),
                 ),
                 const PopupMenuItem(
                   value: 'retention',
@@ -186,7 +195,7 @@ class CalendarScreen extends StatelessWidget {
                 (!canWrite && controller.repository.adultId == null)
             ? null
             : FloatingActionButton.extended(
-                onPressed: () => _editEvent(context),
+                onPressed: () => _chooseEventEntry(context),
                 icon: const Icon(Icons.add),
                 label: const Text('Event'),
               ),
@@ -316,7 +325,7 @@ class CalendarScreen extends StatelessWidget {
     final saved = await showNaturalLanguageEventDialog(
       context,
       controller: controller,
-      provider: nativeAi!,
+      provider: nativeAi ?? NativeEventAiProvider(),
       cloudApi: cloudApi,
       cloudConsent: cloudAiConsent,
     );
@@ -435,6 +444,38 @@ class CalendarScreen extends StatelessWidget {
     );
   }
 
+  Future<void> _chooseEventEntry(BuildContext context) async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              key: const Key('add-event-manually'),
+              leading: const Icon(Icons.edit_calendar),
+              title: const Text('Enter event details'),
+              onTap: () => Navigator.pop(context, 'manual'),
+            ),
+            if (canWrite)
+              ListTile(
+                key: const Key('describe-event'),
+                leading: const Icon(Icons.auto_awesome_outlined),
+                title: const Text('Describe an event'),
+                onTap: () => Navigator.pop(context, 'describe'),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (!context.mounted || controller.repository.recoveryPending) return;
+    if (choice == 'manual') {
+      await _editEvent(context);
+    } else if (choice == 'describe' && canWrite) {
+      await _addWithNaturalLanguage(context);
+    }
+  }
+
   Future<void> _addChild(BuildContext context) async {
     await showAddChildProfileDialog(context, controller);
   }
@@ -498,7 +539,9 @@ class CalendarScreen extends StatelessWidget {
                 ),
                 ListTile(
                   title: const Text('Starts'),
-                  subtitle: Text(start.toString()),
+                  subtitle: Text(
+                    MaterialLocalizations.of(context).formatMediumDate(start),
+                  ),
                   trailing: const Icon(Icons.schedule),
                   onTap: () async {
                     final date = await showDatePicker(
@@ -543,21 +586,16 @@ class CalendarScreen extends StatelessWidget {
                     }
                   },
                 ),
-                TextField(
-                  key: const Key('event-duration'),
+                EventDurationInput(
                   controller: duration,
-                  keyboardType: TextInputType.number,
-                  onChanged: (_) => setState(() {}),
-                  decoration: InputDecoration(
-                    labelText: 'Duration (minutes)',
-                    helperText: event == null
-                        ? 'Duration: 1 hour (default)'
-                        : null,
+                  fieldKey: 'event-duration',
+                  onChanged: () => setState(() {}),
+                  helperText: event == null ? 'Default: 1 hour' : null,
+                ),
+                if (valid())
+                  Text(
+                    'Ends: ${formatEventEnd(context, tz.TZDateTime(tz.getLocation(event?.timezone ?? controller.timezone), start.year, start.month, start.day, start.hour, start.minute), int.parse(duration.text))}',
                   ),
-                ),
-                Text(
-                  'Ends: ${tz.TZDateTime(tz.getLocation(event?.timezone ?? controller.timezone), start.year, start.month, start.day, start.hour, start.minute).add(Duration(minutes: int.tryParse(duration.text) ?? 0))}',
-                ),
                 SwitchListTile(
                   title: const Text('Repeat weekly'),
                   value: recurring,

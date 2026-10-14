@@ -35,22 +35,63 @@ void main() {
     tz_data.initializeTimeZones();
   });
 
-  Future<void> open(WidgetTester tester, ChildSyncFixture f) async {
+  Future<void> open(
+    WidgetTester tester,
+    ChildSyncFixture f, {
+    String endpoint = '',
+    SecretStore? secrets,
+  }) async {
     await tester.pumpWidget(
       MaterialApp(
         home: AuthenticatedCalendarBootstrap(
           database: f.a.database,
           keys: f.a.keys,
           sodium: sodium,
-          secrets: _Secrets(),
+          secrets: secrets ?? _Secrets(),
           reminders: TestReminderScheduler(),
           timezone: 'America/Vancouver',
-          apiBaseUrl: '',
+          apiBaseUrl: endpoint,
         ),
       ),
     );
     await tester.pumpAndSettle();
   }
+
+  testWidgets(
+    'GUARD-AUTH-001 expired session offers passkey sign-in; cancel preserves local family',
+    (tester) async {
+      final f = ChildSyncFixture(sodium);
+      addTearDown(f.close);
+      final secrets = _Secrets();
+      await secrets.write('authenticated-device-id-v1', f.a.id);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: AuthenticatedCalendarBootstrap(
+            database: f.a.database,
+            keys: f.a.keys,
+            sodium: sodium,
+            secrets: secrets,
+            reminders: TestReminderScheduler(),
+            timezone: 'America/Vancouver',
+            apiBaseUrl: 'https://fixture.invalid',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('More'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Family'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Invite or remove guardians'));
+      await tester.pumpAndSettle();
+      expect(find.text('Sign in to manage guardians'), findsOneWidget);
+      expect(find.text('Create account'), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(f.a.repository.load(), isNotNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 
   testWidgets(
     'BOOT-PERM-001 first family immediately exposes owner event and child controls',
@@ -74,6 +115,8 @@ void main() {
       );
       expect(find.byTooltip('Add child'), findsOneWidget);
       await tester.tap(find.widgetWithText(FloatingActionButton, 'Event'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('add-event-manually')));
       await tester.pumpAndSettle();
       expect(find.text('New event'), findsOneWidget);
       expect(f.a.repository.load()!.events, isEmpty);
