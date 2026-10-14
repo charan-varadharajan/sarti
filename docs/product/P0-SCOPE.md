@@ -60,3 +60,10 @@ The maintainer explicitly approved ADR-038 on 2026-10-13. Adult private
 resources, explicit household copies, pets and profile colours are implemented;
 see ADULT-AND-PET-APPOINTMENTS.md and the verification report. This is a specific
 authorized P0 extension, not general approval for Stage 4 or other deferred work.
+
+## Authorized P1 work alongside outstanding P0 acceptance
+
+2026-10-14: The maintainer authorized proceeding to P1 with hosting last and
+included Siri/Shortcuts (iPhone) and Android assistant voice event proposals.
+See [P1 backlog](P1-BACKLOG.md) for P1-001 scope and planned acceptance. This does
+not declare P0 complete or approve all deferred capabilities above.

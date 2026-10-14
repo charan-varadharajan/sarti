@@ -1,11 +1,20 @@
 # Project status
 
-- Current stage: Stage 3 — AI proposals, email intake, push notifications, and backup/recovery
+- Current work: approved P1 planning; Stage 3/P0 release acceptance remains open
 - Updated: 2026-10-14
-- Stage state: remediation in progress; BUG-001/002/003/004 remediation delivered; provider/device validation and BUG-005 live provider acceptance deferred; physical/provider validation outstanding
+- Stage state: P1 voice-entry inclusion approved; hosting deferred until last; BUG-001/002/003/004 remediation delivered; provider/device validation and BUG-005 live provider acceptance deferred; physical/provider validation outstanding
 - Repository version: `0.5.1+6`; no public release tag
 
 ## Current result
+
+2026-10-14: Maintainer authorized P1 work before completing P0 release acceptance,
+with hosting last, and approved iPhone Siri/Shortcuts plus Android assistant voice
+entry as P1-001. Scope, privacy/compatibility boundaries and planned acceptance
+are in [P1 backlog](product/P1-BACKLOG.md). Documentation only so far; no voice
+integration, assistant compatibility, service activation or P0 completion claimed.
+Prior “do not start Stage 4” notes below are historical; this specific P1 scope
+is now authorized, while unrelated candidates remain unapproved.
+
 
 BUG-023 profile/calendar UI refinement is resolved for automated scope. Separate People/Pets,
 secure Add adult/guardian entry guidance, automatic alias explanation, FAB
@@ -260,5 +269,6 @@ ADR-027 selects Google Cloud Run plus Neon Free for development and the initial
 private beta. Production hosting remains unresolved until Stage 3 recovery and
 provider/device validation pass.
 
-Do not begin Stage 4 until Stage 3 is accepted and the user explicitly approves
-the next stage.
+The maintainer approved the specific P1-001 scope on 2026-10-14 while retaining
+P0 acceptance gaps. Do not begin unrelated P1 features without scope approval.
+Hosting/deployment is deferred until last.

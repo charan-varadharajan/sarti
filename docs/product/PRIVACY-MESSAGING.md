@@ -48,3 +48,12 @@ Local parsing and supported native AI remain the primary path.”
 
 Review privacy policy, app/store notices and marketing together whenever a
 provider or data flow changes. Do not advertise unfinished cloud functionality.
+
+## Planned P1 voice entry
+
+Siri/Shortcuts and Android assistant voice entry are approved backlog scope,
+not implemented. Their audio/transcript processing is separate from Sarti's
+native on-device proposal inference and follows platform/provider settings.
+Do not claim a voice request stays on the phone or reuse native-inference claims
+for system-assistant processing. Do not advertise exact phrases or compatibility
+until physical tests verify them. Calendar changes still require Sarti approval.

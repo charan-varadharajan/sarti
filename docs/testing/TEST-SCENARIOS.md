@@ -436,3 +436,22 @@ GUARD-AUTH-001 is a widget bootstrap gate, not a real passkey ceremony. Existing
 native calendar/adult journeys exercise the new manual choice and color label;
 NLP-BATCH-MOB-001 and NLP-DST-MOB-001 retain batch confirmation and DST uncertainty.
 Physical connected invitation/passkey/native-model acceptance remains separate.
+
+## P1 voice entry — planned, not implemented or executed
+
+P1-001 inclusion approved 2026-10-14. Prepared synthetic calendarReady/device
+fixtures enter the native handoff/proposal directly, without creating family
+prerequisites in UI. Unmount/dispose after each run; no real voice/family data in
+logs. Physical assistant acceptance is separate from injected native intents.
+
+| Stable ID | Required planned assertions |
+| --- | --- |
+| P1-VOICE-001 | iPhone Siri/Shortcuts and Android configured assistant deliver an explicit description to an editable Sarti proposal; save only after confirmation |
+| P1-VOICE-002 | Cancel, missing/ambiguous time/date/child and interrupted warm/cold launch leave calendar unchanged |
+| P1-VOICE-003 | Unlock, current resource access, read-only guardian, account switch and paused recovery gates cannot be bypassed |
+| P1-VOICE-004 | Tampered/oversized/injection input rejected or treated only as proposal data; no private context exported, no content in URLs/logs/plaintext queues, no silent cloud call |
+| P1-VOICE-005 | Repeated activation cannot silently duplicate writes; approved duration/recurrence/DST semantics preserved |
+| P1-VOICE-006 | Real iPhone and Android assistant invoke supported phrases; exact OS/device/account/language/distribution limits and unsupported behavior documented |
+
+None of these planned cases has run. Existing parser/widget suites do not prove
+Siri/Gemini/Google Assistant compatibility. See ../product/P1-BACKLOG.md.

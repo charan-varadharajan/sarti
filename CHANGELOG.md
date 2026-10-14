@@ -20,6 +20,12 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
 
 ## [Unreleased]
 
+### Documentation
+- Record approved P1-001 Siri/Shortcuts and Android assistant voice event proposals,
+  explicit confirmation, privacy/compatibility boundaries and planned scenarios.
+  Hosting remains deferred until last; P0 release checks remain open. No runtime
+  integration or assistant compatibility claimed.
+
 ## [0.5.1] — 2026-10-14 (build 6; development, not publicly released)
 
 ### Fixed
