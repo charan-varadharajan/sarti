@@ -28,3 +28,6 @@ grants, and relay ciphertext. Field-level designs and classifications are in
 
 Alembic upgrades run before backend startup. Local migrations use immediate
 transactions and update `user_version` only after success.
+
+| Local v8 | SQLCipher | Minimal calendar deletions, retention conflicts; secure-delete; migration never sweeps history | RETENTION-MIG-001 |
+| `0009` | PostgreSQL | Family retention enum/enabled/revision; legacy default disabled; guarded downgrade | RETENTION-MIG-002 |

@@ -65,6 +65,7 @@ class _AuthenticatedCalendarBootstrapState
   bool _guardianRouteOpen = false;
   EmailSuggestionInbox? _emailInbox;
   late final SessionStore _sessions = SessionStore(widget.secrets);
+  Timer? _retentionTimer;
   bool _loading = true;
   bool _authenticating = false;
   bool _needsAuthentication = false;
@@ -291,12 +292,54 @@ class _AuthenticatedCalendarBootstrapState
             await api.provisionFamily(
               familyId: familyId,
               calendarResourceId: calendarId,
+              retentionEnabled: widget.database.raw.select(
+                'SELECT 1 FROM app_preferences WHERE key=?',
+                ['retention-new-$familyId'],
+              ).isNotEmpty,
             );
       },
       synchronizeFamily: (familyId) async {
         await resourceKeys.prepare(familyId);
         controller.refresh();
-        return engine.synchronize(familyId);
+        var uploaded = 0, applied = 0, conflicts = 0;
+        var caughtUp = false;
+        for (var page = 0; page < 100; page++) {
+          final before = widget.database.raw.select(
+            'SELECT server_cursor FROM sync_state WHERE family_id=?',
+            [familyId],
+          );
+          final cursor = before.isEmpty ? 0 : before.single['server_cursor'];
+          final report = await engine.synchronize(familyId);
+          uploaded += report.uploaded;
+          applied += report.applied;
+          conflicts += report.conflicts;
+          final after = widget.database.raw.select(
+            'SELECT server_cursor FROM sync_state WHERE family_id=?',
+            [familyId],
+          ).single['server_cursor'];
+          if (after == cursor) {
+            caughtUp = true;
+            break;
+          }
+        }
+        if (!caughtUp) throw StateError('Calendar catch-up is incomplete.');
+        final policy = await api.calendarRetention(familyId);
+        controller.repository.cacheRetentionPolicy(policy);
+        final removed = controller.applyRetention(
+          canAdminister: policy['can_manage'] == true,
+        );
+        if (removed.isNotEmpty) {
+          final report = await engine.synchronize(familyId);
+          uploaded += report.uploaded;
+          applied += report.applied;
+          conflicts += report.conflicts;
+        }
+        controller.refresh();
+        return SyncReport(
+          uploaded: uploaded,
+          applied: applied,
+          conflicts: conflicts,
+        );
       },
       sendWakeUp: api.sendSyncWakeUp,
       registerPushToken: api.registerPushToken,
@@ -306,6 +349,26 @@ class _AuthenticatedCalendarBootstrapState
       reportPushFailure: (_) => _showSyncIssue(),
       refreshSuggestions: emailInbox.refresh,
     );
+    controller.updateRetention = (period, revision) async {
+      final family = controller.family ?? (throw StateError('No family.'));
+      final policy = await api.setCalendarRetention(
+        family.householdId,
+        period.name,
+        revision,
+      );
+      controller.repository.cacheRetentionPolicy(policy);
+      controller.refresh();
+      await runtime.synchronize();
+      await api.sendSyncWakeUp(family.householdId);
+    };
+    _retentionTimer?.cancel();
+    _retentionTimer = Timer.periodic(const Duration(minutes: 5), (_) {
+      if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
+        unawaited(
+          runtime.synchronize().catchError((Object _) => _showSyncIssue()),
+        );
+      }
+    });
     _guardians?.removeListener(_guardianChanged);
     _guardians?.dispose();
     _guardians = GuardianCoordinator(
@@ -486,6 +549,7 @@ class _AuthenticatedCalendarBootstrapState
 
   @override
   void dispose() {
+    _retentionTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     InvitationLinks.token.removeListener(_invitationReceived);
     _guardians?.removeListener(_guardianChanged);

@@ -229,6 +229,18 @@ class SyncEngine {
         final decoded = Map<String, Object?>.from(
           jsonDecode(utf8.decode(plaintext)) as Map,
         );
+        if (decoded['kind'] == 'retention_deleted') {
+          final result = repository.applyRetentionDeletion(
+            operationId: envelope.operationId,
+            familyId: familyId,
+            resourceId: envelope.resourceId,
+            vector: envelope.logicalVersion,
+            payload: Map<String, Object?>.from(decoded['payload']! as Map),
+          );
+          if (result == RemoteApplyResult.applied) applied++;
+          if (result == RemoteApplyResult.conflict) conflicts++;
+          continue;
+        }
         if (decoded['kind'] == 'household_shared') {
           final result = repository.applySharedHousehold(
             operationId: envelope.operationId,
@@ -295,6 +307,7 @@ class SyncEngine {
           'event_upserted',
           'event_deleted',
           'conflict_resolved',
+          'retention_kept',
         }.contains(decoded['kind'])) {
           throw StateError('Unknown sync operation kind.');
         }
@@ -310,7 +323,15 @@ class SyncEngine {
           event: event,
           vector: envelope.logicalVersion,
         );
-        if (result == RemoteApplyResult.applied) applied++;
+        if (result == RemoteApplyResult.applied) {
+          applied++;
+          if (decoded['kind'] == 'retention_kept') {
+            database.raw.execute(
+              'UPDATE event_versions SET retention_keep_vector=? WHERE event_id=?',
+              [jsonEncode(envelope.logicalVersion), event.id],
+            );
+          }
+        }
         if (result == RemoteApplyResult.conflict) conflicts++;
       } finally {
         key.dispose();

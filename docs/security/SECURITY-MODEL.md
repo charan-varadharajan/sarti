@@ -189,3 +189,16 @@ A changed household copy cannot be replaced until explicitly reviewed; its exact
 vector is rechecked in the atomic save. Local queries/conflict actions exclude
 other bound adults' private resources when switching authenticated accounts.
 See `../testing/ADR-038-VERIFICATION.md` for executed evidence and gaps.
+
+## Mobile calendar retention (ADR-039)
+
+The server holds a bounded family configuration preference, never the event
+content needed to evaluate expiry. Active-device/member and calendar-admin checks
+protect policy writes, with optimistic revision conflicts. Cleanup uses normal
+resource encryption; minimal IDs/causal state prevent stale resurrection. Pending
+edits/open conflicts defer cleanup; explicit Keep/Delete resolves concurrent
+retention alternatives without inventing an event. Family snapshot sanitization
+also excludes private deletion/conflict rows. Existing encrypted exports/hosted
+backups can retain old history; this policy does not erase external copies.
+RETENTION-SEC/API/CRYPTO/MIG/RESTORE scenarios cover software boundaries; physical
+revocation/background delivery and BUG-022 continuation remain separate limits.

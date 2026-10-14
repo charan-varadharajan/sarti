@@ -1,4 +1,6 @@
 import 'family_setup_screen.dart';
+import 'calendar_retention_screen.dart';
+import '../data/calendar_repository.dart';
 import 'household_profiles_screen.dart';
 import 'child_profile_editor.dart';
 
@@ -56,12 +58,24 @@ class CalendarScreen extends StatelessWidget {
                     ),
                   );
                 }
+                if (value == 'retention') {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) =>
+                          CalendarRetentionScreen(controller: controller),
+                    ),
+                  );
+                }
                 if (value == 'private-backup') onPersonalBackup?.call();
               },
               itemBuilder: (_) => [
                 const PopupMenuItem(
                   value: 'profiles',
                   child: Text('People & pets'),
+                ),
+                const PopupMenuItem(
+                  value: 'retention',
+                  child: Text('Calendar retention'),
                 ),
                 if (onPersonalBackup != null)
                   const PopupMenuItem(
@@ -142,6 +156,17 @@ class CalendarScreen extends StatelessWidget {
               ),
         body: Column(
           children: [
+            if (controller.repository.retentionConflicts().isNotEmpty)
+              TextButton.icon(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) =>
+                        CalendarRetentionScreen(controller: controller),
+                  ),
+                ),
+                icon: const Icon(Icons.history),
+                label: const Text('Review retention conflicts'),
+              ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: SegmentedButton<CalendarRange>(

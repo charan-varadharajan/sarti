@@ -20,6 +20,24 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-10-13 (build 3; development, not publicly released)
+
+### Added
+- ADR-039 family-admin-managed mobile calendar retention: one week default,
+  one month, three months, one year and Never; admin preview/confirmation,
+  existing-family adoption, preserved future appointments and active series.
+- Family policy API with owner/calendar-admin checks, revision conflicts and
+  bounded metadata; PostgreSQL 0009 and local SQLCipher v8.
+- Minimal encrypted deletion operations, actual local content removal with
+  secure-delete, preserved causal/replay state and explicit retention conflicts.
+  Keep preserves and synchronizes the reviewed version; pending edits defer cleanup.
+- Prepared widget/native, API/security, migration and encrypted convergence tests;
+  ignore generated native iOS intermediate build products.
+  Family-only restored calendars pause cleanup while BUG-022 remains open;
+  server relay/backup lifetimes are unchanged.
+- Bump to 0.3.0+3 for coordinated private-beta schema/sync compatibility; deploy
+  backend first and upgrade authorized clients together. No public release tag.
+
 ## [0.2.0] — 2026-10-13 (build 2; development, not publicly released)
 
 ### Added — adult and pet appointments (ADR-038)

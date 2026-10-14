@@ -103,3 +103,26 @@ erDiagram
     events ||--o| appointment_shares : private_mapping
     children ||--o| child_profile_versions : causal_state
 ```
+
+## Local v8 — mobile retention (ADR-039)
+
+`calendar_deletions(event_id,household_id,resource_id,vector_json,deleted_at)`
+retains causal/replay protection without appointment content. `retention_conflicts`
+preserves the minimized deletion plus competing encrypted local event/vector for
+explicit review. Policies use SQLCipher preferences; `event_versions.retention_keep_vector` stores
+the reviewed Keep exception as recoverable causal state. Editing resets that
+exception; matching handoff snapshots retain it through `retention_kept`.
+Expired content/relationships and obsolete uploaded payloads are removed under
+a transaction; exact pending retry envelopes are preserved. `secure_delete=ON`
+clears deleted database cells; forensic erasure of external copies is not claimed.
+Migration adds tables atomically without deleting events or changing old colours,
+keys, vectors or pending envelopes. Restore pauses and backup exclusion follow
+existing family/private scope.
+
+```mermaid
+erDiagram
+    households ||--o{ calendar_deletions : scopes
+    calendar_deletions ||--o| retention_conflicts : competes
+```
+The conflict relationship is logical, not a foreign key: the competing event
+may still exist instead of a committed local deletion.

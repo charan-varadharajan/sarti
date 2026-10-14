@@ -100,3 +100,14 @@ separates Private from Save and share and supports exact-version household-copy
 review. ResourceKeySync provisions personal/profile kinds without sharing personal
 keys. Backend authorization and replacement modules enforce adult ownership;
 backup modules partition and validate adult snapshots. No new dependency/service.
+
+## Calendar retention (ADR-039)
+
+`calendar_retention.dart` evaluates completion/period boundaries without I/O;
+`calendar_retention_store.dart` is a repository part implementing atomic content
+removal, minimized causal records and explicit conflict review.
+`CalendarRetentionScreen` handles family scope, admin preview/confirmation and
+conflict actions. Authenticated bootstrap refreshes policy after full catch-up,
+sweeps at foreground sync and five-minute foreground intervals, then uploads
+normal encrypted operations. The household API owns bounded preference metadata
+and reuses membership/resource authorization; no new service/dependency.

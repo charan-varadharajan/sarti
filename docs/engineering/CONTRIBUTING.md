@@ -36,7 +36,7 @@ Required quality gates still apply; implementation completion and verified
 acceptance must be reported separately.
 
 For simple local Flutter execution use `./test` (unit/widgets), `./test --ios`
-or `./test --android` (prepared calendar/child/grid/guardian/adult-pet UI journeys). Logs are saved in
+or `./test --android` (prepared calendar/child/grid/guardian/adult-pet/retention UI journeys). Logs are saved in
 ignored `test-results/`. See `../testing/TEST-SCENARIOS.md` for selection and
 coverage limits. These shortcuts do not replace the full gates below.
 

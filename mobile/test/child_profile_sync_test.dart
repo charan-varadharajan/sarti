@@ -522,7 +522,7 @@ void main() {
       ),
     );
     db.raw.execute(
-      'DROP TABLE child_profile_versions; DROP TABLE appointment_shares; DROP TABLE personal_calendars; DROP TABLE event_participants; DROP TABLE participant_profiles; DROP TABLE child_sync; DROP TABLE resource_catalog; ALTER TABLE children DROP COLUMN is_placeholder; ALTER TABLE outbox DROP COLUMN envelope_json; PRAGMA user_version = 5;',
+      'DROP TABLE retention_conflicts; DROP TABLE calendar_deletions; ALTER TABLE event_versions DROP COLUMN retention_keep_vector; DROP TABLE child_profile_versions; DROP TABLE appointment_shares; DROP TABLE personal_calendars; DROP TABLE event_participants; DROP TABLE participant_profiles; DROP TABLE child_sync; DROP TABLE resource_catalog; ALTER TABLE children DROP COLUMN is_placeholder; ALTER TABLE outbox DROP COLUMN envelope_json; PRAGMA user_version = 5;',
     );
     db.close();
     db = SartiDatabase.open(path, key);

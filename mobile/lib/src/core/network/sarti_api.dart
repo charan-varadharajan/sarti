@@ -329,6 +329,23 @@ class SartiApiClient
     );
   }
 
+  Future<Map<String, dynamic>> calendarRetention(String familyId) => _json(
+    'GET',
+    '/v1/families/$familyId/calendar-retention',
+    authenticated: true,
+  );
+
+  Future<Map<String, dynamic>> setCalendarRetention(
+    String familyId,
+    String period,
+    int revision,
+  ) => _json(
+    'PUT',
+    '/v1/families/$familyId/calendar-retention',
+    authenticated: true,
+    body: {'period': period, 'revision': revision},
+  );
+
   Future<void> registerPushToken(String token) async {
     await _json(
       'POST',
@@ -341,12 +358,17 @@ class SartiApiClient
   Future<RemoteFamily> provisionFamily({
     required String familyId,
     required String calendarResourceId,
+    bool retentionEnabled = true,
   }) async => _familyFromJson(
     await _json(
       'POST',
       '/v1/families',
       authenticated: true,
-      body: {'family_id': familyId, 'calendar_resource_id': calendarResourceId},
+      body: {
+        'family_id': familyId,
+        'calendar_resource_id': calendarResourceId,
+        'retention_enabled': retentionEnabled,
+      },
     ),
   );
 

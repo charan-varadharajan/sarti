@@ -321,3 +321,34 @@ enter People & pets directly, deliberately choose a pastel and verify the
 same ID/name/new colour at the encrypted receiving device. Initial synchronization
 retains the legacy colour until the explicit edit. This closes BUG-015's existing
 profile correction coverage rather than inferring it from creation tests.
+
+## Family-managed mobile calendar retention — accepted ADR-039
+
+Implemented prepared fixtures with fixed clocks, independent SQLCipher stores,
+synthetic principals/relay and direct retention-screen entry. Teardown closes
+stores/keys, UI/controllers, temporary migration files and synthetic HTTP state.
+No prerequisite creation is performed through UI. Results: ADR-039-VERIFICATION.md.
+
+| Stable ID | Coverage |
+| --- | --- |
+| RETENTION-UI-001 | Family scope, admin-only controls, preview/confirmation, exact five choices/default |
+| RETENTION-MOB-001 | Expired event removed, future event preserved, reminder cancelled; no deletion before confirmation |
+| RETENTION-TIME-001 | End/exact cutoff, ongoing/future, Never, month-end/leap-year and spring DST |
+| RETENTION-SERIES-001 | Active/unbounded and future finite series preserved; completed count expires; evaluator cap retains data |
+| RETENTION-REMOVED-001 | Expired manual tombstones lose event details while keeping replay protection |
+| RETENTION-SYNC-001/002 | Minimal records, actual content removal, duplicate/stale replay, concurrent edit/deletion and explicit review |
+| RETENTION-CONFLICT-001 | Pending edits deferred; genuine deletion conflict preserved; Keep prevents repeated cleanup of that version |
+| RETENTION-SEC-001 | Shared cleanup requires admin, own-private cleanup stays scoped, cross-family input rejected |
+| RETENTION-MIG-001 | Real encrypted v7→v8 file upgrade retains event/pending retry bytes; wrong key fails |
+| RETENTION-CRYPTO-001 | Independent devices, SQLCipher/libsodium, offline cleanup→encrypted relay→receiver removal; duplicate convergence |
+| RETENTION-KEEP-RECOVERY-001 | Personal backup/staging retains the reviewed Keep vector; shared Keep survives initial guardian handoff |
+| RETENTION-RESTORE-001 | Unvalidated family recovery marker blocks automatic sweep |
+| RETENTION-API-001 | Real PostgreSQL/API: five periods, owner/delegated-admin, writer/outsider/revoked denial, revision conflicts, malformed input |
+| RETENTION-MIG-002 | Real PostgreSQL 0009 upgrade/downgrade guard; legacy inactive default and exact ciphertext preservation |
+
+`./test --ios --scenario retention` / Android counterpart register twelve
+prepared scenarios (ten shared plus migration/encrypted convergence). `all`
+includes retention; no backup portability direction is implicitly added. Neither
+physical OS/background scheduling nor BUG-022 recovery continuation is established
+by these fixtures. Broader timezone/DST/recurrence rules retain existing suite
+coverage; real providers and disconnected-phone timing need physical validation.

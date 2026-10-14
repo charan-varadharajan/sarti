@@ -2,6 +2,8 @@
 
 - Status: Accepted
 - Extension (2026-10-13): Owner-wide access excludes adult-private resources under accepted ADR-038.
+- Extension (2026-10-13): ADR-039 adds admin-managed retention and minimized
+  deletion records for automatic cleanup; manual deletion remains a tombstone.
 - Date: 2026-10-11
 
 Households have one owner and zero or more guardians. Children are profiles and

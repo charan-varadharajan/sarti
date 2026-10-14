@@ -99,3 +99,19 @@ edits fail closed. Restored events retain causal state on the personal recovery
 path; apply compares persisted vectors even when the previous outbox was cleared.
 Old clients do not understand these new operation kinds/local schema and must
 upgrade together with backend migration 0008 for this private beta contract.
+
+## ADR-039 history deletion
+
+`retention_deleted` contains only event/family/resource IDs, vector and deletion
+time inside authenticated ciphertext. SQLCipher stores minimal deletion records
+independently of event rows. Stale/equal event replays cannot resurrect removed
+content; concurrent edits create a retention conflict with both alternatives.
+Explicit review emits `retention_kept` (current event plus merged vector) or a
+new minimal deletion. Causally dominating resolutions retire retention conflicts.
+Keep exempts that event vector on receivers; later edits are reevaluated.
+Pending encrypted retries are never rewritten/discarded. Initial guardian handoff
+includes household deletion records without private metadata. Backend 0009 must
+precede coordinated 0.3.0+3 client upgrades; older clients cannot interpret new
+operation kinds. Catch-up is bounded and must finish before automatic cleanup.
+An active service/session is required to initiate cleanup with current policy;
+offline devices catch up later. No new plaintext event persistence is introduced.

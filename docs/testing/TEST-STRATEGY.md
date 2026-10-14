@@ -149,3 +149,10 @@ fresh handoff. Backend abuse tests cover expiry, replay, cancellation, stale
 pins, resource scope and quotas. Native share/clipboard are injected to avoid
 sending messages; physical OS camera/link/provider behavior remains unverified.
 Results are recorded in BUG-004-VERIFICATION.md after execution.
+
+ADR-039 adds RETENTION-* prepared settings/unit/native, API authorization,
+SQLCipher/PostgreSQL migration and encrypted two-device convergence scenarios.
+Scope/clock/recurrence/conflict assertions run without UI prerequisite creation.
+`./test --ios --scenario retention` and Android counterpart select the native
+journeys. Family recovery continuation remains blocked by BUG-022 rather than
+being inferred from the automatic-cleanup pause test. Results: ADR-039-VERIFICATION.md.

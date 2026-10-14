@@ -135,3 +135,13 @@ erDiagram
         timestamp updated_at
     }
 ```
+
+## ADR-039 metadata / migration 0009
+
+Families gain `retention_period` constrained to week/month/quarter/year/never,
+`retention_enabled` and nonnegative `retention_revision`. Existing rows default
+to inactive one week, revision zero. New family creation explicitly adopts
+one week by default. Locking and expected revision serialize policy writes;
+downgrade refuses to discard a configured revision. Cascading family deletion
+removes the preference with its family row. This is configuration metadata, not
+plaintext calendar history. Relay seven-day expiry and recovery storage are unchanged.

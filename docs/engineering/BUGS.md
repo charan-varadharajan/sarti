@@ -42,6 +42,10 @@ in-repository record while Sarti has no external tracker.
   synchronization are validated. Personal snapshots protect their own restored
   causal state; they are not a general replacement for family recovery.
 - Status: Open; recorded separately from authorized adult/pet implementation.
+- ADR-039 mitigation: unvalidated family-only restores pause automatic calendar
+  cleanup; missing causal state rejects minimized remote deletion. This prevents
+  retention from silently deleting unversioned restored entries, not the other
+  recovery continuation failure modes. BUG-022 remains open.
 
 ### BUG-021 — No complete, discoverable family management hub
 - Severity: Medium

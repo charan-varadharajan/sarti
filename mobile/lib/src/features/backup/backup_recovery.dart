@@ -85,6 +85,11 @@ class BackupRecovery {
           ]) {
             restored.raw.execute('DELETE FROM $table');
           }
+          if (adultId == null) {
+            restored.raw.execute(
+              "INSERT INTO app_preferences VALUES ('retention-recovery-pending','true')",
+            );
+          }
           if (adultId != null) {
             restored.raw.execute('INSERT INTO app_preferences VALUES (?,?)', [
               'family-access-$familyId',
@@ -167,6 +172,14 @@ class BackupRecovery {
           );
           for (final row in excluded) {
             final resource = row['resource_id'];
+            sanitized.raw.execute(
+              'DELETE FROM calendar_deletions WHERE resource_id=?',
+              [resource],
+            );
+            sanitized.raw.execute(
+              'DELETE FROM retention_conflicts WHERE resource_id=?',
+              [resource],
+            );
             sanitized.raw.execute('DELETE FROM conflicts WHERE resource_id=?', [
               resource,
             ]);

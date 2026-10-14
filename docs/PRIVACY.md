@@ -51,6 +51,7 @@ plaintext before encryption. The server stores:
 | Device public keys (encryption + signing) | Key grant authorization | Until device revoked |
 | Hashed session token | API authentication | Until session expires or revoked |
 | Family and membership metadata (IDs, roles, status) | Authorization | Until family deleted |
+| Calendar retention period, activation and revision | Admin-managed family configuration, not appointment content | Until family deleted |
 | Encrypted sync operations (ciphertext only) | Cross-device sync relay | 7 days |
 | Encrypted email suggestions (ciphertext only) | Email-to-calendar proposals | 7 days |
 | FCM push token | Opaque sync wake-up | Until device revoked or token rotated |
@@ -185,3 +186,18 @@ TODO — add privacy contact email / DPO contact before public release.
 - [ ] Play Store data safety form completed and matches this document
 - [ ] In-app privacy notice links to published version of this document
 - [ ] Product owner sign-off obtained
+
+## Mobile calendar history retention — ADR-039
+
+Family calendar admins choose one week (default), one month, three months, one
+year or Never. This applies to calendar entries on family phones, including
+private entries evaluated by their own author’s phone; it does not grant admins
+private access. Future entries and active recurring series stay. Existing families
+preview/adopt before automatic removal. Cleanup runs after authorized sync while
+the app is active; pending edits/conflicts and disconnected devices can delay it.
+Expired details are removed from local event records and replaced by minimal
+causal deletion records. Operational copies needed for unresolved edits/retries
+remain until safe to remove. Never stops cleanup, not reverses prior removal.
+Existing encrypted backups/exports and offline copies can still contain older
+content. The server relay remains seven days; backup lifetime is separate.
+Unvalidated family-only restores pause cleanup while BUG-022 remains unresolved.

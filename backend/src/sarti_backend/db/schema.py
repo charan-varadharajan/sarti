@@ -86,6 +86,9 @@ families = sa.Table(
     sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
     sa.Column("deleted_at", sa.DateTime(timezone=True)),
     sa.Column("email_token_digest", sa.LargeBinary()),
+    sa.Column("retention_period", sa.Text(), nullable=False, server_default="week"),
+    sa.Column("retention_enabled", sa.Boolean(), nullable=False, server_default=sa.false()),
+    sa.Column("retention_revision", sa.BigInteger(), nullable=False, server_default="0"),
 )
 
 memberships = sa.Table(

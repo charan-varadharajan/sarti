@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import '../domain/calendar_retention.dart';
+
 import 'package:flutter/foundation.dart';
 import 'package:sarti_mobile/src/features/calendar/data/calendar_repository.dart';
 import 'package:sarti_mobile/src/features/calendar/data/reminder_scheduler.dart';
@@ -20,6 +22,8 @@ class CalendarController extends ChangeNotifier {
     family = repository.load();
   }
 
+  Future<void> Function(CalendarRetention period, int revision)?
+  updateRetention;
   final CalendarRepository repository;
   final String timezone;
   final DateTime Function() clock;
@@ -179,8 +183,49 @@ class CalendarController extends ChangeNotifier {
     onLocalMutation?.call();
   }
 
+  List<String> applyRetention({required bool canAdminister}) {
+    if (repository.database.raw
+        .select(
+          "SELECT 1 FROM app_preferences WHERE key='retention-recovery-pending'",
+        )
+        .isNotEmpty) {
+      return [];
+    }
+    final removed = repository.sweepRetention(
+      clock(),
+      canAdminister: canAdminister,
+    );
+    refresh();
+    return removed;
+  }
+
+  void resolveHistory(String id, {required bool keep, String? reviewedVector}) {
+    repository.resolveRetentionConflict(
+      id,
+      keep: keep,
+      reviewedVector: reviewedVector,
+    );
+    if (keep) {
+      final restored = repository
+          .load()
+          ?.events
+          .where((e) => e.id == id)
+          .firstOrNull;
+      if (restored != null) reminders?.replaceFor(restored);
+    } else {
+      reminders?.cancelFor(id);
+    }
+    refresh();
+    onLocalMutation?.call();
+  }
+
   void refresh() {
+    final previous = family;
     family = repository.load();
+    final currentIds = family?.events.map((e) => e.id).toSet() ?? <String>{};
+    for (final event in previous?.events ?? <CalendarEvent>[]) {
+      if (!currentIds.contains(event.id)) reminders?.cancelFor(event.id);
+    }
     notifyListeners();
   }
 }

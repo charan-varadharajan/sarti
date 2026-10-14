@@ -51,3 +51,5 @@ New records use the next three-digit number. Accepted decisions are changed only
 by an explicitly approved superseding ADR.
 
 | [ADR-038](adr/038-adult-private-appointments-and-pet-profiles.md) | Adult private appointments, explicit household copies and pet profiles | Accepted; implementation and verification in ADR-038 report |
+
+| [ADR-039](adr/039-rolling-calendar-history-retention.md) | Family-admin-managed mobile calendar retention | Accepted by maintainer 2026-10-13; implementation verification recorded separately |

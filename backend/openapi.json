@@ -184,6 +184,11 @@
               }
             ],
             "title": "Family Id"
+          },
+          "retention_enabled": {
+            "default": true,
+            "title": "Retention Enabled",
+            "type": "boolean"
           }
         },
         "title": "FamilyCreate",
@@ -996,6 +1001,68 @@
         "title": "ResourceResponse",
         "type": "object"
       },
+      "RetentionChange": {
+        "additionalProperties": false,
+        "properties": {
+          "period": {
+            "enum": [
+              "week",
+              "month",
+              "quarter",
+              "year",
+              "never"
+            ],
+            "title": "Period",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 0.0,
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "period",
+          "revision"
+        ],
+        "title": "RetentionChange",
+        "type": "object"
+      },
+      "RetentionResponse": {
+        "properties": {
+          "can_manage": {
+            "title": "Can Manage",
+            "type": "boolean"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "period": {
+            "enum": [
+              "week",
+              "month",
+              "quarter",
+              "year",
+              "never"
+            ],
+            "title": "Period",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "period",
+          "enabled",
+          "revision",
+          "can_manage"
+        ],
+        "title": "RetentionResponse",
+        "type": "object"
+      },
       "SessionResponse": {
         "additionalProperties": false,
         "properties": {
@@ -1691,6 +1758,132 @@
         "summary": "Upload Backup",
         "tags": [
           "encrypted-backup"
+        ]
+      }
+    },
+    "/v1/families/{family_id}/calendar-retention": {
+      "get": {
+        "operationId": "get_retention_v1_families__family_id__calendar_retention_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "family_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Family Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetentionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Retention",
+        "tags": [
+          "households"
+        ]
+      },
+      "put": {
+        "operationId": "put_retention_v1_families__family_id__calendar_retention_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "family_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Family Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetentionChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetentionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Retention",
+        "tags": [
+          "households"
         ]
       }
     },

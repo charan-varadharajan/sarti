@@ -82,3 +82,19 @@ The v2 envelope wraps that snapshot key, never the live phone database key. A
 family backup phrase therefore cannot unlock a separately acquired live phone
 DB containing private appointments. Snapshot keys are erased from temporary
 buffers after packaging; source DB encryption is unchanged.
+
+## Mobile-retention boundary — ADR-039
+
+Family/private snapshot sanitization applies the same exclusions to the new
+minimal deletion and retention-conflict tables. Existing exported/hosted blobs
+are not rewritten or expired by calendar retention and may contain older history.
+Family-only restore sets a local automatic-cleanup pause marker because BUG-022
+causal continuation is unresolved; this does not repair or change that recovery
+contract. Policy refresh does not clear the pause. Private recovery retains its
+accepted causal protections; the family policy is refreshed from the service.
+
+A reviewed Keep decision lives in `event_versions.retention_keep_vector`.
+Personal recovery retains it with causal state; editing an event resets that
+version-specific exception. Family-only recovery still clears event versions and
+remains paused for automatic cleanup under BUG-022. No claim is made that a
+family recovery preserves a safe causal continuation until that defect is fixed.

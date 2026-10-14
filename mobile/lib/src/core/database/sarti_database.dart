@@ -6,7 +6,7 @@ import 'package:sqlite3/sqlite3.dart';
 class SartiDatabase {
   SartiDatabase._(this.raw, this.path);
 
-  static const schemaVersion = 7;
+  static const schemaVersion = 8;
 
   final Database raw;
   final String path;
@@ -26,6 +26,7 @@ class SartiDatabase {
         throw StateError('SQLCipher is unavailable.');
       }
       database.execute('PRAGMA foreign_keys = ON');
+      database.execute('PRAGMA secure_delete = ON');
       database.select('SELECT count(*) FROM sqlite_master');
       final result = SartiDatabase._(database, path);
       result._migrate();
@@ -267,6 +268,28 @@ class SartiDatabase {
           ) STRICT;
         ''');
         raw.userVersion = 7;
+      });
+    }
+    if (raw.userVersion < 8) {
+      transaction(() {
+        raw.execute(
+          '''ALTER TABLE event_versions ADD COLUMN retention_keep_vector TEXT;
+        CREATE TABLE calendar_deletions (
+          event_id TEXT PRIMARY KEY,
+          household_id TEXT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+          resource_id TEXT NOT NULL,
+          vector_json TEXT NOT NULL,
+          deleted_at TEXT NOT NULL
+        ) STRICT;
+        CREATE TABLE retention_conflicts (
+          event_id TEXT PRIMARY KEY,
+          resource_id TEXT NOT NULL,
+          deletion_json TEXT NOT NULL,
+          event_json TEXT NOT NULL,
+          event_vector_json TEXT NOT NULL
+        ) STRICT;''',
+        );
+        raw.userVersion = 8;
       });
     }
   }

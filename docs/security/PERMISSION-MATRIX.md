@@ -63,3 +63,12 @@ adult's personal epoch merely because the caller owns the family. Guardian
 removal rotates household resources without granting any personal resource key.
 Pickup/profile references confer no additional access. UI adult/pet names are
 editable labels, not verified authentication identities.
+
+## ADR-039 calendar retention
+
+Family policy read requires active membership/device. Change requires owner or
+explicit `admin` on a live household calendar; `write` is insufficient. An admin
+setting applies one family period but grants no access to private resources/keys.
+Shared cleanup originates from an authorized admin; each private author handles
+its own resource. Unknown/stale authority and incomplete catch-up defer cleanup.
+Existing write permissions continue governing encrypted event deletion/resolution.

@@ -30,6 +30,19 @@ class TransactionalDatabase(Protocol):
     def connect(self) -> Any: ...
 
 
+class RetentionChange(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    period: Literal["week", "month", "quarter", "year", "never"]
+    revision: int = Field(ge=0)
+
+
+class RetentionResponse(BaseModel):
+    period: Literal["week", "month", "quarter", "year", "never"]
+    enabled: bool
+    revision: int
+    can_manage: bool
+
+
 class ResourceResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -56,6 +69,7 @@ class FamilyCreate(BaseModel):
 
     family_id: UUID | None = None
     calendar_resource_id: UUID | None = None
+    retention_enabled: bool = True
 
     @model_validator(mode="after")
     def require_complete_offline_identity(self) -> "FamilyCreate":
@@ -148,6 +162,74 @@ def _lock_active_actor(connection: Connection, actor: AuthenticatedDevice) -> No
         raise PermissionDenied
 
 
+def _retention_admin(connection: Connection, family_id: UUID, adult_id: UUID) -> bool:
+    if require_active_member(connection, family_id, adult_id) == "owner":
+        return True
+    return (
+        connection.execute(
+            select(resources.c.id)
+            .join(permissions, permissions.c.resource_id == resources.c.id)
+            .where(
+                resources.c.family_id == family_id,
+                resources.c.kind == "calendar",
+                resources.c.deleted_at.is_(None),
+                permissions.c.adult_id == adult_id,
+                permissions.c.permission == "admin",
+            )
+        ).first()
+        is not None
+    )
+
+
+@router.get("/families/{family_id}/calendar-retention", response_model=RetentionResponse)
+def get_retention(request: Request, actor: Authenticated, family_id: UUID) -> RetentionResponse:
+    database: TransactionalDatabase = request.app.state.database
+    with database.transaction() as connection:
+        can_manage = _retention_admin(connection, family_id, actor.adult_id)
+        row = connection.execute(
+            select(families).where(families.c.id == family_id, families.c.deleted_at.is_(None))
+        ).one_or_none()
+        if row is None:
+            raise TenantAccessDenied
+        return RetentionResponse(
+            period=row.retention_period,
+            enabled=row.retention_enabled,
+            revision=row.retention_revision,
+            can_manage=can_manage,
+        )
+
+
+@router.put("/families/{family_id}/calendar-retention", response_model=RetentionResponse)
+def put_retention(
+    request: Request, actor: Authenticated, family_id: UUID, payload: RetentionChange
+) -> RetentionResponse:
+    database: TransactionalDatabase = request.app.state.database
+    with database.transaction() as connection:
+        row = connection.execute(
+            select(families)
+            .where(families.c.id == family_id, families.c.deleted_at.is_(None))
+            .with_for_update()
+        ).one_or_none()
+        if row is None:
+            raise TenantAccessDenied
+        if not _retention_admin(connection, family_id, actor.adult_id):
+            raise PermissionDenied
+        if row.retention_revision != payload.revision:
+            raise ConflictDetected
+        connection.execute(
+            update(families)
+            .where(families.c.id == family_id)
+            .values(
+                retention_period=payload.period,
+                retention_enabled=True,
+                retention_revision=payload.revision + 1,
+            )
+        )
+        return RetentionResponse(
+            period=payload.period, enabled=True, revision=payload.revision + 1, can_manage=True
+        )
+
+
 @router.post("/families", response_model=FamilyResponse, status_code=201)
 def create_family(
     request: Request, actor: Authenticated, payload: FamilyCreate | None = None
@@ -198,6 +280,7 @@ def create_family(
             families.insert().values(
                 id=family_id,
                 created_by=actor.adult_id,
+                retention_enabled=requested.retention_enabled,
                 created_at=now,
                 deleted_at=None,
             )

@@ -1,11 +1,15 @@
 import 'dart:convert';
 
+import '../domain/calendar_retention.dart';
+
 import 'package:sarti_mobile/src/core/database/sarti_database.dart';
 import 'package:sarti_mobile/src/core/ids.dart';
 import 'package:sarti_mobile/src/features/ai/cloud_alias.dart';
 import 'package:sarti_mobile/src/features/calendar/domain/calendar_event.dart';
 import 'package:sarti_mobile/src/features/sync/version_vector.dart';
 import 'package:timezone/timezone.dart' as tz;
+
+part 'calendar_retention_store.dart';
 
 class ChildProfile {
   const ChildProfile({
@@ -240,6 +244,10 @@ class CalendarRepository {
         'INSERT INTO households(id, display_name, created_at, calendar_resource_id) VALUES (?, ?, ?, ?)',
         [householdId, name, now, resourceId],
       );
+      database.raw.execute('INSERT INTO app_preferences VALUES (?,?)', [
+        'retention-new-$householdId',
+        'true',
+      ]);
       database.raw.execute('INSERT INTO guardians VALUES (?, ?, ?)', [
         guardianId,
         householdId,
@@ -374,7 +382,7 @@ class CalendarRepository {
       )) {
         final event = _eventFromRow(row);
         final version = database.raw.select(
-          'SELECT vector_json FROM event_versions WHERE event_id = ?',
+          'SELECT * FROM event_versions WHERE event_id = ?',
           [event.id],
         );
         if (version.isEmpty) {
@@ -382,11 +390,35 @@ class CalendarRepository {
         }
         queue(
           family.calendarResourceId,
-          event.deleted ? 'event_deleted' : 'event_upserted',
+          event.deleted
+              ? 'event_deleted'
+              : version.single['retention_keep_vector'] != null &&
+                    compareVectors(
+                          _retentionVector(
+                            version.single['retention_keep_vector'] as String,
+                          ),
+                          _retentionVector(
+                            version.single['vector_json'] as String,
+                          ),
+                        ) ==
+                        VectorRelation.equal
+              ? 'retention_kept'
+              : 'event_upserted',
           event.toJson(),
           Map<String, int>.from(
             jsonDecode(version.single['vector_json'] as String) as Map,
           ),
+        );
+      }
+      for (final deletion in database.raw.select(
+        'SELECT * FROM calendar_deletions WHERE household_id=? AND resource_id=?',
+        [family.householdId, family.calendarResourceId],
+      )) {
+        queue(
+          family.calendarResourceId,
+          'retention_deleted',
+          _deletionPayload(deletion),
+          _retentionVector(deletion['vector_json'] as String),
         );
       }
       final vectorKey = 'household-vector-${family.householdId}';
@@ -1097,6 +1129,29 @@ class CalendarRepository {
     ).isNotEmpty) {
       return RemoteApplyResult.duplicate;
     }
+    final deletion = database.raw.select(
+      'SELECT * FROM calendar_deletions WHERE event_id=?',
+      [event.id],
+    );
+    if (deletion.isNotEmpty) {
+      final row = deletion.single;
+      if (row['household_id'] != event.householdId ||
+          row['resource_id'] != event.calendarResourceId) {
+        throw StateError('Invalid deleted event scope.');
+      }
+      final relation = compareVectors(
+        _retentionVector(row['vector_json'] as String),
+        vector,
+      );
+      if (relation == VectorRelation.after ||
+          relation == VectorRelation.equal) {
+        return RemoteApplyResult.stale;
+      }
+      if (relation == VectorRelation.concurrent) {
+        _recordRetentionConflict(event, vector, _deletionPayload(row));
+        return RemoteApplyResult.conflict;
+      }
+    }
     final localRows = database.raw.select(
       'SELECT operation_id, payload_json, vector_json FROM outbox WHERE resource_id = ? ORDER BY created_at DESC',
       [event.calendarResourceId],
@@ -1244,6 +1299,7 @@ class CalendarRepository {
   ) {
     database.transaction(() {
       _saveEventRows(event, vector: vector);
+      _retireRetentionConflict(event.id, vector);
       database.raw.execute('INSERT INTO applied_operations VALUES (?, ?)', [
         operationId,
         DateTime.now().toUtc().toIso8601String(),
@@ -1252,6 +1308,27 @@ class CalendarRepository {
   }
 
   void _saveEventRows(CalendarEvent event, {Map<String, int>? vector}) {
+    final removed = database.raw.select(
+      'SELECT * FROM calendar_deletions WHERE event_id=?',
+      [event.id],
+    );
+    if (removed.isNotEmpty) {
+      if (vector == null ||
+          removed.single['resource_id'] != event.calendarResourceId ||
+          removed.single['household_id'] != event.householdId ||
+          compareVectors(
+                _retentionVector(removed.single['vector_json'] as String),
+                vector,
+              ) !=
+              VectorRelation.before) {
+        throw StateError(
+          'Deleted event requires a causally newer reviewed edit.',
+        );
+      }
+      database.raw.execute('DELETE FROM calendar_deletions WHERE event_id=?', [
+        event.id,
+      ]);
+    }
     final existingEvent = database.raw.select(
       'SELECT household_id, calendar_resource_id FROM events WHERE id = ?',
       [event.id],

@@ -14,6 +14,7 @@ backend/openapi.generated.json
 mobile/.dart_tool/
 mobile/build/
 mobile/coverage/
+mobile/ios/build/
 mobile/ios/Pods/
 mobile/ios/.symlinks/
 mobile/ios/Flutter/ephemeral/

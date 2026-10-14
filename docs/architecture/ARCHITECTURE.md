@@ -193,3 +193,9 @@ private write; the private mapping never enters that copy. Typed adult/pet profi
 references augment existing child assignments. See
 `../product/ADULT-AND-PET-APPOINTMENTS.md` and ADR-038 for exact sharing, recovery,
 revocation and deployment compatibility boundaries.
+
+ADR-039 adds family-admin-managed mobile calendar retention, with bounded server
+preference metadata and encrypted minimized deletion operations. Evaluation and
+content removal execute only on authorized phones; private keys/access remain
+author-only. Server relay/backup lifetimes do not change. See ADR-039 for adoption,
+conflict, recurrence, restore-pause and coordinated beta-client upgrade rules.

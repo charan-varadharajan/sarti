@@ -133,3 +133,16 @@ event under the existing household calendar, without private identifiers/mapping
 adult scope, not a caller-selected adult ID. Binary format, limits, revision
 headers, no-store responses and structured errors match family backup endpoints.
 See `BACKUP-RECOVERY.md`; generated `backend/openapi.json` is authoritative.
+
+## Family calendar retention — ADR-039
+
+Authenticated `GET /v1/families/{family_id}/calendar-retention` returns
+`period`, `enabled`, `revision`, `can_manage` to active family members.
+`PUT` accepts exactly `period` (`week|month|quarter|year|never`) and nonnegative
+integer `revision`; owner or explicit household-calendar admin required. It
+activates cleanup and increments revision; stale revisions return 409, ordinary
+writers 403, outsiders/revoked members 404, inactive device/session 401. Unknown
+fields/periods fail validation. Family creation accepts `retention_enabled`
+(default true); upgraded preexisting local families send false for explicit
+adoption. No event text or deletion targets enter this configuration API.
+Calendar deletion payloads remain resource-encrypted in the existing relay.

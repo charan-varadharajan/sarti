@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:sarti_mobile/src/core/ids.dart';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sarti_mobile/src/core/backup/backup_service.dart';
 import 'package:sarti_mobile/src/core/crypto/device_key_store.dart';
@@ -103,6 +105,143 @@ void main() {
     secrets: secrets,
   );
 
+  test('RETENTION-BACKUP-001 family snapshot excludes private deletion/conflict content', () async {
+    source.raw.execute('INSERT INTO personal_calendars VALUES (?,?,?)', [
+      'adult-a',
+      'family-a',
+      'private-calendar',
+    ]);
+    source.raw.execute('INSERT INTO calendar_deletions VALUES (?,?,?,?,?)', [
+      'private-gone',
+      'family-a',
+      'private-calendar',
+      '{}',
+      '2026-10-13',
+    ]);
+    source.raw.execute('INSERT INTO calendar_deletions VALUES (?,?,?,?,?)', [
+      'shared-gone',
+      'family-a',
+      'calendar-a',
+      '{}',
+      '2026-10-13',
+    ]);
+    source.raw.execute('INSERT INTO retention_conflicts VALUES (?,?,?,?,?)', [
+      'private-conflict',
+      'private-calendar',
+      '{}',
+      '{"title":"private retained alternative"}',
+      '{}',
+    ]);
+    final blob = await snapshot();
+    final file = File('${dir.path}/snapshot.srtbk')..writeAsBytesSync(blob);
+    final output = '${dir.path}/inspected.db';
+    final result = BackupService.restoreBackup(
+      backupPath: file.path,
+      outputPath: output,
+      recoveryPhrase: phrase,
+      sodium: sodium,
+    );
+    final inspected = SartiDatabase.open(output, result.databaseKey);
+    try {
+      expect(
+        inspected.raw
+            .select('SELECT resource_id FROM calendar_deletions')
+            .single['resource_id'],
+        'calendar-a',
+      );
+      expect(
+        inspected.raw.select('SELECT * FROM retention_conflicts'),
+        isEmpty,
+      );
+    } finally {
+      inspected.close();
+      result.databaseKey.fillRange(0, 32, 0);
+    }
+    expect(
+      source.raw.select('SELECT * FROM retention_conflicts'),
+      hasLength(1),
+    );
+  });
+
+  test(
+    'RETENTION-KEEP-RECOVERY-001 own recovery preserves reviewed Keep version',
+    () async {
+      final adult = newId(), device = newId(), other = newId();
+      final repository = CalendarRepository(
+        source,
+        deviceId: device,
+        adultId: adult,
+      );
+      final resource = repository.ensurePersonalCalendar();
+      final event = CalendarEvent(
+        id: newId(),
+        householdId: 'family-a',
+        calendarResourceId: resource,
+        title: 'Private keep decision',
+        localStart: DateTime.utc(2026, 9, 1),
+        timezone: 'Etc/UTC',
+        durationMinutes: 60,
+        childIds: [],
+        revision: 1,
+        updatedAt: DateTime.utc(2026, 10, 13),
+      );
+      repository.saveAdultAppointment(event, share: false);
+      source.raw.execute("UPDATE outbox SET state='uploaded'");
+      repository.applyRetentionDeletion(
+        operationId: newId(),
+        familyId: 'family-a',
+        resourceId: resource,
+        vector: {other: 1},
+        payload: {
+          'id': event.id,
+          'householdId': 'family-a',
+          'resourceId': resource,
+          'vector': {other: 1},
+          'deletedAt': '2026-10-13T00:00:00Z',
+        },
+      );
+      repository.resolveRetentionConflict(event.id, keep: true);
+      final vector = source.raw.select(
+        'SELECT retention_keep_vector FROM event_versions WHERE event_id=?',
+        [event.id],
+      ).single['retention_keep_vector'];
+      expect(vector, isNotNull);
+      final blob = await BackupRecovery.snapshot(
+        database: source,
+        key: originalKey,
+        phrase: phrase,
+        sodium: sodium,
+        familyId: 'family-a',
+        adultId: adult,
+      );
+      await BackupRecovery.stage(
+        blob: blob,
+        phrase: phrase,
+        familyId: 'family-a',
+        current: target,
+        sodium: sodium,
+        secrets: secrets,
+        adultId: adult,
+      );
+      final key = base64Url.decode(
+        secrets.values['backup-recovery-pending-v1']!,
+      );
+      final staged = SartiDatabase.open('${target.path}.recovery', key);
+      try {
+        expect(
+          staged.raw.select(
+            'SELECT retention_keep_vector FROM event_versions WHERE event_id=?',
+            [event.id],
+          ).single['retention_keep_vector'],
+          vector,
+        );
+      } finally {
+        staged.close();
+        key.fillRange(0, key.length, 0);
+      }
+    },
+  );
+
   test(
     'BACKUP-MOB-002 BUG-002 replacement install restores using recovered key',
     () async {
@@ -135,6 +274,14 @@ void main() {
       expect(event.recurrence!.frequency, RecurrenceFrequency.weekly);
       expect(db.raw.select('SELECT * FROM outbox'), isEmpty);
       expect(db.raw.select('SELECT * FROM resource_keys'), isEmpty);
+      expect(
+        db.raw
+            .select(
+              "SELECT value FROM app_preferences WHERE key='retention-recovery-pending'",
+            )
+            .single['value'],
+        'true',
+      );
       db.close();
       expect(secrets.values['sign-secret-v1'], 'new-device-private-key');
       expect(secrets.values.containsKey('backup-recovery-pending-v1'), isFalse);

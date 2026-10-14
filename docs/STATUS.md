@@ -3,9 +3,23 @@
 - Current stage: Stage 3 — AI proposals, email intake, push notifications, and backup/recovery
 - Updated: 2026-10-13
 - Stage state: remediation in progress; BUG-001/002/003/004 remediation delivered; provider/device validation and BUG-005/012/013/014/017/021/022 outstanding
-- Repository version: `0.2.0+2`; no public release tag
+- Repository version: `0.3.0+3`; no public release tag
 
 ## Current result
+
+ADR-039 was explicitly approved and is implemented and verified in
+0.3.0+3: one admin-managed family calendar retention policy, default one week,
+with one/three months, one year and Never. Future appointments/active series stay.
+New server families adopt the default; legacy families require admin adoption.
+PostgreSQL 0009/local SQLCipher v8 add bounded policy metadata and minimized
+causal deletion/conflict records. Server relay/backup TTLs remain unchanged.
+Unvalidated family-only restores pause automatic cleanup because BUG-022 remains
+open. Offline-only builds need configured service/auth before managing the family
+policy or initiating cleanup. Final checks pass: Flutter 184 pass/2 opt-in skips (both executed via HTTP hosts),
+backend 33 pass at 91.51%, native retention 12 pass each on iOS/Android; static,
+audit, tooling, version, Docker/health and secret scan pass. Full details and
+physical/recovery limitations: testing/ADR-039-VERIFICATION.md.
+
 
 ADR-038 adult/pet extension is implemented and passes all executed final checks:
 private-by-default adult resources, explicit household copies, pastel profiles,
