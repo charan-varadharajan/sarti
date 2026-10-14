@@ -72,3 +72,13 @@ setting applies one family period but grants no access to private resources/keys
 Shared cleanup originates from an authorized admin; each private author handles
 its own resource. Unknown/stale authority and incomplete catch-up defer cleanup.
 Existing write permissions continue governing encrypted event deletion/resolution.
+
+## Recovery (ADR-040)
+
+Historical snapshot keys/cached ACLs never authorize current writes. Fresh active
+owner membership, current resource admin permission and verified exact current
+epoch are required to approve/publish recovered intent or resume cleanup. Recovery
+excludes personal resources even from key preparation. New child/profile resources
+require explicit recipient review; deleted/missing calendars are not resurrected.
+Server independently rejects revoked devices, stale epochs, foreign resources and
+replays. Incomplete history stays read-only; no old credentials are restored.

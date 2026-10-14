@@ -24,6 +24,9 @@ import 'package:sarti_mobile/src/core/backup/backup_service.dart';
 import 'package:sarti_mobile/src/features/backup/backup_recovery.dart';
 import 'package:sarti_mobile/src/features/backup/backup_screen.dart';
 
+import '../backup/family_recovery_coordinator.dart';
+import '../backup/family_recovery_screen.dart';
+
 import 'package:sarti_mobile/src/features/guardians/guardian_coordinator.dart';
 import 'package:sarti_mobile/src/features/guardians/guardian_screen.dart';
 import 'package:sarti_mobile/src/features/guardians/invitation_links.dart';
@@ -65,6 +68,7 @@ class _AuthenticatedCalendarBootstrapState
   bool _guardianRouteOpen = false;
   EmailSuggestionInbox? _emailInbox;
   late final SessionStore _sessions = SessionStore(widget.secrets);
+  FamilyRecoveryCoordinator? _recovery;
   Timer? _retentionTimer;
   bool _loading = true;
   bool _authenticating = false;
@@ -94,7 +98,7 @@ class _AuthenticatedCalendarBootstrapState
 
   bool get _canWriteCalendar {
     final local = _controller?.family;
-    if (local == null) return false;
+    if (local == null || _controller!.repository.recoveryPending) return false;
     final rows = widget.database.raw.select(
       'SELECT value FROM app_preferences WHERE key=?',
       ['family-access-${local.householdId}'],
@@ -288,6 +292,9 @@ class _AuthenticatedCalendarBootstrapState
         final existing = registered
             .where((f) => f.id == familyId && f.status == 'active')
             .firstOrNull;
+        if (existing == null && controller.repository.recoveryPending) {
+          throw StateError('Recovery cannot recreate the family.');
+        }
         return existing ??
             await api.provisionFamily(
               familyId: familyId,
@@ -299,6 +306,9 @@ class _AuthenticatedCalendarBootstrapState
             );
       },
       synchronizeFamily: (familyId) async {
+        if (controller.repository.recoveryPending) {
+          return _recovery!.synchronize();
+        }
         await resourceKeys.prepare(familyId);
         controller.refresh();
         var uploaded = 0, applied = 0, conflicts = 0;
@@ -348,6 +358,31 @@ class _AuthenticatedCalendarBootstrapState
       onSessionExpired: () => unawaited(_expireSession()),
       reportPushFailure: (_) => _showSyncIssue(),
       refreshSuggestions: emailInbox.refresh,
+    );
+    _recovery?.dispose();
+    _recovery = FamilyRecoveryCoordinator(
+      repository: controller.repository,
+      listFamilies: api.listFamilies,
+      prepareKeys: () => resourceKeys.prepare(
+        controller.family!.householdId,
+        recoveryOnly: true,
+      ),
+      sync: (downloadOnly) => engine.synchronize(
+        controller.family!.householdId,
+        downloadOnly: downloadOnly,
+      ),
+      readPolicy: () => api.calendarRetention(controller.family!.householdId),
+      provisionResource: (id, kind, share) => api.provisionResource(
+        controller.family!.householdId,
+        id,
+        kind,
+        shareWithCalendarGuardians: share,
+      ),
+      newResourceKey: () => widget.sodium.randombytes.buf(32),
+      onChanged: controller.refresh,
+      afterPublish: () async {
+        await api.sendSyncWakeUp(controller.family!.householdId);
+      },
     );
     controller.updateRetention = (period, revision) async {
       final family = controller.family ?? (throw StateError('No family.'));
@@ -549,6 +584,7 @@ class _AuthenticatedCalendarBootstrapState
 
   @override
   void dispose() {
+    _recovery?.dispose();
     _retentionTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     InvitationLinks.token.removeListener(_invitationReceived);
@@ -573,6 +609,14 @@ class _AuthenticatedCalendarBootstrapState
           children: [
             CalendarScreen(
               controller: controller,
+              onRecovery: _recovery == null
+                  ? null
+                  : () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) =>
+                            FamilyRecoveryScreen(coordinator: _recovery!),
+                      ),
+                    ),
               canWrite: _canWriteCalendar,
               canManageChildren: _canManageFamily,
               onGuardians: _api?.sessionToken == null

@@ -60,13 +60,13 @@ self-grant under the existing first-granter lock and distribute only to active
 authorized devices. An interrupted self-grant is recovered from the sealed grant
 before retry, so an accepted key is never silently replaced.
 
-ADR-032 clears historical resource keys during restore. An authorized admin with
-no historical key may initialize an advanced epoch (>1) only when the directory
-shows no current grant. The server first-granter rule remains authoritative in a
-race. An initial missing key or already established epoch is never fabricated.
-Without a current key, writes remain pending. Historical content still needs
-its appropriate snapshot/key; fresh grants do not recreate expired relay data.
-No server plaintext key custody or backup decryption is introduced.
+ADR-040 family recovery preserves validated historical family resource keys in
+the encrypted snapshot. Personal resources/keys remain excluded. Historical keys
+only decrypt retained authenticated old-epoch messages; current owner/device,
+resource permission, signed grants and exact directory epoch gate new writes.
+Recovery key preparation excludes personal resources and automatic child/profile
+publication. If an established epoch has other recipients but no verified grant
+for this device, recovery waits rather than replacing it with a saved key.
 
 ## Guardian initial handoff (ADR-035)
 

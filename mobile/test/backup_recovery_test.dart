@@ -132,6 +132,18 @@ void main() {
       '{"title":"private retained alternative"}',
       '{}',
     ]);
+    source.raw.execute(
+      'INSERT INTO recovery_intents(source_operation_id,family_id,resource_id,kind,payload_json,vector_json,status) VALUES (?,?,?,?,?,?,?)',
+      [
+        'private-intent',
+        'family-a',
+        'private-calendar',
+        'event_upserted',
+        '{"title":"private pending change"}',
+        '{}',
+        'quarantined',
+      ],
+    );
     final blob = await snapshot();
     final file = File('${dir.path}/snapshot.srtbk')..writeAsBytesSync(blob);
     final output = '${dir.path}/inspected.db';
@@ -273,7 +285,9 @@ void main() {
       expect(event.title, 'Synthetic swimming');
       expect(event.recurrence!.frequency, RecurrenceFrequency.weekly);
       expect(db.raw.select('SELECT * FROM outbox'), isEmpty);
-      expect(db.raw.select('SELECT * FROM resource_keys'), isEmpty);
+      expect(db.raw.select('SELECT * FROM resource_keys'), hasLength(1));
+      expect(db.resourceKey('calendar-a', 1), Uint8List(32));
+      expect(db.raw.select('SELECT * FROM event_versions'), hasLength(1));
       expect(
         db.raw
             .select(

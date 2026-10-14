@@ -117,3 +117,10 @@ by personal recovery and sent in scoped guardian handoff. An unvalidated family-
 receives a local cleanup-pause marker; accepted family recovery semantics and
 BUG-022 remain unchanged. An initial offline-only calendar needs service
 connection before family policy management/automatic cleanup is available.
+
+## Superseding recovery pause — ADR-040
+
+Family restores remain paused until ADR-040 validates history, current authority
+and available relay catch-up, resolves/reviews pending intent and conflicts, and
+the owner explicitly reviews history and resumes cleanup. A policy refresh alone
+cannot resume it. Incomplete legacy snapshots stay blocked/readable.

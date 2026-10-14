@@ -20,6 +20,25 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-10-13 (build 4; development, not publicly released)
+
+### Fixed
+- BUG-022: preserve encrypted family historical keys, causal vectors and applied
+  IDs during replacement recovery. Preserve pending intent separately from old
+  device envelopes; current authorization, download-only catch-up and explicit
+  review precede fresh-device/current-epoch publication with exact retries.
+- Recovery review card includes conflicts, explicit profile-sharing consent,
+  snapshot/relay-gap disclosure and current-policy history review before cleanup.
+  Incomplete legacy snapshots remain readable and blocked; completed recovery
+  bodies are removed so retention does not leave obsolete appointment content.
+
+### Changed
+- Accepted ADR-040; local SQLCipher v9 recovery gate/intent tables require a
+  compatible reader (pre-1.0 minor bump). Existing v2 backup envelope, server APIs
+  and PostgreSQL 0009 remain. No new dependency/service.
+- Add prepared unit/widget, migration, real HTTP replacement recovery and native
+  same-platform recovery scenarios; `./test --ios --scenario recovery` supported.
+
 ## [0.3.0] — 2026-10-13 (build 3; development, not publicly released)
 
 ### Added

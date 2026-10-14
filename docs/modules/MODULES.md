@@ -111,3 +111,14 @@ conflict actions. Authenticated bootstrap refreshes policy after full catch-up,
 sweeps at foreground sync and five-minute foreground intervals, then uploads
 normal encrypted operations. The household API owns bounded preference metadata
 and reuses membership/resource authorization; no new service/dependency.
+
+## Family recovery continuation (ADR-040 / BUG-022)
+
+`calendar_recovery_store.dart` validates scoped history, preserves/quarantines
+intent and atomically maps explicit review to fresh outbox operations.
+`FamilyRecoveryCoordinator` refreshes current authority/keys, catches up download
+only, gates publication and validates history review before retention resume.
+`FamilyRecoveryScreen` exposes prepared review/conflict/sharing/cleanup flows.
+Bootstrap routes recovery through that coordinator, disables ordinary mutations
+and prevents recreation. ResourceKeySync recovery mode skips private resources
+and implicit provisioning; SyncEngine enforces exact reviewed-operation binding.

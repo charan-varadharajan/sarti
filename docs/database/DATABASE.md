@@ -31,3 +31,5 @@ transactions and update `user_version` only after success.
 
 | Local v8 | SQLCipher | Minimal calendar deletions, retention conflicts; secure-delete; migration never sweeps history | RETENTION-MIG-001 |
 | `0009` | PostgreSQL | Family retention enum/enabled/revision; legacy default disabled; guarded downgrade | RETENTION-MIG-002 |
+
+| Local v9 | SQLCipher | Recovery gate and quarantined intent/exact reviewed-operation mapping; preserved history; legacy marker blocks | RECOVERY-MIG and RECOVERY-CONT tests |

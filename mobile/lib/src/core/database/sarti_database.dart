@@ -6,7 +6,7 @@ import 'package:sqlite3/sqlite3.dart';
 class SartiDatabase {
   SartiDatabase._(this.raw, this.path);
 
-  static const schemaVersion = 8;
+  static const schemaVersion = 9;
 
   final Database raw;
   final String path;
@@ -290,6 +290,36 @@ class SartiDatabase {
         ) STRICT;''',
         );
         raw.userVersion = 8;
+      });
+    }
+    if (raw.userVersion < 9) {
+      transaction(() {
+        raw.execute(
+          '''CREATE TABLE recovery_state (
+          family_id TEXT PRIMARY KEY REFERENCES households(id) ON DELETE CASCADE,
+          phase TEXT NOT NULL CHECK(phase IN ('snapshot','paused','catching_up','review','ready','blocked')),
+          snapshot_at TEXT,
+          profile_vector_json TEXT,
+          reason TEXT
+        ) STRICT;
+        CREATE TABLE recovery_intents (
+          source_operation_id TEXT PRIMARY KEY,
+          family_id TEXT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+          resource_id TEXT NOT NULL,
+          kind TEXT NOT NULL,
+          payload_json TEXT NOT NULL,
+          vector_json TEXT NOT NULL,
+          status TEXT NOT NULL CHECK(status IN ('pending','quarantined','queued','done')),
+          queued_operation_id TEXT UNIQUE,
+          reason TEXT,
+          reviewed_payload_json TEXT,
+          reviewed_vector_json TEXT
+        ) STRICT;
+        INSERT INTO recovery_state(family_id,phase,reason)
+          SELECT id,'blocked','legacy_missing_history' FROM households
+          WHERE EXISTS (SELECT 1 FROM app_preferences WHERE key='retention-recovery-pending');''',
+        );
+        raw.userVersion = 9;
       });
     }
   }

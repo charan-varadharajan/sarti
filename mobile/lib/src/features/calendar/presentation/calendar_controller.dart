@@ -37,7 +37,7 @@ class CalendarController extends ChangeNotifier {
 
   bool get canManageFamily {
     final local = family;
-    if (local == null) return false;
+    if (local == null || repository.recoveryPending) return false;
     final rows = repository.database.raw.select(
       'SELECT value FROM app_preferences WHERE key=?',
       ['family-access-${local.householdId}'],
@@ -102,6 +102,7 @@ class CalendarController extends ChangeNotifier {
     String? reviewedSharedVector,
     List<int> reminderMinutes = const [30],
   }) {
+    repository.requireRecoveryReady();
     final current = family ?? (throw StateError('Create a family first.'));
     final existing = id == null
         ? null
@@ -178,6 +179,7 @@ class CalendarController extends ChangeNotifier {
   }
 
   void resolve(String conflictId, {required bool useRemote}) {
+    repository.requireRecoveryReady();
     repository.resolveConflict(conflictId, useRemote: useRemote);
     refresh();
     onLocalMutation?.call();
@@ -200,6 +202,7 @@ class CalendarController extends ChangeNotifier {
   }
 
   void resolveHistory(String id, {required bool keep, String? reviewedVector}) {
+    repository.requireRecoveryReady();
     repository.resolveRetentionConflict(
       id,
       keep: keep,

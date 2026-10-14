@@ -2,10 +2,21 @@
 
 - Current stage: Stage 3 — AI proposals, email intake, push notifications, and backup/recovery
 - Updated: 2026-10-13
-- Stage state: remediation in progress; BUG-001/002/003/004 remediation delivered; provider/device validation and BUG-005/012/013/014/017/021/022 outstanding
-- Repository version: `0.3.0+3`; no public release tag
+- Stage state: remediation in progress; BUG-001/002/003/004 remediation delivered; provider/device validation and BUG-005/012/013/014/017/021 outstanding
+- Repository version: `0.4.0+4`; no public release tag
 
 ## Current result
+
+ADR-040 is maintainer-approved and implemented in development 0.4.0+4.
+Family recovery preserves scoped history and unsent intent while resetting former
+credential/envelope bindings. Fresh authority/current keys, download-only catch-up
+and explicit review gate publication; cleanup needs separate history review.
+Local schema v9; PostgreSQL stays 0009 and backup envelope stays v2. BUG-022 is
+resolved: Flutter 202 pass/2 opt-in skips (both HTTP hosts executed), backend
+33 pass/91.51% coverage, native recovery 15 pass each on iOS/Android. Required
+static/audit/migration/tooling/version/Docker/health/secret gates pass. See
+testing/BUG-022-VERIFICATION.md for physical/provider/legacy/TTL limits. No next
+bug or stage started. Local signing edits remain outside this change.
 
 ADR-039 was explicitly approved and is implemented and verified in
 0.3.0+3: one admin-managed family calendar retention policy, default one week,
@@ -13,8 +24,8 @@ with one/three months, one year and Never. Future appointments/active series sta
 New server families adopt the default; legacy families require admin adoption.
 PostgreSQL 0009/local SQLCipher v8 add bounded policy metadata and minimized
 causal deletion/conflict records. Server relay/backup TTLs remain unchanged.
-Unvalidated family-only restores pause automatic cleanup because BUG-022 remains
-open. Offline-only builds need configured service/auth before managing the family
+Family-only restore cleanup pauses until ADR-040 review succeeds; incomplete
+legacy history stays blocked. Offline-only builds need configured service/auth before managing the family
 policy or initiating cleanup. Final checks pass: Flutter 184 pass/2 opt-in skips (both executed via HTTP hosts),
 backend 33 pass at 91.51%, native retention 12 pass each on iOS/Android; static,
 audit, tooling, version, Docker/health and secret scan pass. Full details and
@@ -181,7 +192,7 @@ remain acceptance gaps. No Stage 4 work is authorized.
 | Check | Result |
 | --- | --- |
 | Backend Pytest unit + PostgreSQL integration | PASS on 2026-10-13; 31 tests including enabled HTTP/Dart contracts, coverage 91.52%; ADR-038 report |
-| Alembic upgrade to head | PASS on 2026-10-13; PostgreSQL version 8; SQLCipher version 7; ADR-038 report |
+| Alembic upgrade to head | PASS on 2026-10-13; PostgreSQL 0009; SQLCipher v9; BUG-022 report |
 | Ruff / strict Mypy / Bandit | Passed |
 | OpenAPI contract | Passed |
 | Docker current-source smoke | Passed using cached runtime + current source/migrations; clean rebuild not rerun after prior Docker Hub timeout |

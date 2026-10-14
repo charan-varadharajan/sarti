@@ -199,3 +199,9 @@ preference metadata and encrypted minimized deletion operations. Evaluation and
 content removal execute only on authorized phones; private keys/access remain
 author-only. Server relay/backup lifetimes do not change. See ADR-039 for adoption,
 conflict, recurrence, restore-pause and coordinated beta-client upgrade rules.
+
+ADR-040 repairs family restore continuation: preserve encrypted scoped history,
+quarantine unsent intent, catch up without publishing, then explicitly review
+fresh-authorized writes and history before resuming cleanup. Local schema v9;
+existing backup v2/server APIs remain. Snapshot credentials never confer live
+authority; incomplete historical snapshots remain readable and blocked.

@@ -7,6 +7,9 @@ import 'package:sarti_mobile/src/core/crypto/device_key_store.dart';
 import 'package:sarti_mobile/src/core/database/sarti_database.dart';
 import 'package:sodium/sodium.dart';
 
+import '../calendar/data/calendar_repository.dart';
+import '../../core/ids.dart';
+
 /// Stages recovery without replacing an open database. A protected journal
 /// makes activation retryable if the app exits between the file and key writes.
 class BackupRecovery {
@@ -75,13 +78,18 @@ class BackupRecovery {
           throw const BackupException('Backup database is damaged.');
         }
         restored.transaction(() {
+          if (adultId == null) {
+            CalendarRepository(
+              restored,
+              deviceId: newId(),
+            ).initializeFamilyRecovery();
+          }
           for (final table in [
             'outbox',
-            if (adultId == null) 'applied_operations',
             'sync_state',
-            if (adultId == null) 'resource_keys',
-            if (adultId == null) 'event_versions',
             'app_preferences',
+            if (adultId != null) 'recovery_intents',
+            if (adultId != null) 'recovery_state',
           ]) {
             restored.raw.execute('DELETE FROM $table');
           }
@@ -90,7 +98,18 @@ class BackupRecovery {
               "INSERT INTO app_preferences VALUES ('retention-recovery-pending','true')",
             );
           }
-          if (adultId != null) {
+          if (adultId == null) {
+            final row = restored.raw
+                .select('SELECT profile_vector_json FROM recovery_state')
+                .single;
+            if (recoveryVector(row['profile_vector_json']) != null) {
+              restored.raw.execute('INSERT INTO app_preferences VALUES (?,?)', [
+                'household-vector-$familyId',
+                row['profile_vector_json'],
+              ]);
+            }
+          }
+          {
             restored.raw.execute('INSERT INTO app_preferences VALUES (?,?)', [
               'family-access-$familyId',
               jsonEncode({'role': 'guardian', 'permission': 'read'}),
@@ -180,6 +199,10 @@ class BackupRecovery {
               'DELETE FROM retention_conflicts WHERE resource_id=?',
               [resource],
             );
+            sanitized.raw.execute(
+              'DELETE FROM recovery_intents WHERE resource_id=?',
+              [resource],
+            );
             sanitized.raw.execute('DELETE FROM conflicts WHERE resource_id=?', [
               resource,
             ]);
@@ -206,6 +229,31 @@ class BackupRecovery {
           // Private mappings and preferences never belong in family snapshots.
           if (adultId == null) {
             sanitized.raw.execute('DELETE FROM appointment_shares');
+          }
+          if (adultId == null) {
+            final profile = sanitized.raw.select(
+              'SELECT value FROM app_preferences WHERE key=?',
+              ['household-vector-$familyId'],
+            );
+            final prior = sanitized.raw.select('SELECT * FROM recovery_state');
+            final vector = profile.isEmpty
+                ? (prior.isEmpty ? null : prior.single['profile_vector_json'])
+                : profile.single['value'];
+            final blocked =
+                prior.isNotEmpty && prior.single['phase'] == 'blocked';
+            sanitized.raw.execute(
+              'INSERT OR REPLACE INTO recovery_state VALUES (?,?,?,?,?)',
+              [
+                familyId,
+                blocked ? 'blocked' : 'snapshot',
+                DateTime.now().toUtc().toIso8601String(),
+                vector,
+                blocked ? prior.single['reason'] : null,
+              ],
+            );
+          } else {
+            sanitized.raw.execute('DELETE FROM recovery_intents');
+            sanitized.raw.execute('DELETE FROM recovery_state');
           }
           sanitized.raw.execute('DELETE FROM app_preferences');
           sanitized.raw.execute(

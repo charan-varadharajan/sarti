@@ -195,6 +195,18 @@ extension CalendarRetentionStore on CalendarRepository {
         ]);
       }
     }
+    // Completed recovery provenance must not retain expired appointment bodies.
+    // Unreviewed/quarantined intent and exact pending retry bytes stay protected.
+    for (final row in database.raw.select(
+      "SELECT source_operation_id,payload_json FROM recovery_intents WHERE status='done'",
+    )) {
+      if (_recoveryPayload(row['payload_json'])['id'] == id) {
+        database.raw.execute(
+          'DELETE FROM recovery_intents WHERE source_operation_id=?',
+          [row['source_operation_id']],
+        );
+      }
+    }
     for (final row in database.raw.select(
       "SELECT id,local_payload_json,remote_payload_json FROM conflicts WHERE status='resolved'",
     )) {
@@ -460,6 +472,7 @@ extension CalendarRetentionStore on CalendarRepository {
           DateTime.now().toUtc(),
         );
       }
+      trackReviewedRecoveryResolution();
     });
   }
 }

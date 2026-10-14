@@ -12,6 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SCENARIOS = {
+    "recovery": "integration_test/family_recovery_continuation_scenario_test.dart",
     "retention": "integration_test/calendar_retention_scenario_test.dart",
     "calendar": "integration_test/calendar_add_event_scenario_test.dart",
     "child": "integration_test/child_profile_sync_test.dart",

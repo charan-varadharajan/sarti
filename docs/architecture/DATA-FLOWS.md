@@ -75,3 +75,14 @@ review and save action. Dismissal is device scoped.
 
 Backup/restore remains blocked by the recovery design conflict recorded in
 `docs/STATUS.md`.
+
+## Replacement family recovery (ADR-040)
+
+Fresh passkey session → owner-authorized opaque snapshot download → local phrase
+decryption/schema/scope validation → encrypted stage/protected activation →
+read-only recovered calendar → fresh directory/signed current keys → download-only
+authenticated catch-up → explicit recovered-intent/conflict/profile-sharing review
+→ new device/operation/epoch envelope → normal server authorization/replay checks
+→ explicit current-policy history review → normal calendar/retention.
+Any failed check preserves the pause and recovered content. Stable cursor only
+means available messages were processed; expired relay history may be absent.

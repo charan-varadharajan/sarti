@@ -49,13 +49,16 @@ class ResourceKeySync {
   deviceId; // Authenticated server identity, not the installation UUID.
   final ResourceKeyApi api;
 
-  Future<void> prepare(String familyId) async {
+  Future<void> prepare(String familyId, {bool recoveryOnly = false}) async {
     final families = await api.listFamilies();
     final family = families
         .where((f) => f.id == familyId && f.status == 'active')
         .single;
-    final resources = {for (final r in family.resources) r.id: r};
-    if (repository.adultId != null) {
+    final resources = {
+      for (final r in family.resources)
+        if (!recoveryOnly || r.kind != 'personal_calendar') r.id: r,
+    };
+    if (!recoveryOnly && repository.adultId != null) {
       final personal = resources.values
           .where((r) => r.kind == 'personal_calendar')
           .toList();
@@ -107,7 +110,7 @@ class ResourceKeySync {
     );
     for (final child in children) {
       final id = child['id'] as String;
-      if (!resources.containsKey(id)) {
+      if (!recoveryOnly && !resources.containsKey(id)) {
         if (family.role != 'owner') {
           continue; // Server provisioning is owner-only.
         }
@@ -128,7 +131,8 @@ class ResourceKeySync {
         );
       }
     }
-    if (api case final ExtendedResourceApi extended) {
+    if (!recoveryOnly && api is ExtendedResourceApi) {
+      final extended = api as ExtendedResourceApi;
       final personal = database.raw.select(
         'SELECT resource_id FROM personal_calendars WHERE household_id=? AND adult_id=?',
         [familyId, repository.adultId],
@@ -195,11 +199,19 @@ class ResourceKeySync {
       }
       var claimedEpoch = false;
       var key = database.resourceKey(resource.id, resource.keyEpoch);
+      if (recoveryOnly &&
+          key != null &&
+          !self.hasCurrentGrant &&
+          devices.any((d) => d.hasCurrentGrant)) {
+        throw StateError(
+          'Wait for a verified grant of the established current key.',
+        );
+      }
       final hasPreviousKey = database.raw.select(
         'SELECT 1 FROM resource_keys WHERE resource_id = ? AND key_epoch < ?',
         [resource.id, resource.keyEpoch],
       ).isNotEmpty;
-      // Recovery deliberately clears old keys. An authorized admin may claim
+      // A valid older snapshot may lack current-epoch keys. An admin may claim
       // an advanced, unclaimed epoch; never invent a missing initial-epoch key
       // or replace an established key. The server serializes concurrent claims.
       final unclaimedRecoveryEpoch =
@@ -248,7 +260,8 @@ class ResourceKeySync {
           await _sendGrant(familyId, resource, recipient, key);
         }
       }
-      if (resource.kind == 'child_profile' &&
+      if (!recoveryOnly &&
+          resource.kind == 'child_profile' &&
           children.any((c) => c['id'] == resource.id) &&
           self.permission == 'admin') {
         final marker = database.raw.select(

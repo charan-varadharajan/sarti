@@ -115,3 +115,24 @@ precede coordinated 0.3.0+3 client upgrades; older clients cannot interpret new
 operation kinds. Catch-up is bounded and must finish before automatic cleanup.
 An active service/session is required to initiate cleanup with current policy;
 offline devices catch up later. No new plaintext event persistence is introduced.
+
+## Family recovery continuation (ADR-040)
+
+Recovered pending mutations are intentions, never old outgoing envelopes. Before
+publishing, fresh owner/device authority and signed current keys are checked and
+available relay pages are downloaded without uploads. Only explicitly reviewed
+intent becomes an atomic fresh operation with advanced new-device vector, current
+epoch and exact durable retry envelope. Unreviewed pending rows fail closed.
+Historical keys/vectors/applied IDs preserve old-message decryption and concurrent
+alternatives; conflict resolution is explicitly reviewed and atomically tracked.
+Retention remains paused until current policy/history review. Seven-day relay
+expiry prevents a completeness guarantee. Malformed/unreadable pages keep cursor
+and data intact. No new wire operation or server migration.
+
+Calendar retention also removes completed recovery-intent bodies for the deleted
+entry; unresolved/quarantined intent and exact pending retries are protected.
+RECOVERY-RETENTION-001 verifies this minimization boundary.
+
+Reconciliation discards completed intent rows after a receipt or proven causal
+domination (including downloaded deletion). Durable applied IDs and minimal
+deletion state provide replay protection without retaining obsolete bodies.

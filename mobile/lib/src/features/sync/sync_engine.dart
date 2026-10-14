@@ -82,19 +82,38 @@ class SyncEngine {
   final EncryptedRelay relay;
   final String deviceId;
 
-  Future<SyncReport> synchronize(String familyId) async {
+  Future<SyncReport> synchronize(
+    String familyId, {
+    bool downloadOnly = false,
+  }) async {
     database.raw.execute(
       'INSERT OR IGNORE INTO sync_state(family_id) VALUES (?)',
       [familyId],
     );
     var uploaded = 0;
-    while (true) {
+    while (!downloadOnly) {
       final rows = database.raw.select(
         "SELECT * FROM outbox WHERE family_id = ? AND state = 'pending' ORDER BY created_at, operation_id LIMIT 1",
         [familyId],
       );
       if (rows.isEmpty) break;
       final row = rows.first;
+      if (repository.recoveryPending &&
+          (repository.recoveryState?['phase'] != 'review' ||
+              database.raw.select(
+                "SELECT 1 FROM recovery_intents WHERE queued_operation_id=? AND status='queued' AND COALESCE(reviewed_payload_json,payload_json)=? AND COALESCE(reviewed_vector_json,vector_json)=? AND family_id=? AND resource_id=? AND (kind=? OR (kind='child_created' AND ?='child_updated'))",
+                [
+                  row['operation_id'],
+                  row['payload_json'],
+                  row['vector_json'],
+                  row['family_id'],
+                  row['resource_id'],
+                  row['kind'],
+                  row['kind'],
+                ],
+              ).isEmpty)) {
+        throw StateError('Recovered outgoing work needs explicit review.');
+      }
       final sequence =
           database.raw.select(
                 'SELECT next_device_sequence FROM sync_state WHERE family_id = ?',

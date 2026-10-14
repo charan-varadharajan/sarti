@@ -23,30 +23,6 @@ in-repository record while Sarti has no external tracker.
 
 ## Open defects
 
-### BUG-022 — Family-only recovery drops causal state and historical relay keys
-- Severity: High
-- Component: ADR-032 family backup restore and resumed synchronization
-- Discovered: 2026-10-13, code review during ADR-038 private recovery work
-- Blocking: Full family-recovery-plus-sync acceptance; not a reported production incident
-- Summary: Family recovery clears event vectors and historical resource keys.
-  A historical relay page can fail decryption after replacement; a later readable
-  concurrent change can overwrite a restored unsynced edit when no vector remains.
-- Evidence: BackupRecovery.stage clears resource_keys/event_versions for the
-  family-only path. applyRemote can preserve restored alternatives only when
-  causal state exists. The new personal path retains this state and has a tested
-  stale-message regression; it does not silently change accepted family behavior.
-- Required action: Design and approve the ADR-032 family recovery continuation,
-  test a restored pending edit against resumed relay messages and current grants.
-  A full family/server/device reproduction has not been executed for this finding.
-- Workaround: Retain the original phone/snapshot until replacement and resumed
-  synchronization are validated. Personal snapshots protect their own restored
-  causal state; they are not a general replacement for family recovery.
-- Status: Open; recorded separately from authorized adult/pet implementation.
-- ADR-039 mitigation: unvalidated family-only restores pause automatic calendar
-  cleanup; missing causal state rejects minimized remote deletion. This prevents
-  retention from silently deleting unversioned restored entries, not the other
-  recovery continuation failure modes. BUG-022 remains open.
-
 ### BUG-021 — No complete, discoverable family management hub
 - Severity: Medium
 - Component: Family/profile management and guardian entry points
@@ -211,6 +187,24 @@ in-repository record while Sarti has no external tracker.
 ---
 
 ## Resolved defects
+
+### BUG-022 — Family recovery drops historical decryption/causal continuation
+- Severity: High
+- Discovered/fixed: 2026-10-13
+- Fix version: 0.4.0+4; fix commit: this BUG-022 implementation commit
+- Disposition: Approved ADR-040 preserves validated family history and quarantined
+  intent. Fresh authority/current grants, download-only catch-up and explicit
+  review gate new-device publication and retention resume. Former credentials
+  and envelope bindings reset. Completed intent bodies are removed; incomplete
+  legacy history stays readable and blocked. No private-access or completeness
+  guarantee is introduced.
+- Verification: Flutter 202 pass/2 opt-in skips (both HTTP hosts executed);
+  backend 33 pass, 91.51% coverage; native recovery 15 pass each on iOS/Android.
+  Static, migration, dependency, tooling, Docker/health and secret checks pass.
+  See `../testing/BUG-022-VERIFICATION.md` for exact results/security boundaries.
+- Remaining limits: Physical passkeys/protected storage/provider lifecycle,
+  previously stripped backups and history beyond relay TTL; personal pending-write
+  continuation is not claimed. Android→iOS portability was not run.
 
 ### BUG-020 — Optional guided family setup
 - Severity: Medium; fixed in 0.2.0+2 (2026-10-13).

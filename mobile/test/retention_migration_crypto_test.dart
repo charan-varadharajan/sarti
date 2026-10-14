@@ -40,12 +40,12 @@ void main() {
       "UPDATE outbox SET envelope_json='synthetic-exact-retry' WHERE kind='event_upserted'",
     );
     store.raw.execute(
-      'DROP TABLE retention_conflicts; DROP TABLE calendar_deletions; ALTER TABLE event_versions DROP COLUMN retention_keep_vector; PRAGMA user_version=7',
+      'DROP TABLE recovery_intents; DROP TABLE recovery_state; DROP TABLE retention_conflicts; DROP TABLE calendar_deletions; ALTER TABLE event_versions DROP COLUMN retention_keep_vector; PRAGMA user_version=7',
     );
     store.close();
     try {
       store = SartiDatabase.open(path, key);
-      expect(store.raw.userVersion, 8);
+      expect(store.raw.userVersion, SartiDatabase.schemaVersion);
       expect(
         CalendarRepository(store, deviceId: device).load()!.events.single.title,
         original.title,

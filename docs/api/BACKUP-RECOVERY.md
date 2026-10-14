@@ -1,6 +1,7 @@
 # Encrypted backup and replacement-phone recovery
 
-ADR-032 is the current design. Login authorizes download; the parent-held
+ADR-032 defines transport; ADR-038 partitions private snapshots and ADR-040
+defines safe family continuation. Login authorizes download; the parent-held
 12-word phrase decrypts locally. No file picker or provider credential is needed.
 
 ## API
@@ -40,9 +41,10 @@ SQLCipher database, schema, single-family scope, integrity and foreign keys.
 The app writes only an encrypted staged file and a protected pending database key.
 After the old database closes, startup activates the staged file/key. A pending
 journal is retried after interrupted activation; success removes the journal.
-Fresh device identity and session stay in secure storage. Old outbox, cursors,
-resource keys and version tracking are removed; obtaining future resource grants
-remains governed by normal authorization and BUG-004's pending guardian journey.
+Fresh device identity and session stay in secure storage. Old outbox envelope/device bindings and cursors reset. Validated family-scoped
+historical keys, vectors and applied IDs remain; pending intent moves into the
+encrypted recovery manifest. Current signed grants/epochs and server authority
+independently gate future writes.
 Old locally recovered content remains visible; this cannot restore future grants
 or defeat revocation. Local preferences reset so cloud consent defaults off.
 
@@ -70,8 +72,8 @@ Personal recovery preserves authorized historical resource keys, applied IDs and
 event/profile vectors so old relay messages cannot overwrite newer restored edits.
 It clears old sessions/device credentials/outbox envelopes/cursors/sequences;
 current server epochs still gate future grants and writes. Household access starts
-conservatively read-only pending authenticated refresh. These exceptions apply to
-personal snapshots only; the preceding ADR-032 family restore behavior remains.
+conservatively read-only pending authenticated refresh. Family recovery also retains validated historical state under ADR-040, with a
+separate paused review workflow.
 Recovery requires an empty local family and the correct phrase; wrong adult,
 wrong phrase, malformed scope, integrity damage or corruption fails without
 replacing the existing store. Choose My private backup from the calendar menu;
@@ -88,13 +90,19 @@ buffers after packaging; source DB encryption is unchanged.
 Family/private snapshot sanitization applies the same exclusions to the new
 minimal deletion and retention-conflict tables. Existing exported/hosted blobs
 are not rewritten or expired by calendar retention and may contain older history.
-Family-only restore sets a local automatic-cleanup pause marker because BUG-022
-causal continuation is unresolved; this does not repair or change that recovery
-contract. Policy refresh does not clear the pause. Private recovery retains its
-accepted causal protections; the family policy is refreshed from the service.
+Family-only restore pauses cleanup and calendar writes. Open **Review recovered
+calendar**, check current access and process available relay messages. Review
+unsent changes explicitly; conflict choices advance replacement-device causality.
+New child/profile sharing requires separate current-recipient consent (off by
+default); missing calendars cannot be recreated through this workflow.
 
-A reviewed Keep decision lives in `event_versions.retention_keep_vector`.
-Personal recovery retains it with causal state; editing an event resets that
-version-specific exception. Family-only recovery still clears event versions and
-remains paused for automatic cleanup under BUG-022. No claim is made that a
-family recovery preserves a safe causal continuation until that defect is fixed.
+**Review history and resume cleanup** shows the current family period and expired
+entry count. Cancel keeps the pause; changed policy/history requires new review.
+Keep vectors, deletion records and future/active-series entries survive recovery.
+Incomplete causal history remains readable and blocked with guidance to obtain an
+authorized complete snapshot. Snapshot time and the seven-day relay limit are
+shown: a stable cursor does not prove all household history is current.
+
+No endpoints, server retention, backup magic/version, or permanent server keys
+change. Local schema v9 requires a compatible reader. See ADR-040 and
+../testing/BUG-022-VERIFICATION.md for exact evidence and platform limits.

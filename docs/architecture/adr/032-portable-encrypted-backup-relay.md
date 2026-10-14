@@ -46,3 +46,10 @@ family/schema mismatch, staged recovery, protected-storage failure, and UI
 confirmation. Mock tests do not establish physical Keychain/Keystore or live
 two-device compatibility. Server operators can delete or replay stored snapshots;
 the UI exposes server revision/time and recovery is an explicit snapshot action.
+
+## Superseding family continuation — ADR-040
+
+ADR-040 supersedes clearing family historical keys, causal vectors and applied IDs.
+Fresh credentials/cursors/envelope bindings still reset. Pending intent is
+quarantined for fresh authorization, download-only catch-up and explicit review.
+See ADR-040 and BUG-022 verification; saved keys confer no current authority.

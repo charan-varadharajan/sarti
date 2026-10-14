@@ -156,3 +156,10 @@ Scope/clock/recurrence/conflict assertions run without UI prerequisite creation.
 `./test --ios --scenario retention` and Android counterpart select the native
 journeys. Family recovery continuation remains blocked by BUG-022 rather than
 being inferred from the automatic-cleanup pause test. Results: ADR-039-VERIFICATION.md.
+
+Family recovery continuation has prepared real SQLCipher/libsodium fixtures with
+direct recovery-screen entry, synthetic fault injection and a real
+HTTP/PostgreSQL replacement-device journey (WebAuthn stub explicitly scoped).
+Run `./test --ios --scenario recovery` or Android equivalent for same-platform
+native recovery; this does not run deferred Android→iOS portability. Results and
+security coverage: BUG-022-VERIFICATION.md.

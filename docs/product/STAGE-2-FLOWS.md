@@ -25,3 +25,13 @@ An owner creates a 48-hour one-use invitation and sends the token out of band.
 Acceptance remains pending. The owner reviews resource permissions and approves;
 an authorized device then sends signed sealed resource-key grants. Revocation
 stops future relay/key access and rotates epochs.
+
+## Recovered family calendar (ADR-040)
+
+After replacement restore, the calendar stays readable with **Review recovery**.
+That card checks access and available updates, shows snapshot time and the
+seven-day relay limitation, then offers individual recovered-change approval and
+conflict choices. New profile sharing starts unchecked. A separate **Review
+history and resume cleanup** dialog previews current policy candidates; Cancel
+keeps editing/cleanup paused. Changed policy/history invalidates approval. Legacy
+missing history gives guidance for a complete authorized snapshot.

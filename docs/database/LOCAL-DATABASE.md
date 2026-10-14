@@ -1,6 +1,6 @@
 # Local SQLCipher database
 
-Schema version 7 opens only after a 32-byte key is applied and
+Schema version 9 opens only after a 32-byte key is applied and
 `PRAGMA cipher_version` succeeds. Foreign keys are enabled before migrations.
 Migrations run under `BEGIN IMMEDIATE` and roll back on failure.
 
@@ -85,7 +85,7 @@ existing encrypted preferences; v1 opt-in does not enable it. No migration.
 | `participant_profiles` | Encrypted typed adult/pet names, colours, adult reference and causal vector |
 | `event_participants` | Typed adult/pet references without changing existing event/child columns |
 | `appointment_shares` | Private/shared event mapping and reviewed household vector; never relayed |
-| `child_profile_versions` | Durable child-profile causal vectors, preserved across personal recovery |
+| `child_profile_versions` | Durable child-profile causal vectors, preserved across validated family/personal recovery |
 
 v7 creates new tables atomically and preserves existing events, pending envelopes,
 keys, IDs and colours. No old profiles are silently recoloured. Child colour edits
@@ -126,3 +126,34 @@ erDiagram
 ```
 The conflict relationship is logical, not a foreign key: the competing event
 may still exist instead of a committed local deletion.
+
+## Local v9 — family recovery continuation (ADR-040 / BUG-022)
+
+`recovery_state` holds family, phase, encrypted snapshot time, household causal
+vector and bounded reason. Phases: snapshot, paused, catching_up, review, ready,
+blocked. `recovery_intents` holds source provenance UUID, family/resource/kind,
+original payload/vector, pending/quarantined/queued/done status, fresh queued
+operation mapping, reason and exact reviewed payload/vector. All live in SQLCipher;
+no recovery plaintext is added to PostgreSQL, telemetry or push payloads.
+
+v8→v9 adds tables atomically, preserving keys, vectors, applied IDs and pending
+envelopes. Existing stripped family-recovery markers become blocked; migration
+never fabricates lost history or sweeps appointments. Snapshot staging validates
+family scope before activation and resets former device operation bindings.
+
+```mermaid
+erDiagram
+    households ||--o| recovery_state : pauses
+    households ||--o{ recovery_intents : preserves
+    recovery_intents ||--o| outbox : reviewed_binding
+```
+The outbox link is logical: old outbox rows reset on replacement; provenance
+remains independently protected. See recovery migration/security tests.
+
+Calendar retention also removes completed recovery-intent bodies for the deleted
+entry; unresolved/quarantined intent and exact pending retries are protected.
+RECOVERY-RETENTION-001 verifies this minimization boundary.
+
+Reconciliation discards completed intent rows after a receipt or proven causal
+domination (including downloaded deletion). Durable applied IDs and minimal
+deletion state provide replay protection without retaining obsolete bodies.

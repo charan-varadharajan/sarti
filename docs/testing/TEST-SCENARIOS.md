@@ -352,3 +352,33 @@ includes retention; no backup portability direction is implicitly added. Neither
 physical OS/background scheduling nor BUG-022 recovery continuation is established
 by these fixtures. Broader timezone/DST/recurrence rules retain existing suite
 coverage; real providers and disconnected-phone timing need physical validation.
+
+## Family recovery continuation — accepted ADR-040 / BUG-022
+
+Prepared independent encrypted source/replacement stores, actual v2 snapshot
+staging/activation, libsodium relay and direct recovery-screen entry. No UI
+prerequisites. Teardown closes stores and clears temporary files/key buffers.
+These are default regression tests; historical expected-red evidence remains in
+BUG-022-DESIGN-REVIEW.md. Current execution: BUG-022-VERIFICATION.md.
+
+| Stable ID | Assertion |
+| --- | --- |
+| RECOVERY-CONT-001 | Historical epoch decrypts; stale update cannot overwrite |
+| RECOVERY-CONT-002/002A | Concurrent edit retained; explicit merged-vector resolution |
+| RECOVERY-CONT-003/003A | Unsent edit/create/delete reviewed under fresh operation/device/epoch; exact lost-receipt retry, stable event IDs |
+| RECOVERY-CONT-004 | Current owner/resource authority overrides saved history |
+| RECOVERY-CONT-005/005A/005B | Incomplete legacy block, corrupt ciphertext/cursor protection, interrupted queued-intent re-export |
+| RECOVERY-CONT-006/006A | Prepared review card, cancel/resume cleanup, stale policy approval rejection |
+| RECOVERY-CONT-007 | Missing child provisioned only with new explicit sharing choice; old consent not reused |
+| RECOVERY-GATE-001 | Unreviewed outgoing mutation denied before upload |
+| RECOVERY-SCOPE-001 | Cross-family snapshot catalog rejected before activation |
+| RECOVERY-KEY-001/002 | Recovery excludes private keys and implicit publication; established epoch requires verified self grant |
+| RECOVERY-RETENTION-001 | Expired content removal includes completed recovery intent; unreviewed intent stays protected |
+| RECOVERY-MIG tests | Actual encrypted v8→v9 preservation, legacy block, wrong-key rejection |
+| RECOVERY-HTTP-001 (within GUARD-HTTP-001) | Real HTTP/PostgreSQL replacement, encrypted snapshot/grants, reviewed current-epoch upload, revoked former session |
+
+Run `./test --ios --scenario recovery` or `./test --android --scenario recovery`.
+Native same-platform tests exercise real encryption and the prepared UI with
+synthetic relay/authority; the separate HTTP host exercises server integration.
+WebAuthn, protected-secret storage, push and physical lifecycle are not claimed
+from these fixtures. Android→iOS backup portability remains explicitly not run.

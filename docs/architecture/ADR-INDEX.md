@@ -37,7 +37,7 @@ unresolved rather than inferred.
 | [ADR-029](adr/029-native-on-device-ai-bridges.md) | Apple Foundation Models and Android ML Kit on-device AI bridges | Accepted |
 | [ADR-030](adr/030-release-versioning.md) | Repository-wide SemVer and mobile build numbering | Accepted |
 | [ADR-031](adr/031-bip39-recovery-phrase-conformance.md) | BIP-39 recovery-phrase conformance | Accepted; supersedes ADR-025 phrase rules |
-| [ADR-032](adr/032-portable-encrypted-backup-relay.md) | Portable encrypted snapshot and owner-authorized recovery relay | Accepted; supersedes ADR-025; personal extension in ADR-038 |
+| [ADR-032](adr/032-portable-encrypted-backup-relay.md) | Portable encrypted snapshot and owner-authorized recovery relay | Accepted; supersedes ADR-025; personal extension in ADR-038; family continuation in ADR-040 |
 | [ADR-033](adr/033-kalender-calendar-presentation.md) | Kalender presentation adapter for day/week/month grids | Accepted |
 | [ADR-034](adr/034-versioned-sync-metadata-encoding.md) | Versioned deterministic sync metadata with legacy preservation | Accepted; supersedes ADR-020/021 serialization detail |
 
@@ -53,3 +53,5 @@ by an explicitly approved superseding ADR.
 | [ADR-038](adr/038-adult-private-appointments-and-pet-profiles.md) | Adult private appointments, explicit household copies and pet profiles | Accepted; implementation and verification in ADR-038 report |
 
 | [ADR-039](adr/039-rolling-calendar-history-retention.md) | Family-admin-managed mobile calendar retention | Accepted by maintainer 2026-10-13; implementation verification recorded separately |
+
+| [ADR-040](adr/040-family-recovery-continuation.md) | Safe family recovery continuation, recovered intent review and retention resume (BUG-022) | Accepted 2026-10-13; supersedes family-history clearing and unconditional retention pause |

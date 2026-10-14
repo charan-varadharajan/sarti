@@ -10,6 +10,7 @@ import 'package:sarti_mobile/src/features/sync/version_vector.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 part 'calendar_retention_store.dart';
+part 'calendar_recovery_store.dart';
 
 class ChildProfile {
   const ChildProfile({
@@ -234,6 +235,7 @@ class CalendarRepository {
     String? familyId,
     String? calendarResourceId,
   }) {
+    requireRecoveryReady();
     final householdId = familyId ?? newId();
     final resourceId = calendarResourceId ?? newId();
     final guardianId = newId();
@@ -517,6 +519,11 @@ class CalendarRepository {
       'SELECT value FROM app_preferences WHERE key=?',
       [vectorKey],
     );
+    if (recoveryPending && stored.isEmpty) {
+      throw StateError(
+        'Recovered family profile requires verified causal history.',
+      );
+    }
     if (stored.isNotEmpty) {
       final relation = compareVectors(
         Map<String, int>.from(
@@ -565,6 +572,7 @@ class CalendarRepository {
     String? cloudAlias,
     bool shareWithCalendarGuardians = false,
   }) {
+    requireRecoveryReady();
     final family = load() ?? (throw StateError('Create a family first.'));
     final childName = name.trim();
     if (childName.isEmpty ||
@@ -626,6 +634,7 @@ class CalendarRepository {
   }
 
   void updateChildColour(String id, int colour) {
+    requireRecoveryReady();
     if (colour < 0 ||
         colour > 0xffffffff ||
         database.raw.select(
@@ -862,6 +871,7 @@ class CalendarRepository {
   }
 
   void saveEvent(CalendarEvent event) {
+    requireRecoveryReady();
     if (event.title.trim().isEmpty || event.durationMinutes <= 0) {
       throw ArgumentError('Event title and duration are required.');
     }
@@ -902,6 +912,7 @@ class CalendarRepository {
     required bool share,
     String? reviewedSharedVector,
   }) {
+    requireRecoveryReady();
     if (event.title.trim().isEmpty || event.durationMinutes <= 0) {
       throw ArgumentError('Event title and duration are required.');
     }
@@ -972,6 +983,7 @@ class CalendarRepository {
     required String kind,
     required int colour,
   }) {
+    requireRecoveryReady();
     final family = load() ?? (throw StateError('Create a family first.'));
     if (!{'adult', 'pet'}.contains(kind) ||
         name.trim().isEmpty ||
@@ -1152,6 +1164,13 @@ class CalendarRepository {
         return RemoteApplyResult.conflict;
       }
     }
+    if (recoveryPending &&
+        database.raw.select(
+          'SELECT 1 FROM events e LEFT JOIN event_versions v ON v.event_id=e.id WHERE e.id=? AND v.event_id IS NULL',
+          [event.id],
+        ).isNotEmpty) {
+      throw StateError('Recovered appointment needs verified causal history.');
+    }
     final localRows = database.raw.select(
       'SELECT operation_id, payload_json, vector_json FROM outbox WHERE resource_id = ? ORDER BY created_at DESC',
       [event.calendarResourceId],
@@ -1289,6 +1308,7 @@ class CalendarRepository {
           DateTime.now().toUtc().toIso8601String(),
         ],
       );
+      trackReviewedRecoveryResolution();
     });
   }
 

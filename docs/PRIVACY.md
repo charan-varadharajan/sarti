@@ -201,3 +201,14 @@ remain until safe to remove. Never stops cleanup, not reverses prior removal.
 Existing encrypted backups/exports and offline copies can still contain older
 content. The server relay remains seven days; backup lifetime is separate.
 Unvalidated family-only restores pause cleanup while BUG-022 remains unresolved.
+
+### Family recovery history (ADR-040)
+
+Encrypted family snapshots may contain historical family resource keys, causal
+metadata, unsent appointment/profile intent and deletion/Keep state. They exclude
+adult-private resources and use an independent snapshot database key inside the
+recovery envelope. The service stores only the existing opaque revisioned blob;
+no permanent recovery-decryption key. A user-held phrase decrypts locally.
+Restored history can be older than available seven-day sync messages; recovery
+does not guarantee latest completeness. Calendar retention does not rewrite
+previously exported backups or provider copies.

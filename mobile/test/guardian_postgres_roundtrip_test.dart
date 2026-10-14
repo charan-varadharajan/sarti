@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'support/family_recovery_http.dart';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sarti_mobile/src/core/auth/native_passkey_adapter.dart';
 import 'package:sarti_mobile/src/core/crypto/device_key_store.dart';
@@ -20,13 +22,17 @@ import 'package:timezone/data/latest.dart' as tz_data;
 const fixtureUrl = String.fromEnvironment('SARTI_GUARDIAN_TEST_URL');
 
 class _Passkeys implements NativePasskeyAdapter {
+  final credentialId = newId();
   @override
   Future<Map<String, dynamic>> register(Map<String, dynamic> publicKey) async =>
-      {'id': newId(), 'challenge': publicKey['challenge']};
+      {'id': credentialId, 'challenge': publicKey['challenge']};
   @override
   Future<Map<String, dynamic>> authenticate(
     Map<String, dynamic> publicKey,
-  ) async => throw UnimplementedError();
+  ) async => {
+    'id': base64Url.encode(utf8.encode(credentialId)).replaceAll('=', ''),
+    'challenge': publicKey['challenge'],
+  };
 }
 
 void main() {
@@ -40,6 +46,7 @@ void main() {
           keys = <DeviceKeyMaterial>[];
       final repos = <CalendarRepository>[], sessions = <AuthenticatedSession>[];
       final coordinators = <GuardianCoordinator>[];
+      final credentials = <_Passkeys>[];
       addTearDown(() {
         for (final c in coordinators) {
           c.dispose();
@@ -68,7 +75,9 @@ void main() {
         keys.add(key);
         final api = SartiApiClient(Uri.parse(fixtureUrl));
         apis.add(api);
-        final session = await api.registerPasskey(_Passkeys(), key);
+        final credential = _Passkeys();
+        credentials.add(credential);
+        final session = await api.registerPasskey(credential, key);
         sessions.add(session);
         final db = SartiDatabase.open(
           ':memory:',
@@ -213,6 +222,14 @@ void main() {
         throwsA(
           isA<SartiApiException>().having((e) => e.statusCode, 'status', 404),
         ),
+      );
+      await familyRecoveryHttpJourney(
+        sodium: sodium,
+        originalApi: apis[0],
+        originalRepository: repos[0],
+        originalKeys: keys[0],
+        credential: credentials[0],
+        baseUrl: fixtureUrl,
       );
     },
     skip: fixtureUrl.isEmpty

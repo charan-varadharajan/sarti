@@ -202,3 +202,16 @@ also excludes private deletion/conflict rows. Existing encrypted exports/hosted
 backups can retain old history; this policy does not erase external copies.
 RETENTION-SEC/API/CRYPTO/MIG/RESTORE scenarios cover software boundaries; physical
 revocation/background delivery and BUG-022 continuation remain separate limits.
+
+## Family restore continuation controls (ADR-040)
+
+BUG-022 controls cover historical key loss, silent overwrite, unauthorized
+republishing, stale grants, resource resurrection and premature retention.
+Encrypted family snapshots preserve scoped historical keys/causal state and
+quarantined pending intent, excluding private resources. Replacement keeps fresh
+credentials, catches up without uploading and requires current owner/resource
+authority and explicit review before fresh-epoch publication or cleanup.
+Malformed ciphertext cannot advance the failed page cursor; incomplete snapshots
+remain readable/blocked. Tests: RECOVERY-CONT/GATE/SCOPE/KEY/MIG plus expanded
+GUARD-HTTP real backend host. See BUG-022 verification for actual execution and
+physical-device/provider limits; no household-completeness guarantee after TTL.

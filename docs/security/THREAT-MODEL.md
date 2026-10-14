@@ -44,3 +44,26 @@ recognized common words and provider/network metadata may still be identifying.
 Consent v2, truthful copy and strict source-supported response validation reduce
 accidental disclosure and invented changes; they do not establish anonymity,
 general PII detection, provider retention/training or production eligibility.
+
+## Restored-history continuation (ADR-040 / BUG-022)
+
+Threats: erased old keys block relay; erased vectors permit silent overwrite;
+reused outbox binds mutations to a revoked device; cached access/profile consent
+resurrects resources or broadens sharing; cleanup deletes unreviewed restored
+history. Controls: scope-validated encrypted historical keys/vectors/applied IDs,
+quarantined intent, fresh current authorization/key epoch, download-only catch-up,
+exact reviewed family/resource/kind/payload/vector binding, atomic new operation
+and durable retry, explicit conflicts/profile-sharing/retention review.
+
+Test mapping: CONT-001/002 historical decryption/concurrency; CONT-003/003A/005B
+retry/create/delete/replacement; CONT-004 and KEY/SCOPE current authority/private/
+tenant denial; CONT-005A malformed AEAD/cursor; GATE-001 unreviewed publication;
+CONT-006/006A cleanup approval and stale policy; CONT-007 fresh sharing choice;
+HTTP host validates real server replacement/revocation/grants. Relay expiry is a
+disclosed unavailable-history risk, not proof of latest completeness. Physical
+secure storage/passkeys/interruption and production provider behavior remain
+release checks. Existing backend authorization/replay/security suites still apply.
+
+Calendar retention also removes completed recovery-intent bodies for the deleted
+entry; unresolved/quarantined intent and exact pending retries are protected.
+RECOVERY-RETENTION-001 verifies this minimization boundary.

@@ -25,6 +25,7 @@ class CalendarScreen extends StatelessWidget {
     this.onBackup,
     this.onPersonalBackup,
     this.onGuardians,
+    this.onRecovery,
     this.canWrite = true,
     this.canManageChildren = true,
   });
@@ -34,7 +35,7 @@ class CalendarScreen extends StatelessWidget {
   final NativeEventAiProvider? nativeAi;
   final EmailSuggestionInbox? emailInbox;
   final VoidCallback? onBackup, onPersonalBackup;
-  final VoidCallback? onGuardians;
+  final VoidCallback? onGuardians, onRecovery;
   final bool canWrite, canManageChildren;
 
   @override
@@ -59,6 +60,11 @@ class CalendarScreen extends StatelessWidget {
                   );
                 }
                 if (value == 'retention') {
+                  if (controller.repository.recoveryPending &&
+                      onRecovery != null) {
+                    onRecovery!();
+                    return;
+                  }
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
                       builder: (_) =>
@@ -69,7 +75,8 @@ class CalendarScreen extends StatelessWidget {
                 if (value == 'private-backup') onPersonalBackup?.call();
               },
               itemBuilder: (_) => [
-                const PopupMenuItem(
+                PopupMenuItem(
+                  enabled: !controller.repository.recoveryPending,
                   value: 'profiles',
                   child: Text('People & pets'),
                 ),
@@ -84,7 +91,7 @@ class CalendarScreen extends StatelessWidget {
                   ),
               ],
             ),
-            if (onGuardians != null)
+            if (onGuardians != null && !controller.repository.recoveryPending)
               IconButton(
                 tooltip: "Family guardians",
                 onPressed: onGuardians,
@@ -96,7 +103,9 @@ class CalendarScreen extends StatelessWidget {
                 onPressed: onBackup,
                 icon: const Icon(Icons.backup_outlined),
               ),
-            if (emailInbox != null && canWrite)
+            if (emailInbox != null &&
+                canWrite &&
+                !controller.repository.recoveryPending)
               ListenableBuilder(
                 listenable: emailInbox!,
                 builder: (context, _) => IconButton(
@@ -109,7 +118,9 @@ class CalendarScreen extends StatelessWidget {
                   ),
                 ),
               ),
-            if (nativeAi != null && canWrite)
+            if (nativeAi != null &&
+                canWrite &&
+                !controller.repository.recoveryPending)
               IconButton(
                 tooltip: 'Add with natural language',
                 onPressed: () => _addWithNaturalLanguage(context),
@@ -129,7 +140,8 @@ class CalendarScreen extends StatelessWidget {
                   ),
                 ),
               ),
-            if (family.openConflicts > 0 &&
+            if (!controller.repository.recoveryPending &&
+                family.openConflicts > 0 &&
                 (canWrite || controller.repository.adultId != null))
               IconButton(
                 tooltip: 'Resolve conflicts',
@@ -139,7 +151,7 @@ class CalendarScreen extends StatelessWidget {
                   child: const Icon(Icons.merge_type),
                 ),
               ),
-            if (canManageChildren)
+            if (canManageChildren && !controller.repository.recoveryPending)
               IconButton(
                 tooltip: 'Add child',
                 onPressed: () => _addChild(context),
@@ -147,7 +159,9 @@ class CalendarScreen extends StatelessWidget {
               ),
           ],
         ),
-        floatingActionButton: !canWrite && controller.repository.adultId == null
+        floatingActionButton:
+            controller.repository.recoveryPending ||
+                (!canWrite && controller.repository.adultId == null)
             ? null
             : FloatingActionButton.extended(
                 onPressed: () => _editEvent(context),
@@ -156,7 +170,21 @@ class CalendarScreen extends StatelessWidget {
               ),
         body: Column(
           children: [
-            if (controller.repository.retentionConflicts().isNotEmpty)
+            if (controller.repository.recoveryPending)
+              Card(
+                child: ListTile(
+                  title: const Text('Restored calendar is paused'),
+                  subtitle: const Text(
+                    'Review recovered changes before editing or cleanup.',
+                  ),
+                  trailing: TextButton(
+                    onPressed: onRecovery,
+                    child: const Text('Review recovery'),
+                  ),
+                ),
+              ),
+            if (!controller.repository.recoveryPending &&
+                controller.repository.retentionConflicts().isNotEmpty)
               TextButton.icon(
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
@@ -201,15 +229,17 @@ class CalendarScreen extends StatelessWidget {
                 timezone: controller.timezone,
                 todayRequest: controller.todayRequest,
                 clock: controller.clock,
-                readOnly: !canWrite,
+                readOnly: !canWrite || controller.repository.recoveryPending,
                 canEdit: (event) =>
-                    canWrite ||
-                    event.calendarResourceId ==
-                        controller.repository.personalResourceId,
-                onEdit: (event) =>
-                    canWrite ||
+                    !controller.repository.recoveryPending &&
+                    (canWrite ||
                         event.calendarResourceId ==
-                            controller.repository.personalResourceId
+                            controller.repository.personalResourceId),
+                onEdit: (event) =>
+                    !controller.repository.recoveryPending &&
+                        (canWrite ||
+                            event.calendarResourceId ==
+                                controller.repository.personalResourceId)
                     ? _editEvent(context, event)
                     : _viewEvent(context, event),
                 onCancel: (event) {
