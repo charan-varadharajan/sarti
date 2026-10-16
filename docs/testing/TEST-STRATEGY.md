@@ -188,3 +188,11 @@ BUG-012 adds native iOS journeys to main/PR CI using available simulator discove
 allowlisted prepared fixtures, per-scenario pass/fail summary and retained failure
 logs/screenshots. The exact runner is also executed locally; local passes do not
 claim the remote macOS job passed. See REMAINING-BUGS-VERIFICATION.md.
+
+## Stage 5 traceability
+
+[Stage 5 test plan](STAGE-5-TEST-PLAN.md) maps the new contract's 17 required cases
+to existing reusable evidence and planned unit/API/backend/security/widget/native
+checks. Baseline is current existing functionality only; new scoped-role,
+multi-admin/household, caregiver, assisted-recovery, audit/deletion/restore coverage
+must be implemented with the corresponding runtime changes after ADR review.

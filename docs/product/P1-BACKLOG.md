@@ -87,6 +87,19 @@ by adding this feature to the backlog.
 - [Gemini mobile capabilities and Hey Google](https://support.google.com/gemini/answer/14579631)
 - [Siri and Dictation privacy](https://www.apple.com/legal/privacy/data/en/ask-siri-dictation/)
 
+## Stage 5 — scoped identity, membership, recovery and sensitive operations
+
+2026-10-16: The maintainer supplied and authorized the Stage 5 product contract
+(account registration, contextual roles, multi-admin/multi-household membership,
+child/caregiver permissions, recovery, sensitive actions, audit and revocation).
+This is now the active task. [Gap analysis](STAGE-5-GAP-ANALYSIS.md) records
+existing reuse, actual baseline and conflicts. [ADR-041](../architecture/adr/041-stage5-scoped-membership-and-sensitive-operations.md)
+is proposed; runtime changes that supersede accepted decisions await approval.
+[Test traceability](../testing/STAGE-5-TEST-PLAN.md) covers all 17 mandated cases.
+School/classroom authorization infrastructure is included; unrelated classroom/
+social product functionality and Stage 6 are not implicitly authorized. P1-001
+voice entry remains planned. Hosting stays last; no deployment/provider activation.
+
 ## Other candidates — not yet approved for implementation
 
 External calendar synchronization, departure estimates, birthday invitations/

@@ -28,7 +28,9 @@ Read, in order:
   irreversible, or outside that scope.
 - Do not add cloud inference or a silent cloud fallback.
 - Restrict implementation to P0 and explicitly authorized P1 scope in
-  `docs/product/P1-BACKLOG.md`. Hosting/deployment is deferred until last by the
+  `docs/product/P1-BACKLOG.md`, including the explicitly requested Stage 5 scope
+  and constraints in `docs/product/STAGE-5-GAP-ANALYSIS.md`. Accepted-ADR changes
+  still require superseding approval. Hosting/deployment is deferred until last by the
   maintainer (2026-10-14); P0 release acceptance gaps remain open.
 - Update documentation, schemas, tests, and generated API specifications in the
   same change as behavior.

@@ -207,3 +207,14 @@ quarantine unsent intent, catch up without publishing, then explicitly review
 fresh-authorized writes and history before resuming cleanup. Local schema v9;
 existing backup v2/server APIs remain. Snapshot credentials never confer live
 authority; incomplete historical snapshots remain readable and blocked.
+
+## Stage 5 design review — not implemented
+
+The 2026-10-16 Stage 5 request expands scoped roles, administrators/households,
+caregiver encryption, recovery and sensitive operations. Existing accepted
+single-owner/single-family/retention assumptions remain until superseded.
+[Proposed ADR-041](adr/041-stage5-scoped-membership-and-sensitive-operations.md)
+and [gap analysis](../product/STAGE-5-GAP-ANALYSIS.md) describe changes and risks;
+new context schemas, API routes and capabilities are not yet present. No server
+plaintext content/master recovery key, new cryptographic primitive or service
+is introduced by this architecture-only review.

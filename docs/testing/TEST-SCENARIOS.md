@@ -465,3 +465,16 @@ Siri/Gemini/Google Assistant compatibility. See ../product/P1-BACKLOG.md.
 The mandatory [P1 voice test plan](P1-VOICE-TEST-PLAN.md) defines scope, layers,
 fixtures, full-suite gates, existing CI gaps and deferred execution exclusions.
 All twelve voice scenarios remain planned; none is claimed implemented here.
+
+## Stage 5 — planned, not implemented
+
+The [Stage 5 test plan](STAGE-5-TEST-PLAN.md) is the canonical mapping for all
+17 mandated contract cases plus audit/30-day restoration. Stable new IDs:
+S5-ACCOUNT-001/002, S5-AUTH-001, S5-RECOVERY-001, S5-DEVICE-001/002,
+S5-ADMIN-001, S5-HOUSEHOLD-001, S5-CHILD-001, S5-PERMISSION-001,
+S5-CAREGIVER-001, S5-INVITE-001, S5-ROLE-001, S5-ISOLATION-001,
+S5-KEY-001, S5-DELETE-001, S5-OFFLINE-001, S5-AUDIT-001 and S5-RESTORE-001.
+Prepared independent synthetic context/SQLCipher/PostgreSQL/device fixtures,
+direct target-screen entry and teardown are mandatory. These IDs are plans,
+not tests that have passed. Current baseline results are recorded separately
+in ../product/STAGE-5-GAP-ANALYSIS.md; physical/provider acceptance is not inferred.

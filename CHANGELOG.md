@@ -21,6 +21,10 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
 ## [Unreleased]
 
 ### Documentation
+- Stage 5: record repository review, existing full Flutter/backend baseline, gap
+  analysis, 17-case test traceability and proposed ADR-041 for scoped membership,
+  caregiver encryption, recovery, audit and sensitive operations. No new runtime
+  features, migrations or accepted-ADR changes; architecture approval pending.
 - Require full automated regression gates for code changes, per-layer tests and
   CI registration. Expand P1-001 scope/test traceability to backend/API/security,
   contracts, encrypted persistence, migrations, reminders and both native platforms;

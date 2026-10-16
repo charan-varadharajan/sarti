@@ -1,11 +1,26 @@
 # Project status
 
-- Current work: approved P1 planning; Stage 3/P0 release acceptance remains open
-- Updated: 2026-10-14
+- Current work: Stage 5 assessment/design; accepted-ADR changes await approval; P0 release acceptance remains open
+- Updated: 2026-10-16
 - Stage state: P1 voice-entry inclusion approved; hosting deferred until last; BUG-001/002/003/004 remediation delivered; provider/device validation and BUG-005 live provider acceptance deferred; physical/provider validation outstanding
 - Repository version: `0.5.1+6`; no public release tag
 
 ## Current result
+
+2026-10-16 Stage 5 request reviewed against architecture/ADRs, code, schemas and
+existing tests. Baseline PASS: Flutter 221/2 opt-in skips (both hosts separately
+executed through backend); full backend 57/91% reported coverage including real
+PostgreSQL and both HTTP/Dart hosts; Alembic 0010, Flutter analyze, backend static/
+Bandit, tooling and version pass. No application changes or migrations yet.
+[Gap analysis](product/STAGE-5-GAP-ANALYSIS.md) distinguishes implemented/partial/
+missing/conflicting requirements. [ADR-041](architecture/adr/041-stage5-scoped-membership-and-sensitive-operations.md)
+is a reviewable proposed design, not accepted: single-owner/single-family,
+calendar-key isolation and deletion-retention rules require superseding approval.
+[Stage 5 test plan](testing/STAGE-5-TEST-PLAN.md) maps all 17 requested cases;
+new Stage 5 tests/features remain unimplemented. Stage 5 is incomplete. No Stage 6,
+hosting, live provider activation or deferred Android-to-iPhone portability run.
+P1 voice entry remains planned; local iOS signing edits are preserved.
+
 
 P1-001 scope now has a mandatory layered test plan: twelve planned voice
 scenarios, prepared fixtures, full automated regression for code changes,
