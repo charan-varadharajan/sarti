@@ -49,7 +49,7 @@ jobs:
           cache: true
       - run: flutter pub get
         working-directory: mobile
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
           cache: pip
