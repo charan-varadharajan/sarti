@@ -13,7 +13,7 @@ jobs:
   version:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - run: python3 -m unittest discover -s scripts -p 'test_*.py'
       - run: python3 scripts/version.py check
       - if: startsWith(github.ref, 'refs/tags/')
@@ -41,7 +41,7 @@ jobs:
       SARTI_RUN_MOBILE_CONTRACT: '1'
       SARTI_RUN_GUARDIAN_CONTRACT: '1'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.47.7'
@@ -77,7 +77,7 @@ jobs:
     timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.47.7'
@@ -129,7 +129,7 @@ jobs:
     # passkeys diagnostics use an iOS 26.1 SDK API while retaining iOS 13 runtime support.
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.47.7'
@@ -153,7 +153,7 @@ jobs:
   docker-smoke:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - run: cp .env.example .env
       - run: docker compose up --build --wait
       - run: curl --fail --silent http://localhost:8000/v1/health/live
@@ -164,7 +164,7 @@ jobs:
   secret-scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Scan Git history and working tree for secrets
@@ -178,7 +178,7 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/dependency-review-action@v4
         with:
           fail-on-severity: high
