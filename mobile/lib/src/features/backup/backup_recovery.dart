@@ -87,6 +87,7 @@ class BackupRecovery {
           for (final table in [
             'outbox',
             'sync_state',
+            'device_sync_state',
             'app_preferences',
             if (adultId != null) 'recovery_intents',
             if (adultId != null) 'recovery_state',
@@ -156,8 +157,8 @@ class BackupRecovery {
     String? adultId,
   }) async {
     final rows = database.raw.select('SELECT id FROM households');
-    if (rows.length != 1 || rows.single['id'] != familyId) {
-      throw const BackupException('Backup must contain exactly one family.');
+    if (!rows.any((row) => row['id'] == familyId)) {
+      throw const BackupException('Unknown backup household.');
     }
     if (key.length != 32) {
       throw const BackupException('Invalid snapshot key size.');
@@ -185,6 +186,52 @@ class BackupRecovery {
       try {
         sanitized.raw.execute('PRAGMA secure_delete=ON');
         sanitized.transaction(() {
+          // Work on the encrypted snapshot, never on the live database. Every
+          // retained content/key row must be attributable to the requested scope.
+          final allowed = <String>{
+            for (final row in sanitized.raw.select(
+              'SELECT calendar_resource_id FROM households WHERE id=?',
+              [familyId],
+            ))
+              row['calendar_resource_id'] as String,
+            for (final row in sanitized.raw.select(
+              'SELECT id FROM children WHERE household_id=? UNION SELECT id FROM participant_profiles WHERE household_id=? UNION SELECT resource_id AS id FROM personal_calendars WHERE household_id=? UNION SELECT resource_id AS id FROM resource_catalog WHERE family_id=?',
+              [familyId, familyId, familyId, familyId],
+            ))
+              row['id'] as String,
+          };
+          for (final table in [
+            'resource_keys',
+            'resource_catalog',
+            'conflicts',
+            'retention_conflicts',
+          ]) {
+            for (final row in sanitized.raw.select(
+              'SELECT DISTINCT resource_id FROM $table',
+            )) {
+              if (!allowed.contains(row['resource_id'])) {
+                sanitized.raw.execute(
+                  'DELETE FROM $table WHERE resource_id=?',
+                  [row['resource_id']],
+                );
+              }
+            }
+          }
+          sanitized.raw.execute('DELETE FROM outbox WHERE family_id!=?', [
+            familyId,
+          ]);
+          sanitized.raw.execute('DELETE FROM sync_state WHERE family_id!=?', [
+            familyId,
+          ]);
+          sanitized.raw.execute('DELETE FROM device_sync_state');
+          // Device-wide receipts cannot be exported as if scoped. Event/profile
+          // vectors and quarantined intent retain causal recovery information.
+          sanitized.raw.execute(
+            'DELETE FROM applied_operations WHERE operation_id NOT IN (SELECT operation_id FROM outbox)',
+          );
+          sanitized.raw.execute('DELETE FROM households WHERE id!=?', [
+            familyId,
+          ]);
           final excluded = sanitized.raw.select(
             'SELECT resource_id FROM personal_calendars WHERE (? IS NULL OR adult_id != ?)',
             [adultId, adultId],

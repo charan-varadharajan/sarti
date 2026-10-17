@@ -149,3 +149,23 @@ formatEventEnd localizes compact times with next-date/DST context. Calendar FAB
 routes explicit manual/description choices through existing editors, preserving
 recovery/read-only gates and local/native fallback. No API, schema, migration,
 SDK, key lifecycle or inference provider change.
+
+
+## Stage 5 foundation (ADR-041; implementation incomplete)
+
+`identity/step_up.py` owns session-bound proof checking/consumption; `api/step_up.py`
+uses existing verifier/native adapter without phone replacement. `households/roles.py`
+is pure deny-by-default scoped policy; authorization and expiry enforce grants,
+private ownership, active context and key epochs. `api/contexts.py` handles typed
+context metadata, admin directory and atomic audited membership changes under
+ordered locks. `sync/envelope.py` is the shared strict ciphertext model; no API
+module import is needed to describe an audit envelope. Tests use real PostgreSQL,
+AEAD and clearly bounded synthetic passkey verification.
+
+Mobile database v10/repository pinning and SyncEngine's database-wide scheduler
+provide separate private/child/recovery scopes and preserved retry ordering.
+BackupRecovery sanitizes an encrypted snapshot, not the live store. The recovery
+word component holds random-position answers only transiently. Prepared native
+foundation entry is registered alongside existing journeys. Shipping selectors,
+admin proof/audit flow, caregiver copies, occupied-store import and deletion
+remain pending; registration/adapter tests are not full product acceptance.

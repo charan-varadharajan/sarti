@@ -61,7 +61,7 @@ class StandardWebAuthnVerifier:
             rp_name="Sarti",
             user_id=user_id,
             user_name=user_name,
-            user_display_name="Sarti parent",
+            user_display_name="Sarti account",
             challenge=challenge,
             authenticator_selection=AuthenticatorSelectionCriteria(
                 resident_key=ResidentKeyRequirement.REQUIRED,

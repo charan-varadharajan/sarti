@@ -218,3 +218,20 @@ and [gap analysis](../product/STAGE-5-GAP-ANALYSIS.md) describe changes and risk
 new context schemas, API routes and capabilities are not yet present. No server
 plaintext content/master recovery key, new cryptographic primitive or service
 is introduced by this architecture-only review.
+
+
+## Stage 5 scoped authorization foundation — ADR-041
+
+Maintainer accepted ADR-041 on 2026-10-16. Context roles are resource-scoped;
+registration remains contact-free and neutral. PostgreSQL 0011–0013 add operation-
+bound current-phone step-up, explicit administrator rights, typed contexts,
+membership expiry and encrypted administration audit. Local v10 adds scoped
+private calendars and one upload counter per authenticated device. Independent
+household repositories and exact retry scheduling are component-tested, not a
+completed multi-household shipping journey. Household snapshots sanitize a copy
+to one scope; importing into occupied stores remains blocked safely.
+
+See ../api/SCOPED-ADMINISTRATION.md and ../STAGE-5-REPORT.md for implemented
+foundation versus pending UI/legacy mutation/caregiver/recovery/deletion work.
+School/context roles are access infrastructure, not Stage 6 product functionality.
+No deployment/service/cloud activation is included.

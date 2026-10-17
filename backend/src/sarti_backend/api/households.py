@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from sqlalchemy import Connection, and_, delete, func, select, update
+from sqlalchemy import Connection, and_, delete, func, or_, select, update
 
 from sarti_backend.core.auth import AuthenticatedDevice, require_device
 from sarti_backend.core.errors import ConflictDetected, PermissionDenied, TenantAccessDenied
@@ -21,7 +21,11 @@ from sarti_backend.db.schema import (
     resources,
     sync_operations,
 )
-from sarti_backend.households.authorization import require_active_member, require_owner
+from sarti_backend.households.authorization import (
+    require_active_member,
+    require_owner,
+    require_resource_permission,
+)
 
 
 class TransactionalDatabase(Protocol):
@@ -48,7 +52,16 @@ class ResourceResponse(BaseModel):
 
     id: UUID
     kind: Literal[
-        "family_profile", "child_profile", "calendar", "personal_calendar", "participant_profile"
+        "family_profile",
+        "child_profile",
+        "calendar",
+        "personal_calendar",
+        "participant_profile",
+        "admin_audit",
+        "care_calendar",
+        "classroom_calendar",
+        "activity_calendar",
+        "school_calendar",
     ]
     key_epoch: int
     permission: Literal["read", "write", "admin"] | None = None
@@ -81,7 +94,9 @@ class FamilyCreate(BaseModel):
 class ResourceCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    kind: Literal["child_profile", "personal_calendar", "participant_profile"]
+    kind: Literal[
+        "child_profile", "personal_calendar", "participant_profile", "admin_audit", "care_calendar"
+    ]
     resource_id: UUID | None = None
     share_with_calendar_guardians: bool = False
 
@@ -163,7 +178,7 @@ def _lock_active_actor(connection: Connection, actor: AuthenticatedDevice) -> No
 
 
 def _retention_admin(connection: Connection, family_id: UUID, adult_id: UUID) -> bool:
-    if require_active_member(connection, family_id, adult_id) == "owner":
+    if require_active_member(connection, family_id, adult_id) in {"owner", "administrator"}:
         return True
     return (
         connection.execute(
@@ -245,6 +260,7 @@ def create_family(
             select(families.c.created_by).where(families.c.id == family_id)
         ).one_or_none()
         if existing_family is not None:
+            require_owner(connection, family_id, actor.adult_id)
             if existing_family.created_by != actor.adult_id:
                 raise ConflictDetected("The offline family identifier is unavailable.")
             existing_resources = connection.execute(
@@ -289,7 +305,7 @@ def create_family(
             memberships.insert().values(
                 family_id=family_id,
                 adult_id=actor.adult_id,
-                role="owner",
+                role="administrator",
                 status="active",
                 created_at=now,
                 revoked_at=None,
@@ -316,6 +332,13 @@ def create_family(
                 },
             ],
         )
+        connection.execute(
+            permissions.insert(),
+            [
+                {"resource_id": rid, "adult_id": actor.adult_id, "permission": "admin"}
+                for rid in (profile_id, calendar_id)
+            ],
+        )
     return FamilyResponse(
         id=family_id,
         role="owner",
@@ -337,8 +360,19 @@ def list_families(request: Request, actor: Authenticated) -> list[FamilyResponse
                 memberships.c.role,
                 memberships.c.status,
                 memberships.c.sync_start_cursor,
-            ).where(
-                and_(memberships.c.adult_id == actor.adult_id, memberships.c.status != "revoked")
+            )
+            .join(families, families.c.id == memberships.c.family_id)
+            .where(
+                and_(
+                    memberships.c.adult_id == actor.adult_id,
+                    memberships.c.status != "revoked",
+                    families.c.context_kind == "household",
+                    families.c.deleted_at.is_(None),
+                    or_(
+                        memberships.c.expires_at.is_(None),
+                        memberships.c.expires_at > datetime.now(UTC),
+                    ),
+                )
             )
         ).all()
         result: list[FamilyResponse] = []
@@ -366,7 +400,11 @@ def list_families(request: Request, actor: Authenticated) -> list[FamilyResponse
             result.append(
                 FamilyResponse(
                     id=membership.family_id,
-                    role=membership.role,
+                    role="owner"
+                    if membership.role == "administrator"
+                    else "guardian"
+                    if membership.role == "limited_caregiver"
+                    else membership.role,
                     status=membership.status,
                     sync_start_cursor=membership.sync_start_cursor,
                     resources=[
@@ -408,15 +446,15 @@ def create_resource(
     database: TransactionalDatabase = request.app.state.database
     resource_id = payload.resource_id or uuid4()
     with database.transaction() as connection:
+        connection.execute(
+            select(families.c.id).where(families.c.id == family_id).with_for_update()
+        )
         if payload.kind in {"personal_calendar", "participant_profile"}:
             require_active_member(connection, family_id, actor.adult_id)
             if payload.kind == "personal_calendar" and payload.share_with_calendar_guardians:
                 raise PermissionDenied
         else:
             require_owner(connection, family_id, actor.adult_id)
-        connection.execute(
-            select(families.c.id).where(families.c.id == family_id).with_for_update()
-        )
         if payload.kind == "personal_calendar":
             current = connection.execute(
                 select(resources.c.id).where(
@@ -459,7 +497,7 @@ def create_resource(
                 deleted_at=None,
             )
         )
-        if payload.kind == "participant_profile":
+        if payload.kind != "personal_calendar":
             connection.execute(
                 permissions.insert().values(
                     resource_id=resource_id, adult_id=actor.adult_id, permission="admin"
@@ -491,6 +529,11 @@ def create_resource(
                         resource_id=resource_id, adult_id=adult_id, permission="read"
                     )
                 )
+        connection.execute(
+            update(families)
+            .where(families.c.id == family_id)
+            .values(acl_revision=families.c.acl_revision + 1)
+        )
     return ResourceResponse(id=resource_id, kind=payload.kind, key_epoch=1)
 
 
@@ -505,10 +548,10 @@ def create_invitation(
     token = secrets.token_urlsafe(32)
     expires_at = datetime.now(UTC) + timedelta(hours=48)
     with database.transaction() as connection:
-        require_owner(connection, family_id, actor.adult_id)
         connection.execute(
             select(families.c.id).where(families.c.id == family_id).with_for_update()
         )
+        require_owner(connection, family_id, actor.adult_id)
         _lock_active_actor(connection, actor)
         open_invitations = connection.execute(
             select(func.count())
@@ -618,7 +661,13 @@ def accept_invitation(
                         memberships.c.adult_id == actor.adult_id,
                     )
                 )
-                .values(status="pending", revoked_at=None, sync_start_cursor=0)
+                .values(
+                    role="guardian",
+                    status="pending",
+                    revoked_at=None,
+                    sync_start_cursor=0,
+                    expires_at=None,
+                )
             )
         else:
             connection.execute(
@@ -724,10 +773,10 @@ def cancel_invitation(
 ) -> Response:
     database: TransactionalDatabase = request.app.state.database
     with database.transaction() as connection:
-        require_owner(connection, family_id, actor.adult_id)
         connection.execute(
             select(families.c.id).where(families.c.id == family_id).with_for_update()
         )
+        require_owner(connection, family_id, actor.adult_id)
         _lock_active_actor(connection, actor)
         row = (
             connection.execute(
@@ -774,10 +823,10 @@ def approve_invitation(
 ) -> MembershipResponse:
     database: TransactionalDatabase = request.app.state.database
     with database.transaction() as connection:
-        require_owner(connection, family_id, actor.adult_id)
         connection.execute(
             select(families.c.id).where(families.c.id == family_id).with_for_update()
         )
+        require_owner(connection, family_id, actor.adult_id)
         invitation = (
             connection.execute(
                 select(invitations)
@@ -812,6 +861,7 @@ def approve_invitation(
                         resources.c.family_id == family_id,
                         resources.c.deleted_at.is_(None),
                         resources.c.private_adult_id.is_(None),
+                        resources.c.kind != "admin_audit",
                     )
                 )
                 .order_by(resources.c.id)
@@ -825,6 +875,14 @@ def approve_invitation(
             or not set(requested).issubset(allowed)
         ):
             raise PermissionDenied
+        for resource_id in requested:
+            require_resource_permission(
+                connection,
+                family_id=family_id,
+                resource_id=resource_id,
+                adult_id=actor.adult_id,
+                required="admin",
+            )
         if (
             connection.execute(
                 select(devices.c.id).where(
@@ -898,6 +956,11 @@ def approve_invitation(
         connection.execute(
             update(invitations).where(invitations.c.id == invitation_id).values(status="approved")
         )
+        connection.execute(
+            update(families)
+            .where(families.c.id == family_id)
+            .values(acl_revision=families.c.acl_revision + 1)
+        )
         return MembershipResponse(adult_id=recipient_id, family_id=family_id, status="active")
 
 
@@ -908,10 +971,10 @@ def revoke_guardian(
     database: TransactionalDatabase = request.app.state.database
     now = datetime.now(UTC)
     with database.transaction() as connection:
-        require_owner(connection, family_id, actor.adult_id)
         connection.execute(
             select(families.c.id).where(families.c.id == family_id).with_for_update()
         )
+        require_owner(connection, family_id, actor.adult_id)
         _lock_active_actor(connection, actor)
         connection.execute(
             select(resources.c.id)
@@ -968,6 +1031,11 @@ def revoke_guardian(
             )
             .scalars()
             .all()
+        )
+        connection.execute(
+            update(families)
+            .where(families.c.id == family_id)
+            .values(acl_revision=families.c.acl_revision + 1)
         )
         return MembershipResponse(
             adult_id=guardian_id,

@@ -81,6 +81,8 @@ challenges = sa.Table(
 families = sa.Table(
     "families",
     metadata,
+    sa.Column("context_kind", sa.Text(), nullable=False, server_default="household"),
+    sa.Column("acl_revision", sa.BigInteger(), nullable=False, server_default="0"),
     sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
     sa.Column("created_by", postgresql.UUID(as_uuid=True), nullable=False),
     sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
@@ -94,6 +96,7 @@ families = sa.Table(
 memberships = sa.Table(
     "memberships",
     metadata,
+    sa.Column("expires_at", sa.DateTime(timezone=True)),
     sa.Column("sync_start_cursor", sa.BigInteger(), nullable=False, server_default="0"),
     sa.CheckConstraint("sync_start_cursor >= 0", name="ck_membership_sync_start"),
     sa.Column("family_id", postgresql.UUID(as_uuid=True), primary_key=True),
@@ -201,5 +204,38 @@ ai_usage = sa.Table(
     sa.Column("scope", sa.Text(), primary_key=True),
     sa.Column("bucket", sa.Date(), primary_key=True),
     sa.Column("attempts", sa.Integer(), nullable=False),
+    sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
+)
+
+sensitive_authorizations = sa.Table(
+    "sensitive_authorizations",
+    metadata,
+    sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
+    sa.Column("session_id", postgresql.UUID(as_uuid=True), nullable=False),
+    sa.Column("action", sa.Text(), nullable=False),
+    sa.Column("family_id", postgresql.UUID(as_uuid=True)),
+    sa.Column("target_id", postgresql.UUID(as_uuid=True), nullable=False),
+    sa.Column("acl_revision", sa.BigInteger(), nullable=False),
+    sa.Column("challenge", sa.LargeBinary(), nullable=False),
+    sa.Column("proof_digest", sa.LargeBinary()),
+    sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
+    sa.Column("verified_at", sa.DateTime(timezone=True)),
+    sa.Column("consumed_at", sa.DateTime(timezone=True)),
+)
+
+context_audit = sa.Table(
+    "context_audit",
+    metadata,
+    sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
+    sa.Column("family_id", postgresql.UUID(as_uuid=True), nullable=False),
+    sa.Column("resource_id", postgresql.UUID(as_uuid=True), nullable=False),
+    sa.Column("actor_device_id", postgresql.UUID(as_uuid=True), nullable=False),
+    sa.Column("action", sa.Text(), nullable=False),
+    sa.Column("target_id", postgresql.UUID(as_uuid=True), nullable=False),
+    sa.Column("acl_revision", sa.BigInteger(), nullable=False),
+    sa.Column("envelope", postgresql.JSONB(), nullable=False),
+    sa.Column("request_digest", sa.LargeBinary(), nullable=False),
+    sa.Column("outcome", postgresql.JSONB(), nullable=False),
+    sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
     sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
 )

@@ -101,3 +101,39 @@ phrase. Protocol, retention, integrity checks and retry behavior are documented
 in `../api/BACKUP-RECOVERY.md`. Monitor size/availability metadata only; never log
 binary bodies, recovery phrases, or key journals. Backup-provider retention and
 physical replacement-device acceptance remain release validation requirements.
+
+
+## Stage 5 scoped membership/audit maintenance (ADR-041 foundation)
+
+With runtime configuration already supplied, run:
+
+```sh
+python -m sarti_backend.households.maintenance
+```
+
+Or inside the configured local backend container:
+
+```sh
+docker compose exec -T backend python -m sarti_backend.households.maintenance
+```
+
+The transactional job expires memberships and rotates affected resource epochs,
+purges expired encrypted audit entries and five-minute confirmation records, and
+emits aggregate counts only. It is retryable; current-request expiry enforcement
+also operates independently of this job. Audit access ends at its 30-day deadline.
+Production must schedule maintenance at a bounded regular interval (for example,
+every five minutes), monitor failures and verify physical purge timing before
+release. No scheduler or hosting is activated by this implementation. Provider
+backup retention and the separate Stage 5 closure/account purge workflow remain
+pending deployment/product work; this command does not implement those workflows.
+
+
+Stage 5 CI runs both HTTP/Dart hosts in the backend job and the shared native
+allowlist on iOS and an isolated Android API 35 x86_64 fixture. Android native
+logs and failure screen are retained seven days. The ephemeral fixture is stopped
+on success/failure; this does not operate a developer's physical phone. Linux
+acceleration is supported by [GitHub's hosted runner reference](https://docs.github.com/en/actions/reference/runners/github-hosted-runners);
+headless startup/software rendering follows [Android's emulator CLI](https://developer.android.com/studio/run/emulator-commandline)
+and [acceleration documentation](https://developer.android.com/studio/run/emulator-acceleration).
+Remote Linux-emulator execution remains unverified until GitHub executes the
+updated workflow; local macOS Android tests do not prove that compatibility.

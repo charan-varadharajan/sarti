@@ -12,10 +12,12 @@ from fastapi.responses import JSONResponse
 from sarti_backend.api.ai import router as ai_router
 from sarti_backend.api.auth import router as auth_router
 from sarti_backend.api.backups import router as backups_router
+from sarti_backend.api.contexts import router as contexts_router
 from sarti_backend.api.email import router as email_router
 from sarti_backend.api.health import router as health_router
 from sarti_backend.api.households import router as households_router
 from sarti_backend.api.push import router as push_router
+from sarti_backend.api.step_up import router as step_up_router
 from sarti_backend.api.sync import router as sync_router
 from sarti_backend.core.config import Settings, get_settings
 from sarti_backend.core.errors import ApiError
@@ -84,7 +86,7 @@ def create_app(
         started = time.monotonic()
         response = await call_next(request)
         response.headers["X-Request-ID"] = request_id
-        if request.url.path.startswith("/v1/ai/"):
+        if request.url.path.startswith(("/v1/ai/", "/v1/auth/")):
             response.headers["Cache-Control"] = "no-store"
         logger.info(
             "request_complete",
@@ -137,8 +139,10 @@ def create_app(
     app.include_router(ai_router)
     app.include_router(health_router)
     app.include_router(auth_router)
+    app.include_router(step_up_router)
     app.include_router(backups_router)
     app.include_router(households_router)
+    app.include_router(contexts_router)
     app.include_router(sync_router)
     app.include_router(email_router)
     app.include_router(push_router)

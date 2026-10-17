@@ -6,7 +6,7 @@ import 'package:sqlite3/sqlite3.dart';
 class SartiDatabase {
   SartiDatabase._(this.raw, this.path);
 
-  static const schemaVersion = 9;
+  static const schemaVersion = 10;
 
   final Database raw;
   final String path;
@@ -320,6 +320,33 @@ class SartiDatabase {
           WHERE EXISTS (SELECT 1 FROM app_preferences WHERE key='retention-recovery-pending');''',
         );
         raw.userVersion = 9;
+      });
+    }
+    if (raw.userVersion < 10) {
+      transaction(() {
+        // Preserve exact outbox envelopes and per-context cursors. The device
+        // counter is initialized by the authenticated engine, never renumbered.
+        raw.execute('''
+          CREATE TABLE IF NOT EXISTS device_sync_state (
+            device_id TEXT PRIMARY KEY,
+            next_device_sequence INTEGER NOT NULL CHECK(next_device_sequence > 0)
+          ) STRICT;
+        ''');
+        final fields = raw.select('PRAGMA table_info(personal_calendars)');
+        if (fields.any((r) => r['name'] == 'household_id' && r['pk'] == 0)) {
+          raw.execute('''
+            ALTER TABLE personal_calendars RENAME TO personal_calendars_legacy;
+            CREATE TABLE personal_calendars (
+              adult_id TEXT NOT NULL,
+              household_id TEXT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+              resource_id TEXT NOT NULL UNIQUE,
+              PRIMARY KEY(adult_id, household_id)
+            ) STRICT;
+            INSERT INTO personal_calendars SELECT * FROM personal_calendars_legacy;
+            DROP TABLE personal_calendars_legacy;
+          ''');
+        }
+        raw.userVersion = 10;
       });
     }
   }

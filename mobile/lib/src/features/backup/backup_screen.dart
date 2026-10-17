@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import 'recovery_phrase_confirmation.dart';
+
 import 'package:sarti_mobile/src/core/backup/backup_service.dart';
 
 class BackupScreen extends StatefulWidget {
@@ -30,6 +33,8 @@ class _BackupScreenState extends State<BackupScreen> {
   final _phrase = TextEditingController();
   bool _busy = false;
   bool _saved = false;
+  bool _confirmed = false;
+  int _generation = 0;
   String? _generated;
   String? _message;
   late bool _hasBackup = widget.hasBackup;
@@ -53,6 +58,7 @@ class _BackupScreenState extends State<BackupScreen> {
           _message = success;
           _generated = null;
           _saved = false;
+          _confirmed = false;
         });
       }
     } catch (_) {
@@ -94,11 +100,18 @@ class _BackupScreenState extends State<BackupScreen> {
                         : () => setState(() {
                             _generated = widget.generatePhrase();
                             _saved = false;
+                            _confirmed = false;
+                            _generation++;
                           }),
                     child: const Text('Generate recovery phrase'),
                   ),
                   if (_generated != null) ...[
                     SelectableText(_generated!),
+                    RecoveryPhraseConfirmation(
+                      key: ValueKey(_generation),
+                      phrase: _generated!,
+                      onChanged: (value) => setState(() => _confirmed = value),
+                    ),
                     CheckboxListTile(
                       title: const Text(
                         'I saved these 12 words somewhere safe',
@@ -109,7 +122,7 @@ class _BackupScreenState extends State<BackupScreen> {
                           : (v) => setState(() => _saved = v!),
                     ),
                     FilledButton(
-                      onPressed: _busy || !_saved
+                      onPressed: _busy || !_saved || !_confirmed
                           ? null
                           : () => _run(() async {
                               await widget.create(_generated!);

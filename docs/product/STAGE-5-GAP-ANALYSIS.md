@@ -146,3 +146,18 @@ claimed implemented by documentation. Existing features pass the executed baseli
 Stage 5 remains incomplete pending architecture approval, implementation and full
 acceptance. Next work is Stage 5 implementation after approval; not Stage 6,
 hosting deployment or unrelated P1 voice implementation.
+
+
+## Approved implementation update — 2026-10-16
+
+The assessment/table above records the pre-change baseline. The maintainer has
+now accepted ADR-041; architecture approval is no longer pending. Runtime
+foundation changes and new migrations/tests are in progress; see
+../STAGE-5-REPORT.md for the current implemented/pending distinction and actual
+verification. Neutral labels, current-phone step-up, scoped role/admin/audit API,
+expiry/epoch controls, recovery-word confirmation, pinned local context/private
+state, device-wide retry ordering and scoped export sanitizer are implemented.
+This does not complete all table requirements. Multi-household shipping UX/runtime,
+caregiver copies, occupied-store import, complete sensitive UI/legacy routing,
+assisted recovery, account/context deletion and recoverable manual event deletion
+remain pending. Stage 6 and hosting are not authorized by this update.

@@ -32,6 +32,7 @@ def test_retention_migration_and_guard() -> None:
             ),
             {"id": family, "adult": adult, "now": now},
         )
+        original_revision = c.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
         before = c.execute(
             text("SELECT operation_id,ciphertext FROM sync_operations ORDER BY operation_id")
         ).all()
@@ -39,7 +40,10 @@ def test_retention_migration_and_guard() -> None:
         with pytest.raises(RuntimeError, match="Cannot discard configured"):
             command.downgrade(config, "0008")
         with engine.begin() as c:
-            assert c.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "0010"
+            assert (
+                c.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
+                == original_revision
+            )
             c.execute(text("UPDATE families SET retention_revision=0 WHERE id=:id"), {"id": family})
         command.downgrade(config, "0008")
         command.upgrade(config, "head")

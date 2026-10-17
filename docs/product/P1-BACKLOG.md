@@ -94,7 +94,8 @@ by adding this feature to the backlog.
 child/caregiver permissions, recovery, sensitive actions, audit and revocation).
 This is now the active task. [Gap analysis](STAGE-5-GAP-ANALYSIS.md) records
 existing reuse, actual baseline and conflicts. [ADR-041](../architecture/adr/041-stage5-scoped-membership-and-sensitive-operations.md)
-is proposed; runtime changes that supersede accepted decisions await approval.
+was accepted by the maintainer on 2026-10-16; foundation implementation is
+in progress. Full Stage 5 journeys and acceptance remain pending.
 [Test traceability](../testing/STAGE-5-TEST-PLAN.md) covers all 17 mandated cases.
 School/classroom authorization infrastructure is included; unrelated classroom/
 social product functionality and Stage 6 are not implicitly authorized. P1-001

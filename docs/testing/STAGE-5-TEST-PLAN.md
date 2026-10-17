@@ -1,7 +1,7 @@
 # Stage 5 — Requirements-to-tests traceability
 
-Date: 2026-10-16. Product scope authorized by maintainer; ADR-041 proposed.
-New S5-* scenarios below are planned, not implemented/executed. Existing baseline
+Date: 2026-10-16. Product scope and ADR-041 approved by maintainer.
+The table is the complete acceptance plan, not a claim all cases are implemented. Existing baseline
 results are in ../product/STAGE-5-GAP-ANALYSIS.md; they prove existing behavior only.
 
 | Contract case | Stable scenario | Existing reusable evidence | Required new coverage/layers |
@@ -66,3 +66,31 @@ cross-layer hosts, analysis/static/security/tooling/version checks pass. Native
 journeys/builds/providers were not rerun for this documentation-only assessment.
 Full Stage 5 acceptance cannot be marked complete until the new scenarios above
 exist and pass, required gates run and any physical/provider limits are explicit.
+
+
+## Foundation implementation traceability (2026-10-16)
+
+- `test_sensitive_step_up.py`: contact-free labels, current-phone confirmation,
+  wrong scope/session/action/target/device/ACL, expired/malformed/replayed requests,
+  hashed proof and concurrent single consumption; real PostgreSQL, verifier stub.
+- `test_scoped_roles.py`: complete role/context matrix and unknown-action denial.
+- `test_context_administration.py`: multiple admins/contexts, exact retries,
+  fingerprint pin, invalid role/foreign scope, explicit grants, caregiver rejection,
+  expiry committed before denied request, atomic audit/actual AEAD decryption,
+  concurrent final-admin demotions and partial-admin whole-snapshot denial.
+- `sensitive_action_api_test.dart`: authenticated options/assertion/completion;
+  session changes abort and phone identity is untouched at the adapter boundary.
+- `recovery_phrase_confirmation_test.dart`: checkbox alone/wrong word fails,
+  two entered words enable explicit upload, regenerate clears transient confirmation.
+- `multi_household_state_test.dart`: independent child/private/event repositories,
+  pinned switch behavior, real crypto concurrent upload/exact uncertain retry,
+  actual encrypted scoped snapshot excludes foreign/private keys/content; actual
+  v9→v10 encrypted-file migration preserves the legacy private binding and exact
+  pending bytes. Bootstrap permission regression denies role-only calendar writes.
+- Native `stage5_foundation_scenario_test.dart` reuses prepared SQLCipher/crypto/
+  recovery-widget fixtures; registered as `./test --ios|--android --scenario stage5`.
+  Registration is not an execution result; see Stage 5 report for runs.
+
+Remaining table entries stay planned. Existing legacy functional scenarios continue
+to run through default suites and native allowlist. No physical passkey or completed
+multi-household product journey is inferred from these component tests.

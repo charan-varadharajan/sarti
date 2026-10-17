@@ -162,4 +162,24 @@ void main() {
       },
     );
   }
+  testWidgets(
+    'S5-PERMISSION-MOB-001 administrator without calendar write grant cannot add shared events',
+    (tester) async {
+      final f = ChildSyncFixture(sodium);
+      addTearDown(f.close);
+      f.a.database.raw.execute(
+        'INSERT INTO app_preferences(key,value) VALUES (?,?)',
+        [
+          'family-access-${f.familyId}',
+          jsonEncode({'role': 'owner', 'permission': 'read'}),
+        ],
+      );
+      await open(tester, f);
+      expect(find.byType(FloatingActionButton), findsNothing);
+      await tester.tap(find.text('Week'));
+      await tester.pumpAndSettle();
+      expect(find.byType(FloatingActionButton), findsNothing);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
 }

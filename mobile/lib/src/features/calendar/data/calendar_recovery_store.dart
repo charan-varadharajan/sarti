@@ -37,7 +37,10 @@ class RecoveredChange {
 
 extension CalendarRecoveryStore on CalendarRepository {
   Map<String, Object?>? get recoveryState {
-    final rows = database.raw.select('SELECT * FROM recovery_state LIMIT 1');
+    final rows = database.raw.select(
+      'SELECT * FROM recovery_state WHERE family_id=?',
+      [selectedHouseholdId],
+    );
     return rows.isEmpty ? null : Map<String, Object?>.from(rows.single);
   }
 
@@ -50,10 +53,10 @@ extension CalendarRecoveryStore on CalendarRepository {
   }
 
   void setRecoveryPhase(String phase, {String? reason}) {
-    database.raw.execute('UPDATE recovery_state SET phase=?,reason=?', [
-      phase,
-      reason,
-    ]);
+    database.raw.execute(
+      'UPDATE recovery_state SET phase=?,reason=? WHERE family_id=?',
+      [phase, reason, selectedHouseholdId],
+    );
   }
 
   /// Called inside the staging transaction, never against the live source.
@@ -426,7 +429,8 @@ extension CalendarRecoveryStore on CalendarRepository {
 
   void reconcileRecoveryIntents() {
     for (final row in database.raw.select(
-      "SELECT * FROM recovery_intents WHERE status IN ('pending','queued')",
+      "SELECT * FROM recovery_intents WHERE family_id=? AND status IN ('pending','queued')",
+      [selectedHouseholdId],
     )) {
       if (row['status'] == 'queued') {
         final uploaded = database.raw.select(
@@ -454,12 +458,16 @@ extension CalendarRecoveryStore on CalendarRepository {
     }
     // Receipts/applied IDs carry deduplication; completed intent needs no body.
     // This also handles intent dominated by a deletion received during catch-up.
-    database.raw.execute("DELETE FROM recovery_intents WHERE status='done'");
+    database.raw.execute(
+      "DELETE FROM recovery_intents WHERE family_id=? AND status='done'",
+      [selectedHouseholdId],
+    );
   }
 
   List<RecoveredChange> recoveredChanges() => database.raw
       .select(
-        "SELECT * FROM recovery_intents WHERE status!='done' ORDER BY source_operation_id",
+        "SELECT * FROM recovery_intents WHERE family_id=? AND status!='done' ORDER BY source_operation_id",
+        [selectedHouseholdId],
       )
       .map((r) {
         final row = Map<String, Object?>.from(r);
@@ -592,7 +600,8 @@ extension CalendarRecoveryStore on CalendarRepository {
   void trackReviewedRecoveryResolution() {
     if (!recoveryPending || recoveryState?['phase'] != 'review') return;
     for (final row in database.raw.select(
-      "SELECT * FROM outbox WHERE state='pending' AND kind IN ('conflict_resolved','retention_kept','retention_deleted')",
+      "SELECT * FROM outbox WHERE family_id=? AND state='pending' AND kind IN ('conflict_resolved','retention_kept','retention_deleted')",
+      [selectedHouseholdId],
     )) {
       if (database.raw.select(
         'SELECT 1 FROM recovery_intents WHERE queued_operation_id=?',
@@ -622,9 +631,10 @@ extension CalendarRecoveryStore on CalendarRepository {
         recoveredChanges().isNotEmpty ||
         openConflicts().isNotEmpty ||
         retentionConflicts().isNotEmpty ||
-        database.raw
-            .select("SELECT 1 FROM outbox WHERE state='pending'")
-            .isNotEmpty) {
+        database.raw.select(
+          "SELECT 1 FROM outbox WHERE family_id=? AND state='pending'",
+          [selectedHouseholdId],
+        ).isNotEmpty) {
       throw StateError(
         'Finish recovered changes and conflicts before resuming cleanup.',
       );

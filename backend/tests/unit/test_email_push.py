@@ -317,7 +317,7 @@ def test_push_wakeup_no_fcm_credentials_returns_zero_dispatched() -> None:
     actor = AuthenticatedDevice(adult_id=_ADULT_ID, device_id=_DEVICE_ID)
     app.dependency_overrides[require_device] = lambda: actor
 
-    with patch("sarti_backend.households.authorization.require_active_member"):
+    with patch("sarti_backend.api.push.require_active_member"):
 
         async def _req() -> Any:
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:

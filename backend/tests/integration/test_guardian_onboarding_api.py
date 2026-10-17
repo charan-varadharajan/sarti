@@ -3,17 +3,18 @@
 import asyncio
 import base64
 import hashlib
+import importlib.util
 import os
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import pytest
-from alembic.config import Config
+from alembic.migration import MigrationContext
+from alembic.operations import Operations
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select, update
 from test_stage2_api import Api, StubWebAuthn, b64
 
-from alembic import command
 from sarti_backend.core.config import Settings
 from sarti_backend.db.database import Database
 from sarti_backend.db.schema import invitations, memberships, resources
@@ -168,8 +169,20 @@ async def guardian_flow() -> None:
         assert (
             await client.post("/v1/sync/operations", headers=api.headers(guardian), json=op(1))
         ).status_code == 403
-        with pytest.raises(RuntimeError, match="guardian relay baseline"):
-            command.downgrade(Config("alembic.ini"), "0006")
+        # Exercise this exact migration guard independently. Later revisions
+        # correctly refuse to discard scoped resources before reaching 0007.
+        spec = importlib.util.spec_from_file_location(
+            "baseline_guard", "alembic/versions/0007_guardian_relay_baseline.py"
+        )
+        assert spec is not None and spec.loader is not None
+        guard = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(guard)
+        with (
+            db.transaction() as c,
+            Operations.context(MigrationContext.configure(c)),
+            pytest.raises(RuntimeError, match="guardian relay baseline"),
+        ):
+            guard.downgrade()
         with db.connect() as c:
             stored = c.execute(
                 select(memberships.c.sync_start_cursor).where(

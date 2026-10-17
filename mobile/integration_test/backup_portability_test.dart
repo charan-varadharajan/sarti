@@ -1,3 +1,5 @@
+import '../test/support/recovery_confirmation_helper.dart';
+
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -163,6 +165,8 @@ void main() {
       );
       await tester.tap(find.text('Generate recovery phrase'));
       await tester.pumpAndSettle();
+      await confirmFixturePhrase(tester, _phrase);
+      await tester.ensureVisible(find.byType(Checkbox));
       await tester.tap(find.byType(Checkbox));
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('Encrypt and upload backup'));

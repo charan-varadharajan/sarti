@@ -329,6 +329,39 @@ class SartiApiClient
     );
   }
 
+  /// Fresh identity confirmation only; never replaces the current session/device.
+  Future<String> confirmSensitiveAction(
+    NativePasskeyAdapter passkeys, {
+    required String action,
+    String? familyId,
+    required String targetId,
+    required int aclRevision,
+  }) async {
+    final tokenBefore = sessionToken;
+    final options = await _json(
+      'POST',
+      '/v1/auth/step-up/options',
+      authenticated: true,
+      body: {
+        'action': action,
+        'family_id': familyId,
+        'target_id': targetId,
+        'acl_revision': aclRevision,
+      },
+    );
+    final credential = await passkeys.authenticate(
+      Map<String, dynamic>.from(options['public_key'] as Map),
+    );
+    if (sessionToken != tokenBefore) throw const SartiApiException(401);
+    final result = await _json(
+      'POST',
+      '/v1/auth/step-up/complete',
+      authenticated: true,
+      body: {'challenge_id': options['challenge_id'], 'credential': credential},
+    );
+    return result['proof'] as String;
+  }
+
   Future<Map<String, dynamic>> cloudCapability() =>
       _json('GET', '/v1/ai/capability', authenticated: true);
   Future<Map<String, dynamic>> cloudProposal(Map<String, dynamic> request) =>

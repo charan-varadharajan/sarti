@@ -44,7 +44,7 @@ void main() {
     db.close();
     try {
       db = SartiDatabase.open(path, key);
-      expect(db.raw.userVersion, 9);
+      expect(db.raw.userVersion, SartiDatabase.schemaVersion);
       expect(CalendarRepository(db, deviceId: device).recoveryPending, isFalse);
       expect(db.resourceKey(family.calendarResourceId, 1), key);
       expect(db.raw.select('SELECT * FROM event_versions'), hasLength(1));

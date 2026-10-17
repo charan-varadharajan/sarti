@@ -9,8 +9,12 @@ from sqlalchemy.sql.elements import ColumnElement
 from sarti_backend.api.sync import TransactionalDatabase
 from sarti_backend.core.auth import AuthenticatedDevice, require_device
 from sarti_backend.core.errors import ConflictDetected, InvalidRequest, TenantAccessDenied
-from sarti_backend.db.schema import families, family_backups, personal_backups
-from sarti_backend.households.authorization import require_active_member, require_owner
+from sarti_backend.db.schema import families, family_backups, personal_backups, resources
+from sarti_backend.households.authorization import (
+    require_active_member,
+    require_owner,
+    require_resource_permission,
+)
 
 router = APIRouter(prefix="/v1/families/{family_id}", tags=["encrypted-backup"])
 Authenticated = Annotated[AuthenticatedDevice, Depends(require_device)]
@@ -34,6 +38,22 @@ def _authorize(
         require_active_member(connection, family_id, actor.adult_id)
     else:
         require_owner(connection, family_id, actor.adult_id)
+        # A shared snapshot is not a child-scoped resource. Promotion to a
+        # partial administrator must never reveal the whole household backup.
+        for resource_id in connection.execute(
+            select(resources.c.id).where(
+                resources.c.family_id == family_id,
+                resources.c.private_adult_id.is_(None),
+                resources.c.deleted_at.is_(None),
+            )
+        ).scalars():
+            require_resource_permission(
+                connection,
+                family_id=family_id,
+                resource_id=resource_id,
+                adult_id=actor.adult_id,
+                required="read",
+            )
 
 
 def authorize(

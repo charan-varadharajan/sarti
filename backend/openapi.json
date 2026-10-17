@@ -1,6 +1,74 @@
 {
   "components": {
     "schemas": {
+      "AuditResponse": {
+        "properties": {
+          "acl_revision": {
+            "exclusiveMinimum": 0.0,
+            "title": "Acl Revision",
+            "type": "integer"
+          },
+          "action": {
+            "enum": [
+              "admin.change",
+              "permissions.change",
+              "membership.revoke"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "actor_device_id": {
+            "format": "uuid",
+            "title": "Actor Device Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "envelope": {
+            "$ref": "#/components/schemas/OperationUpload"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "family_id": {
+            "format": "uuid",
+            "title": "Family Id",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/ChangeOutcome"
+          },
+          "target_id": {
+            "format": "uuid",
+            "title": "Target Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "family_id",
+          "actor_device_id",
+          "action",
+          "target_id",
+          "acl_revision",
+          "envelope",
+          "outcome",
+          "created_at",
+          "expires_at"
+        ],
+        "title": "AuditResponse",
+        "type": "object"
+      },
       "CeremonyCompletion": {
         "additionalProperties": false,
         "properties": {
@@ -45,6 +113,207 @@
           "public_key"
         ],
         "title": "CeremonyOptions",
+        "type": "object"
+      },
+      "ChangeOutcome": {
+        "properties": {
+          "acl_revision": {
+            "minimum": 0.0,
+            "title": "Acl Revision",
+            "type": "integer"
+          },
+          "adult_id": {
+            "format": "uuid",
+            "title": "Adult Id",
+            "type": "string"
+          },
+          "context_id": {
+            "format": "uuid",
+            "title": "Context Id",
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "revoked"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "adult_id",
+          "context_id",
+          "role",
+          "status",
+          "acl_revision"
+        ],
+        "title": "ChangeOutcome",
+        "type": "object"
+      },
+      "ContextCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/ContextKind"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "ContextCreate",
+        "type": "object"
+      },
+      "ContextKind": {
+        "enum": [
+          "household",
+          "classroom",
+          "activity",
+          "school"
+        ],
+        "title": "ContextKind",
+        "type": "string"
+      },
+      "ContextResource": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "key_epoch": {
+            "exclusiveMinimum": 0.0,
+            "title": "Key Epoch",
+            "type": "integer"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "permission": {
+            "enum": [
+              "read",
+              "write",
+              "admin"
+            ],
+            "title": "Permission",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "key_epoch",
+          "permission"
+        ],
+        "title": "ContextResource",
+        "type": "object"
+      },
+      "ContextResponse": {
+        "properties": {
+          "acl_revision": {
+            "minimum": 0.0,
+            "title": "Acl Revision",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ContextKind"
+          },
+          "resources": {
+            "items": {
+              "$ref": "#/components/schemas/ContextResource"
+            },
+            "title": "Resources",
+            "type": "array"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Role"
+              },
+              {
+                "const": "owner",
+                "type": "string"
+              }
+            ],
+            "title": "Role"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "role",
+          "acl_revision",
+          "resources"
+        ],
+        "title": "ContextResponse",
+        "type": "object"
+      },
+      "ContextSummary": {
+        "properties": {
+          "acl_revision": {
+            "minimum": 0.0,
+            "title": "Acl Revision",
+            "type": "integer"
+          },
+          "context_kind": {
+            "$ref": "#/components/schemas/ContextKind"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Role"
+              },
+              {
+                "const": "owner",
+                "type": "string"
+              }
+            ],
+            "title": "Role"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "active"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "context_kind",
+          "acl_revision",
+          "role",
+          "status",
+          "expires_at"
+        ],
+        "title": "ContextSummary",
         "type": "object"
       },
       "DeviceKeys": {
@@ -239,6 +508,27 @@
           "resources"
         ],
         "title": "FamilyResponse",
+        "type": "object"
+      },
+      "Grant": {
+        "additionalProperties": false,
+        "properties": {
+          "permission": {
+            "pattern": "^(read|write|admin)$",
+            "title": "Permission",
+            "type": "string"
+          },
+          "resource_id": {
+            "format": "uuid",
+            "title": "Resource Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "resource_id",
+          "permission"
+        ],
+        "title": "Grant",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -570,6 +860,155 @@
         "title": "KeyGrantUpload",
         "type": "object"
       },
+      "MemberChange": {
+        "additionalProperties": false,
+        "properties": {
+          "audit": {
+            "$ref": "#/components/schemas/OperationUpload"
+          },
+          "expected_device_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Device Id"
+          },
+          "expected_key_digest": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Key Digest"
+          },
+          "expected_revision": {
+            "minimum": 0.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "permissions": {
+            "items": {
+              "$ref": "#/components/schemas/Grant"
+            },
+            "maxItems": 100,
+            "title": "Permissions",
+            "type": "array"
+          },
+          "proof": {
+            "maxLength": 256,
+            "minLength": 32,
+            "title": "Proof",
+            "type": "string"
+          },
+          "revoked": {
+            "default": false,
+            "title": "Revoked",
+            "type": "boolean"
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role"
+          }
+        },
+        "required": [
+          "role",
+          "permissions",
+          "expected_revision",
+          "proof",
+          "audit"
+        ],
+        "title": "MemberChange",
+        "type": "object"
+      },
+      "MemberResponse": {
+        "properties": {
+          "adult_id": {
+            "format": "uuid",
+            "title": "Adult Id",
+            "type": "string"
+          },
+          "device": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PublicDevice"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "permissions": {
+            "items": {
+              "$ref": "#/components/schemas/Grant"
+            },
+            "title": "Permissions",
+            "type": "array"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Role"
+              },
+              {
+                "const": "owner",
+                "type": "string"
+              }
+            ],
+            "title": "Role"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "active",
+              "revoked"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "adult_id",
+          "role",
+          "status",
+          "expires_at",
+          "device",
+          "permissions"
+        ],
+        "title": "MemberResponse",
+        "type": "object"
+      },
       "MembershipResponse": {
         "additionalProperties": false,
         "properties": {
@@ -837,6 +1276,35 @@
         "title": "ProposalResponse",
         "type": "object"
       },
+      "PublicDevice": {
+        "properties": {
+          "device_id": {
+            "format": "uuid",
+            "title": "Device Id",
+            "type": "string"
+          },
+          "encryption_public_key": {
+            "title": "Encryption Public Key",
+            "type": "string"
+          },
+          "key_digest": {
+            "title": "Key Digest",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "title": "Signing Public Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "device_id",
+          "encryption_public_key",
+          "signing_public_key",
+          "key_digest"
+        ],
+        "title": "PublicDevice",
+        "type": "object"
+      },
       "PushTokenRegister": {
         "additionalProperties": false,
         "properties": {
@@ -980,7 +1448,9 @@
             "enum": [
               "child_profile",
               "personal_calendar",
-              "participant_profile"
+              "participant_profile",
+              "admin_audit",
+              "care_calendar"
             ],
             "title": "Kind",
             "type": "string"
@@ -1062,7 +1532,12 @@
               "child_profile",
               "calendar",
               "personal_calendar",
-              "participant_profile"
+              "participant_profile",
+              "admin_audit",
+              "care_calendar",
+              "classroom_calendar",
+              "activity_calendar",
+              "school_calendar"
             ],
             "title": "Kind",
             "type": "string"
@@ -1154,6 +1629,20 @@
         "title": "RetentionResponse",
         "type": "object"
       },
+      "Role": {
+        "enum": [
+          "administrator",
+          "guardian",
+          "limited_caregiver",
+          "teacher",
+          "parent_volunteer",
+          "classroom_administrator",
+          "school_administrator",
+          "school_calendar_subscriber"
+        ],
+        "title": "Role",
+        "type": "string"
+      },
       "SessionResponse": {
         "additionalProperties": false,
         "properties": {
@@ -1184,6 +1673,121 @@
           "expires_at"
         ],
         "title": "SessionResponse",
+        "type": "object"
+      },
+      "StepUpBinding": {
+        "additionalProperties": false,
+        "properties": {
+          "acl_revision": {
+            "minimum": 0.0,
+            "title": "Acl Revision",
+            "type": "integer"
+          },
+          "action": {
+            "enum": [
+              "admin.change",
+              "permissions.change",
+              "membership.revoke",
+              "household.close",
+              "account.delete",
+              "export",
+              "event.restore"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "family_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Family Id"
+          },
+          "target_id": {
+            "format": "uuid",
+            "title": "Target Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "target_id",
+          "acl_revision"
+        ],
+        "title": "StepUpBinding",
+        "type": "object"
+      },
+      "StepUpCompletion": {
+        "additionalProperties": false,
+        "properties": {
+          "challenge_id": {
+            "format": "uuid",
+            "title": "Challenge Id",
+            "type": "string"
+          },
+          "credential": {
+            "additionalProperties": true,
+            "title": "Credential",
+            "type": "object"
+          }
+        },
+        "required": [
+          "challenge_id",
+          "credential"
+        ],
+        "title": "StepUpCompletion",
+        "type": "object"
+      },
+      "StepUpOptions": {
+        "additionalProperties": false,
+        "properties": {
+          "challenge_id": {
+            "format": "uuid",
+            "title": "Challenge Id",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "public_key": {
+            "additionalProperties": true,
+            "title": "Public Key",
+            "type": "object"
+          }
+        },
+        "required": [
+          "challenge_id",
+          "public_key",
+          "expires_at"
+        ],
+        "title": "StepUpOptions",
+        "type": "object"
+      },
+      "StepUpProof": {
+        "additionalProperties": false,
+        "properties": {
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "proof": {
+            "title": "Proof",
+            "type": "string"
+          }
+        },
+        "required": [
+          "proof",
+          "expires_at"
+        ],
+        "title": "StepUpProof",
         "type": "object"
       },
       "ValidationError": {
@@ -1496,6 +2100,498 @@
         "summary": "Registration Options",
         "tags": [
           "authentication"
+        ]
+      }
+    },
+    "/v1/auth/step-up/complete": {
+      "post": {
+        "operationId": "complete_v1_auth_step_up_complete_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StepUpCompletion"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StepUpProof"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Complete",
+        "tags": [
+          "authentication"
+        ]
+      }
+    },
+    "/v1/auth/step-up/options": {
+      "post": {
+        "operationId": "options_v1_auth_step_up_options_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StepUpBinding"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StepUpOptions"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Options",
+        "tags": [
+          "authentication"
+        ]
+      }
+    },
+    "/v1/contexts": {
+      "get": {
+        "operationId": "list_contexts_v1_contexts_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ContextSummary"
+                  },
+                  "title": "Response List Contexts V1 Contexts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Contexts",
+        "tags": [
+          "scoped administration"
+        ]
+      },
+      "post": {
+        "operationId": "create_context_v1_contexts_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContextCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContextResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Context",
+        "tags": [
+          "scoped administration"
+        ]
+      }
+    },
+    "/v1/contexts/{context_id}": {
+      "get": {
+        "operationId": "get_context_v1_contexts__context_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "context_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Context Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContextResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Context",
+        "tags": [
+          "scoped administration"
+        ]
+      }
+    },
+    "/v1/contexts/{context_id}/audit": {
+      "get": {
+        "operationId": "list_audit_v1_contexts__context_id__audit_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "context_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Context Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AuditResponse"
+                  },
+                  "title": "Response List Audit V1 Contexts  Context Id  Audit Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Audit",
+        "tags": [
+          "scoped administration"
+        ]
+      }
+    },
+    "/v1/contexts/{context_id}/members": {
+      "get": {
+        "operationId": "list_members_v1_contexts__context_id__members_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "context_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Context Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MemberResponse"
+                  },
+                  "title": "Response List Members V1 Contexts  Context Id  Members Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Members",
+        "tags": [
+          "scoped administration"
+        ]
+      }
+    },
+    "/v1/contexts/{context_id}/members/{adult_id}": {
+      "put": {
+        "operationId": "change_member_v1_contexts__context_id__members__adult_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "context_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Context Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "adult_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Adult Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeOutcome"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Change Member",
+        "tags": [
+          "scoped administration"
         ]
       }
     },

@@ -41,3 +41,11 @@ one existing SQLCipher transaction; failed second writes roll back the batch.
 Family-name/guardian-name changes queue existing encrypted `household_shared`
 operations; offline changes wait for the authorized family-profile resource.
 Local schema stays v9; existing migration history is unchanged.
+
+
+| Local v10 | SQLCipher | Household-scoped private bindings, device-wide upload counter; no envelope renumbering | S5-MIGRATE-001, scoped state/retry/export tests |
+| `0011` | PostgreSQL | ACL revisions and session/action-bound single-use step-up | Sensitive-proof/replay/session/concurrency tests and migration roundtrip |
+| `0012` | PostgreSQL | Typed contexts, scoped roles, expiry, explicit legacy owner grants; escalation-safe downgrade | Role matrix, real context administration/isolation and migration roundtrip |
+| `0013` | PostgreSQL | New scoped resource kinds and ciphertext audit/outcome receipts with expiry | Real AEAD/audit/administration tests and guarded migration roundtrip |
+
+Stage 5 foundations under approved ADR-041; full product acceptance remains open.

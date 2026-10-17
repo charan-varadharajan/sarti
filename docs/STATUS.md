@@ -1,25 +1,33 @@
 # Project status
 
-- Current work: Stage 5 assessment/design; accepted-ADR changes await approval; P0 release acceptance remains open
+- Current work: Stage 5 implementation under accepted ADR-041; acceptance incomplete; P0 release acceptance remains open
 - Updated: 2026-10-16
 - Stage state: P1 voice-entry inclusion approved; hosting deferred until last; BUG-001/002/003/004 remediation delivered; provider/device validation and BUG-005 live provider acceptance deferred; physical/provider validation outstanding
-- Repository version: `0.5.1+6`; no public release tag
+- Repository version: `0.6.0+7`; no public release tag
 
 ## Current result
 
-2026-10-16 Stage 5 request reviewed against architecture/ADRs, code, schemas and
-existing tests. Baseline PASS: Flutter 221/2 opt-in skips (both hosts separately
-executed through backend); full backend 57/91% reported coverage including real
-PostgreSQL and both HTTP/Dart hosts; Alembic 0010, Flutter analyze, backend static/
-Bandit, tooling and version pass. No application changes or migrations yet.
-[Gap analysis](product/STAGE-5-GAP-ANALYSIS.md) distinguishes implemented/partial/
-missing/conflicting requirements. [ADR-041](architecture/adr/041-stage5-scoped-membership-and-sensitive-operations.md)
-is a reviewable proposed design, not accepted: single-owner/single-family,
-calendar-key isolation and deletion-retention rules require superseding approval.
-[Stage 5 test plan](testing/STAGE-5-TEST-PLAN.md) maps all 17 requested cases;
-new Stage 5 tests/features remain unimplemented. Stage 5 is incomplete. No Stage 6,
-hosting, live provider activation or deferred Android-to-iPhone portability run.
-P1 voice entry remains planned; local iOS signing edits are preserved.
+2026-10-16: Maintainer approved ADR-041. Foundation implementation includes
+neutral contact-free passkey labels, operation-bound current-phone confirmation,
+scoped role/admin APIs, explicit grants, last-admin protection, encrypted atomic
+audit, expiry/key rotation, optional recovery onboarding/word confirmation, pinned
+local household state, device-wide serialized upload ordering and one-household
+snapshot sanitization. PostgreSQL migrations 0011–0013; local SQLCipher v10.
+Verified foundation: Flutter 229 pass/2 explicit HTTP-host skips (both hosts
+executed through backend); backend 93 pass; iOS/Android each 82 checks across nine
+journeys pass. Builds, migrations/contracts, static/security/dependency, Docker
+health/maintenance, version and tooling gates pass. Remote CI execution remains
+unverified. Exact evidence and limitations: STAGE-5-REPORT.md.
+
+Stage 5 remains incomplete. Shipping multi-household selector/runtime/enrollment,
+caregiver reviewed encrypted copies, scoped import preserving occupied stores,
+administration step-up/audit UI and legacy mutation integration, assisted-recovery
+journey, account/context closure and retention-aware recoverable event deletion
+remain. Existing backup import still requires an empty local store. Do not
+represent API foundations or planned scenarios as complete product journeys.
+P0 physical/provider acceptance remains open. No Stage 6, hosting, live provider
+activation or deferred Android-to-iPhone portability run. Local signing edits
+are preserved. See product/STAGE-5-GAP-ANALYSIS.md and api/SCOPED-ADMINISTRATION.md.
 
 
 P1-001 scope now has a mandatory layered test plan: twelve planned voice

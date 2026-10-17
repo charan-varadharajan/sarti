@@ -153,3 +153,27 @@ counts. Unique scope/bucket and transaction advisory lock serialize reservation
 across replicas before external I/O. No prompt/response/hash/request payload.
 Account deletion trigger removes adult scope; no family scope exists. Expired
 rows purge on attempts and through the required daily maintenance command.
+
+
+## Stage 5 migrations 0011–0013 (ADR-041; foundation)
+
+0011 adds nonnegative `families.acl_revision` and `sensitive_authorizations`:
+current session/action/context/target/revision, random challenge, unique nullable
+proof digest, expiry and verification/consumption timestamps. Sessions cascade
+these rows. No raw proof or passkey assertion persists.
+
+0012 adds constrained context kinds and optional membership expiry; expands
+context-scoped role vocabulary. Existing active owners' live non-private rights
+are materialized as explicit admin grants before migration to administrator;
+guardian grants and ciphertext bytes remain unchanged. The legacy owner literal
+remains for old synthetic fixtures, and no external API assigns it. Downgrade
+refuses additional scopes/roles/expiry/multiple administrators or conversion of
+a scoped administrator to an implicitly more powerful legacy owner.
+
+0013 expands resource kinds with audit and independent caregiver/education
+calendars. `context_audit` stores resource-scoped encrypted envelopes, actor/action/
+target/revision, request digest and authoritative bounded outcome metadata;
+expiry is 30 days. No decryption keys are stored. Context/resource deletion cascades
+records. Downgrade refuses populated new resources/audit rather than losing data.
+See `../api/SCOPED-ADMINISTRATION.md`. These migrations do not implement closure,
+account deletion or recoverable calendar trash.

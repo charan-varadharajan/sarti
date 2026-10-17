@@ -56,4 +56,4 @@ by an explicitly approved superseding ADR.
 
 | [ADR-040](adr/040-family-recovery-continuation.md) | Safe family recovery continuation, recovered intent review and retention resume (BUG-022) | Accepted 2026-10-13; supersedes family-history clearing and unconditional retention pause |
 
-| [ADR-041](adr/041-stage5-scoped-membership-and-sensitive-operations.md) | Stage 5 scoped roles, multi-admin/household, caregiver encryption, step-up, assisted recovery, audit and deletion/restore | Proposed 2026-10-16; product scope requested, superseding architecture not yet approved |
+| [ADR-041](adr/041-stage5-scoped-membership-and-sensitive-operations.md) | Stage 5 scoped roles, multi-admin/household, caregiver encryption, step-up, assisted recovery, audit and deletion/restore | Accepted by maintainer 2026-10-16; implementation in progress |

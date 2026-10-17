@@ -42,6 +42,42 @@ in-repository record while Sarti has no external tracker.
 
 ## Resolved defects
 
+### BUG-025 — Legacy invitation paths could inherit or broaden scoped authority
+- Severity: High; component: membership re-enrollment and invitation approval
+- Discovered: 2026-10-16 during Stage 5 scoped-role security review
+- Summary: a revoked administrator's membership row retained its role on a new
+  ordinary invitation; a partial administrator could approve grants outside its
+  own resource authority through the legacy approval path.
+- Cause: legacy flows assumed all owners held every public resource and revoked
+  members could only have the guardian role.
+- Fix implemented: reset re-enrollment to pending ordinary guardian with cleared
+  expiry; require grant authority on each approved resource. This does not replace
+  the still-pending Stage 5 step-up/audit integration for legacy mutations.
+- Fixed: 2026-10-16; version 0.6.0+7; commit: this Stage 5 foundation commit.
+- Disposition: Resolved for automated scope; final backend and native regression pass.
+- Tests: test_context_administration.py proves removed-admin re-entry cannot regain
+  administration and omitted-child approval is denied; authorized approval works.
+- Workaround: do not enable scoped multi-admin roles with older backend versions.
+
+
+### BUG-024 — Whole-family backup authorization for scoped administrators
+- Severity: High; component: backend encrypted backup authorization
+- Discovered: 2026-10-16 during approved Stage 5 role integration
+- Summary: the legacy owner-only check would permit a newly scoped administrator
+  to request a whole-family snapshot despite missing a child's resource grant.
+- Cause: whole-family snapshot boundary assumed one broadly authorized owner.
+- Fix implemented: require current read authority for every live public resource
+  before whole-family backup read/upload/delete; private snapshots remain author-
+  scoped. No plaintext or server-held recovery key is introduced.
+- Fixed: 2026-10-16; version 0.6.0+7; commit: this Stage 5 foundation commit.
+- Disposition: Resolved for automated scope; final backend and native regression pass.
+  Shipping multi-admin administration UI remains pending separately.
+- Tests: test_context_administration.py covers omitted-child snapshot read/upload/
+  delete denial, preserved original snapshot, admin/audit/resource isolation.
+- Workaround: do not promote partial administrators on older backend versions.
+
+
+
 ### BUG-023 — Profile navigation and event-entry usability
 - Severity: Medium; component: mobile presentation/bootstrap
 - Discovered: 2026-10-14

@@ -157,3 +157,30 @@ RECOVERY-RETENTION-001 verifies this minimization boundary.
 Reconciliation discards completed intent rows after a receipt or proven causal
 domination (including downloaded deletion). Durable applied IDs and minimal
 deletion state provide replay protection without retaining obsolete bodies.
+
+
+## Local v10 — scoped state and device-wide ordering (ADR-041 foundation)
+
+`personal_calendars` now has composite `(adult_id, household_id)` identity while
+resource IDs remain unique. Migration preserves existing rows, ciphertext keys,
+vectors, exact pending outbox envelopes and per-household relay cursors.
+`device_sync_state(device_id,next_device_sequence)` is the authoritative device
+upload counter. The authenticated engine initializes it from existing sequence
+high-water marks; it never renumbers a pending encrypted operation. The legacy
+per-family sequence column remains migration evidence, not independent authority.
+
+The encrypted selected-household preference chooses unpinned repository reads;
+`forHousehold(id)` pins async work and child/private/event/recovery queries to a
+specific local household. Unknown selection fails. Engines serialize uploads
+across contexts sharing the database. A persisted uncertain upload blocks a new
+context's upload until its exact original envelope is retried; ciphertext is not
+silently discarded or resequenced. Recovery activation clears former device
+counter state. Native UI switching and the multi-context runtime still need wiring.
+
+Household snapshot export sanitizes an encrypted copy to one household, strips
+foreign resource/catalog/keys/conflicts/outbox/cursor/content, and strips private
+resources unless explicitly exporting the author scope. Device-global receipts
+unattributable to this snapshot are excluded; causal event/profile vectors and
+protected recovery intent remain. Live data is not changed. Scoped import into
+an occupied store remains pending and fails safely through the existing empty-
+store guard. No multi-household restore acceptance is claimed.

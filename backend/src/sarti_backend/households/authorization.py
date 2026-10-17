@@ -1,30 +1,47 @@
+from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import Connection, and_, select
+from sqlalchemy import Connection, and_, or_, select
 
 from sarti_backend.core.errors import PermissionDenied, TenantAccessDenied
-from sarti_backend.db.schema import memberships, permissions, resources
+from sarti_backend.db.schema import families, memberships, permissions, resources
+from sarti_backend.households.roles import permits, role_allowed
 
 _PERMISSION_LEVEL = {"read": 1, "write": 2, "admin": 3}
 
 
 def require_active_member(connection: Connection, family_id: UUID, adult_id: UUID) -> str:
     row = connection.execute(
-        select(memberships.c.role).where(
+        select(memberships.c.role, families.c.context_kind)
+        .join(families, families.c.id == memberships.c.family_id)
+        .where(
             and_(
                 memberships.c.family_id == family_id,
                 memberships.c.adult_id == adult_id,
                 memberships.c.status == "active",
+                families.c.deleted_at.is_(None),
+                or_(
+                    memberships.c.expires_at.is_(None), memberships.c.expires_at > datetime.now(UTC)
+                ),
             )
         )
     ).one_or_none()
     if row is None:
         raise TenantAccessDenied
+    if not role_allowed(
+        str(row.context_kind), "administrator" if row.role == "owner" else str(row.role)
+    ):
+        raise PermissionDenied
     return str(row.role)
 
 
 def require_owner(connection: Connection, family_id: UUID, adult_id: UUID) -> None:
-    if require_active_member(connection, family_id, adult_id) != "owner":
+    if require_active_member(connection, family_id, adult_id) not in {
+        "owner",
+        "administrator",
+        "classroom_administrator",
+        "school_administrator",
+    }:
         raise PermissionDenied
 
 
@@ -60,6 +77,16 @@ def require_resource_permission(
                 )
             )
         ).scalar_one_or_none()
-        if permission is None or _PERMISSION_LEVEL[str(permission)] < _PERMISSION_LEVEL[required]:
+        kind = connection.execute(
+            select(families.c.context_kind).where(families.c.id == family_id)
+        ).scalar_one()
+        action = {"read": "content.read", "write": "content.write", "admin": "keys.grant"}.get(
+            required, "unknown"
+        )
+        if (
+            permission is None
+            or _PERMISSION_LEVEL[str(permission)] < _PERMISSION_LEVEL[required]
+            or not permits(str(kind), role, action, str(permission))
+        ):
             raise PermissionDenied
     return int(resource.key_epoch), str(resource.kind)

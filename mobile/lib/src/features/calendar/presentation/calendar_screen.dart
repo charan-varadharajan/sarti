@@ -33,6 +33,7 @@ class CalendarScreen extends StatelessWidget {
     this.onPersonalBackup,
     this.onGuardians,
     this.onRecovery,
+    this.onRecoverySetup,
     this.canWrite = true,
     this.canManageChildren = true,
   });
@@ -43,7 +44,7 @@ class CalendarScreen extends StatelessWidget {
   final NativeEventAiProvider? nativeAi;
   final EmailSuggestionInbox? emailInbox;
   final VoidCallback? onBackup, onPersonalBackup;
-  final VoidCallback? onGuardians, onRecovery;
+  final VoidCallback? onGuardians, onRecovery, onRecoverySetup;
   final bool canWrite, canManageChildren;
 
   @override
@@ -51,7 +52,12 @@ class CalendarScreen extends StatelessWidget {
     listenable: controller,
     builder: (context, _) {
       final family = controller.family;
-      if (family == null) return _FamilyOnboarding(controller: controller);
+      if (family == null) {
+        return _FamilyOnboarding(
+          controller: controller,
+          onRecoverySetup: onRecoverySetup,
+        );
+      }
       return Scaffold(
         appBar: AppBar(
           title: Text(family.name),
@@ -876,7 +882,8 @@ class CalendarScreen extends StatelessWidget {
 }
 
 class _FamilyOnboarding extends StatelessWidget {
-  const _FamilyOnboarding({required this.controller});
+  const _FamilyOnboarding({required this.controller, this.onRecoverySetup});
+  final VoidCallback? onRecoverySetup;
   final CalendarController controller;
 
   @override
@@ -899,7 +906,10 @@ class _FamilyOnboarding extends StatelessWidget {
             FilledButton(
               onPressed: () => Navigator.of(context).push<void>(
                 MaterialPageRoute(
-                  builder: (_) => FamilySetupScreen(controller: controller),
+                  builder: (_) => FamilySetupScreen(
+                    controller: controller,
+                    onRecoverySetup: onRecoverySetup,
+                  ),
                 ),
               ),
               child: const Text('Create family'),

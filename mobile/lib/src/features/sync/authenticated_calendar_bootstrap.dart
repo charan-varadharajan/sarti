@@ -109,7 +109,7 @@ class _AuthenticatedCalendarBootstrapState
       return true; // Existing/offline owner before provisioning.
     }
     final access = jsonDecode(rows.single['value'] as String) as Map;
-    return access['role'] == 'owner' ||
+    return {'owner', 'guardian'}.contains(access['role']) &&
         {'write', 'admin'}.contains(access['permission']);
   }
 
@@ -652,6 +652,16 @@ class _AuthenticatedCalendarBootstrapState
                             FamilyRecoveryScreen(coordinator: _recovery!),
                       ),
                     ),
+              onRecoverySetup: _api?.sessionToken == null
+                  ? null
+                  : () => unawaited(() async {
+                      try {
+                        await _runtime?.synchronize();
+                        if (mounted) await _openBackup();
+                      } catch (_) {
+                        _showSyncIssue();
+                      }
+                    }()),
               canWrite: _canWriteCalendar,
               canManageChildren: _canManageFamily,
               onGuardians: () => unawaited(_openGuardians()),

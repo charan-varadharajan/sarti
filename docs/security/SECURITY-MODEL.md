@@ -245,3 +245,27 @@ Blank child aliases generate locally and persist encrypted; stored aliases are
 excluded from optional cloud requests under ADR-036 and do not make scheduling
 information anonymous. Entry-menu descriptions use existing native/local review
 and never activate cloud inference or save without confirmation.
+
+
+## Stage 5 foundation controls (accepted ADR-041)
+
+Current-phone step-up proofs are hashed, action/target/context/ACL/session/device
+bound, five-minute and single-use inside the authorized mutation transaction.
+They do not replace the phone and are not standalone authorization. New scoped
+administration requires explicit resource grants, a current recipient fingerprint,
+ordered epoch locks, retained permanent administrator and atomic ciphertext audit.
+Detailed client narration remains untrusted; authoritative outcome metadata is
+separate. Expired memberships revoke and rotate before route execution, even if
+the later operation is denied. Caregivers cannot receive broad calendar/profile/
+audit resources through the new API. Partial administrators cannot access the
+whole-family backup without every live public resource's read authority.
+
+Tests: test_sensitive_step_up.py, test_scoped_roles.py,
+test_context_administration.py; real SQLCipher/AEAD and scoped snapshot/retry
+cases in multi_household_state_test.dart; recovery word widget tests. See
+../testing/STAGE-5-TEST-PLAN.md for mandatory remaining security coverage.
+
+Limits: legacy sensitive-route integration, review/copy UI, complete scoped import,
+closure/purge and restore remain in progress. Existing routes are not claimed to
+have the new operation-bound safeguards. Device/server cannot guarantee erasure
+of previously downloaded ciphertext, decrypted copies or earlier external backups.

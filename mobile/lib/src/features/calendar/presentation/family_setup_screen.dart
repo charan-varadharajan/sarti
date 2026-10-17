@@ -4,7 +4,12 @@ import 'calendar_controller.dart';
 import 'child_profile_editor.dart';
 
 class FamilySetupScreen extends StatefulWidget {
-  const FamilySetupScreen({super.key, required this.controller});
+  const FamilySetupScreen({
+    super.key,
+    required this.controller,
+    this.onRecoverySetup,
+  });
+  final VoidCallback? onRecoverySetup;
   final CalendarController controller;
   @override
   State<FamilySetupScreen> createState() => _FamilySetupScreenState();
@@ -148,6 +153,31 @@ class _FamilySetupScreenState extends State<FamilySetupScreen> {
                 ],
                 if (!sameFamily || !widget.controller.canManageFamily)
                   const Text('Family access changed. Return to the calendar.'),
+                ListTile(
+                  key: const Key('setup-recovery'),
+                  title: const Text('Set up recovery (optional)'),
+                  subtitle: const Text(
+                    'Save and confirm your recovery words before creating an encrypted backup. You can do this later.',
+                  ),
+                  leading: const Icon(Icons.key_outlined),
+                  onTap:
+                      widget.onRecoverySetup ??
+                      () => showDialog<void>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Recovery setup'),
+                          content: const Text(
+                            'Connect to your configured Sarti service to create an encrypted recovery snapshot. Your calendar is usable now; no backup has been created yet.',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('OK'),
+                            ),
+                          ],
+                        ),
+                      ),
+                ),
                 FilledButton(
                   key: const Key('setup-open-calendar'),
                   onPressed: () => Navigator.pop(context),

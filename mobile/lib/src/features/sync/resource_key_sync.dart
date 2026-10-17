@@ -50,6 +50,7 @@ class ResourceKeySync {
   final ResourceKeyApi api;
 
   Future<void> prepare(String familyId, {bool recoveryOnly = false}) async {
+    final repository = this.repository.forHousehold(familyId);
     final families = await api.listFamilies();
     final family = families
         .where((f) => f.id == familyId && f.status == 'active')
@@ -176,6 +177,7 @@ class ResourceKeySync {
       );
     }
     final grants = await api.keyGrants();
+    var canPublishFamilyDetails = false;
     for (final resource in resources.values) {
       if (!{
         'child_profile',
@@ -240,6 +242,10 @@ class ResourceKeySync {
         }
       }
       if (key == null) continue; // Wait for an authorized current-epoch grant.
+      if (resource.kind == 'family_profile' &&
+          {'write', 'admin'}.contains(self.permission)) {
+        canPublishFamilyDetails = true;
+      }
       if (self.permission == 'admin') {
         final recipients =
             devices
@@ -284,7 +290,7 @@ class ResourceKeySync {
         }
       }
     }
-    if (!recoveryOnly && family.role == 'owner') {
+    if (!recoveryOnly && family.role == 'owner' && canPublishFamilyDetails) {
       repository.publishPendingFamilyDetails();
     }
   }

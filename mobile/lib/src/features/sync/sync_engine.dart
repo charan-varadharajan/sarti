@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
@@ -82,10 +83,38 @@ class SyncEngine {
   final EncryptedRelay relay;
   final String deviceId;
 
+  static final _queues = Expando<Completer<void>>();
+
   Future<SyncReport> synchronize(
     String familyId, {
     bool downloadOnly = false,
   }) async {
+    while (true) {
+      final previous = _queues[database];
+      if (previous == null) break;
+      await previous.future;
+    }
+    final gate = Completer<void>();
+    _queues[database] = gate;
+    try {
+      return await _synchronize(familyId, downloadOnly: downloadOnly);
+    } finally {
+      // Release before delivering success/error to the caller. No failed future
+      // or callback tied to a former widget-test zone remains in the scheduler.
+      _queues[database] = null;
+      gate.complete();
+    }
+  }
+
+  Future<SyncReport> _synchronize(
+    String familyId, {
+    required bool downloadOnly,
+  }) async {
+    final repository = this.repository.forHousehold(familyId);
+    database.raw.execute(
+      'INSERT OR IGNORE INTO device_sync_state SELECT ?,COALESCE(MAX(next_device_sequence),1) FROM sync_state',
+      [deviceId],
+    );
     database.raw.execute(
       'INSERT OR IGNORE INTO sync_state(family_id) VALUES (?)',
       [familyId],
@@ -114,11 +143,21 @@ class SyncEngine {
               ).isEmpty)) {
         throw StateError('Recovered outgoing work needs explicit review.');
       }
+      // A timed-out upload may have been accepted. Retry its original bytes
+      // before another context can consume this device's next sequence.
+      if (database.raw.select(
+        "SELECT 1 FROM outbox WHERE state='pending' AND envelope_json IS NOT NULL AND family_id!=?",
+        [familyId],
+      ).isNotEmpty) {
+        throw StateError(
+          'Retry the pending household before uploading another.',
+        );
+      }
       final sequence =
           database.raw.select(
-                'SELECT next_device_sequence FROM sync_state WHERE family_id = ?',
-                [familyId],
-              ).first['next_device_sequence']
+                'SELECT next_device_sequence FROM device_sync_state WHERE device_id=?',
+                [deviceId],
+              ).single['next_device_sequence']
               as int;
       late final RelayEnvelope envelope;
       if (row['envelope_json'] != null) {
@@ -204,6 +243,11 @@ class SyncEngine {
           "UPDATE outbox SET state = 'uploaded' WHERE operation_id = ?",
           [row['operation_id']],
         );
+        database.raw.execute(
+          'UPDATE device_sync_state SET next_device_sequence=? WHERE device_id=?',
+          [sequence + 1, deviceId],
+        );
+        // Retain legacy migration evidence; this is no longer authoritative.
         database.raw.execute(
           'UPDATE sync_state SET next_device_sequence = ? WHERE family_id = ?',
           [sequence + 1, familyId],

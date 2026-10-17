@@ -196,3 +196,16 @@ to existing reusable evidence and planned unit/API/backend/security/widget/nativ
 checks. Baseline is current existing functionality only; new scoped-role,
 multi-admin/household, caregiver, assisted-recovery, audit/deletion/restore coverage
 must be implemented with the corresponding runtime changes after ADR review.
+
+
+## Stage 5 foundation CI registration
+
+Default backend pytest now enables both real HTTP/PostgreSQL/Dart hosts in CI
+(`SARTI_RUN_MOBILE_CONTRACT=1`, `SARTI_RUN_GUARDIAN_CONTRACT=1`) with the existing
+pinned Flutter toolchain available. New role/admin/confirmation/migration/security
+cases are discovered by pytest; recovery/context widget/crypto cases by Flutter.
+Prepared Stage 5 foundation is added to the shared native allowlist and existing
+iOS CI loop. The Android job now boots an isolated accelerated API 35 x86_64 emulator, runs the
+same complete allowlist, retains logs/failure screen and tears down that fixture.
+No backup-portability direction is added. Remote workflow execution, including
+this new Linux emulator setup, has not been established by local test results.

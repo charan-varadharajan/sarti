@@ -1,10 +1,10 @@
 # ADR-041: Stage 5 scoped membership, recovery and sensitive operations
 
-- Status: Proposed — not accepted or implemented
+- Status: Accepted by maintainer 2026-10-16; implementation in progress
 - Date: 2026-10-16
 - Authority: Maintainer requested Stage 5 product scope in the attached contract.
-  Product authorization does not mark this superseding architecture accepted.
-- Proposed supersession: ADR-019 owner-only invitation approval; ADR-022 single
+  Maintainer explicitly approved this complete ADR after reviewing the proposal.
+- Supersedes: ADR-019 owner-only invitation approval; ADR-022 single
   owner and owner-wide household authority; ADR-035 single local family and
   enrollment restrictions; ADR-032/038 single-family database/recovery assumptions;
   ADR-039 only for explicitly recoverable manual deletion as specified below.
@@ -154,7 +154,7 @@ revision and a validated client-encrypted audit record with the action. Detailed
 names/content live only in ciphertext; server retains no audit decryption key.
 Client audit narration is untrusted and is not represented as server-verified
 plaintext truth. Verify it against authoritative action metadata on display.
-Proposed detailed audit retention is 30 days, with closure/purge taking precedence;
+Approved detailed audit retention is 30 days, with closure/purge taking precedence;
 opaque causal/security receipts may remain only as explicitly documented minimal
 replay/idempotency state. Administrator audit access excludes adult-private details.
 A missing audit envelope must not silently bypass the required action audit.
@@ -168,7 +168,7 @@ Resolve last-admin status by explicit transfer/closure before destructive action
 Household closure revokes that context, purges its server grants/relay/email/
 backups/audit content and queues authorized local cleanup; other contexts remain.
 Access denial is immediate on transaction commit. Bounded application purge work
-is idempotent, retryable and completes within a proposed 24-hour application
+is idempotent, retryable and completes within a approved 24-hour application
 purge target; provider backup retention remains a deployment-specific gap.
 Offline devices cannot be guaranteed immediately erased. Destroy relevant local
 keys/cache on authenticated reconciliation, not unrelated household/device keys.
@@ -199,5 +199,5 @@ before adoption. Hosting/cloud activation stays deferred. Stage 6 is not authori
 
 Traceability: ../../testing/STAGE-5-TEST-PLAN.md maps all 17 mandated cases to
 existing evidence and planned implementation tests. Baseline passes do not prove
-new Stage 5 capabilities. Approval is requested for this complete proposed design;
+new Stage 5 capabilities. The maintainer approved this design on 2026-10-16;
 any later material departure must be reviewed separately.

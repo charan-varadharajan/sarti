@@ -89,7 +89,12 @@ class FamilyCalendar {
 enum RemoteApplyResult { applied, duplicate, conflict, stale }
 
 class CalendarRepository {
-  CalendarRepository(this.database, {required this.deviceId, this.adultId}) {
+  CalendarRepository(
+    this.database, {
+    required this.deviceId,
+    this.adultId,
+    this.householdId,
+  }) {
     final draft = database.raw.select(
       "SELECT value FROM app_preferences WHERE key='local-draft-adult'",
     );
@@ -135,8 +140,53 @@ class CalendarRepository {
   final String deviceId;
   final String? adultId;
 
+  /// A pinned repository is safe to retain across an async household switch.
+  final String? householdId;
+
+  CalendarRepository forHousehold(String id) {
+    if (database.raw.select('SELECT 1 FROM households WHERE id=?', [
+      id,
+    ]).isEmpty) {
+      throw StateError('Unknown local household.');
+    }
+    return CalendarRepository(
+      database,
+      deviceId: deviceId,
+      adultId: adultId,
+      householdId: id,
+    );
+  }
+
+  String? get selectedHouseholdId {
+    if (householdId != null) return householdId;
+    final selected = database.raw.select(
+      "SELECT h.id FROM households h JOIN app_preferences p ON p.key='selected-household' AND p.value=h.id",
+    );
+    if (selected.isNotEmpty) return selected.single['id'] as String;
+    final rows = database.raw.select(
+      'SELECT id FROM households ORDER BY created_at,id LIMIT 1',
+    );
+    return rows.isEmpty ? null : rows.single['id'] as String;
+  }
+
+  void selectHousehold(String id) {
+    if (householdId != null ||
+        database.raw.select('SELECT 1 FROM households WHERE id=?', [
+          id,
+        ]).isEmpty) {
+      throw StateError('Cannot select this household.');
+    }
+    database.raw.execute(
+      "INSERT OR REPLACE INTO app_preferences VALUES ('selected-household',?)",
+      [id],
+    );
+  }
+
   FamilyCalendar? load() {
-    final households = database.raw.select('SELECT * FROM households LIMIT 1');
+    final households = database.raw.select(
+      'SELECT * FROM households WHERE id=?',
+      [selectedHouseholdId],
+    );
     if (households.isEmpty) return null;
     final household = households.first;
     final householdId = household['id'] as String;
@@ -268,7 +318,8 @@ class CalendarRepository {
         ],
       );
     });
-    return load()!;
+    if (this.householdId == null) selectHousehold(householdId);
+    return forHousehold(householdId).load()!;
   }
 
   /// Owner-confirmed, resource-scoped initial handoff. No event is edited.
@@ -934,8 +985,8 @@ class CalendarRepository {
     final actor = currentAdultId;
     if (actor == null) return null;
     final rows = database.raw.select(
-      'SELECT resource_id FROM personal_calendars WHERE adult_id=?',
-      [actor],
+      'SELECT resource_id FROM personal_calendars WHERE adult_id=? AND household_id=?',
+      [actor, selectedHouseholdId],
     );
     return rows.isEmpty ? null : rows.single['resource_id'] as String;
   }

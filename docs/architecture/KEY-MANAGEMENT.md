@@ -102,3 +102,20 @@ household membership is inactive. Membership still gates server access; rotating
 owned personal epochs prevents a previously revoked phone retaining a future key
 if the adult later rejoins. It never rotates another adult's personal resource
 through a household-owner bypass.
+
+
+## ADR-041 foundation
+
+Explicit scoped administrator grants replace implicit owner-wide public resource
+rights after PostgreSQL 0012. Promotion alone grants no child/private key. New
+membership narrowing/removal/expiry advances only lost public-resource epochs;
+old snapshots/ciphertext are not re-encrypted or claimed erased. Sealed-key
+publication continues through the established signed grant protocol and ordered
+resource locks. Administration audit uses an independent permissioned resource;
+no audit decryption key is held by the server. Caregiver broad calendar keys are
+denied; actual reviewed independent scheduling-copy publication remains pending.
+
+Local v10 binds personal resource IDs by adult and household. A device-global
+upload counter serializes contexts without renumbering pending authenticated
+bytes. Scoped snapshots remove foreign/excluded keys from an encrypted copy.
+Current-phone step-up confirms intent without replacing device identity or keys.

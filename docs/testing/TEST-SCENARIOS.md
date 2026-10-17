@@ -478,3 +478,24 @@ Prepared independent synthetic context/SQLCipher/PostgreSQL/device fixtures,
 direct target-screen entry and teardown are mandatory. These IDs are plans,
 not tests that have passed. Current baseline results are recorded separately
 in ../product/STAGE-5-GAP-ANALYSIS.md; physical/provider acceptance is not inferred.
+
+
+## Stage 5 foundation — prepared direct-entry fixtures
+
+`S5-HOUSEHOLD-001`: independent A/B SQLCipher household/child/private/event reads,
+pinned asynchronous writes, invalid selection denial. `S5-OFFLINE-001`: two scoped
+engines on one device, concurrent scheduling and exact uncertain-envelope retry;
+no renumbering/duplicate operations. `S5-EXPORT-001`: real encrypted household
+snapshot/restore inspection excludes B and all excluded private keys/content;
+live B remains unchanged. `S5-RECOVERY-001` component: seeded backup card opens
+directly; checkbox/wrong word cannot enable upload, two random words enable it,
+regeneration clears confirmation. Fixtures are synthetic, removed on teardown.
+Native entry: stage5_foundation_scenario_test.dart via `--scenario stage5`; all
+five checks added to the shared iOS/Android allowlist. This entry covers foundations,
+not the remaining complete Stage 5 journeys in STAGE-5-TEST-PLAN.md.
+
+S5-MIGRATE-001 upgrades a real encrypted v9 file with the legacy private-binding
+primary key, retaining its private resource key and exact pending envelope bytes;
+new same-adult household binding remains independent and wrong SQLCipher keys fail.
+S5-PERMISSION-MOB-001 opens the prepared calendar as an administrator with a read-
+only calendar grant: shared event creation remains unavailable across view changes.

@@ -142,7 +142,7 @@ def registration_options(request: Request) -> CeremonyOptions:
         public_key=verifier.registration_options(
             challenge=challenge,
             user_id=adult_id.bytes,
-            user_name=f"parent-{adult_id}",
+            user_name=f"account-{adult_id}",
         ),
     )
 

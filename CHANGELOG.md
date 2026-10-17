@@ -20,11 +20,34 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-10-16 (build 7; Stage 5 foundation, development only)
+
+### Fixed
+- BUG-025: ordinary re-invitation cannot restore revoked administrator authority;
+  legacy approval checks each requested resource against the approving admin.
+- BUG-024: require complete current public-resource authority for whole-family
+  server backups; scoped administrator status alone is insufficient. Calendar
+  write controls also require an explicit cached write grant.
+
+### Added
+- Stage 5 foundation under approved ADR-041: neutral contact-free passkey labels;
+  current-phone operation-bound confirmation; typed context roles, explicit grants,
+  multiple-admin/last-admin checks, caregiver restrictions, expiry/epoch rotation
+  and encrypted atomic administration audit API, with transactional expiry/audit/
+  confirmation maintenance and count-only operational output.
+- Optional onboarding recovery entry and randomized recovery-word confirmation
+  before backup creation; scoped local household/private/recovery state and a
+  serialized device-wide upload sequence with exact interrupted retry preservation.
+- Scoped encrypted household export sanitization, PostgreSQL 0011–0013 and local
+  v10 migrations, security/unit/API/widget/native-foundation coverage; enable both
+  real HTTP/Dart contract hosts in backend CI and register the complete native
+  Android allowlist with isolated emulator/log/failure-screen teardown. Full Stage 5
+  administration/recovery/deletion journeys remain in progress, not complete.
+
 ### Documentation
-- Stage 5: record repository review, existing full Flutter/backend baseline, gap
-  analysis, 17-case test traceability and proposed ADR-041 for scoped membership,
-  caregiver encryption, recovery, audit and sensitive operations. No new runtime
-  features, migrations or accepted-ADR changes; architecture approval pending.
+- Record Stage 5 repository review, pre-change regression baseline, gap analysis,
+  requirements traceability and maintainer acceptance of superseding ADR-041.
+  Stage 5 product acceptance remains incomplete.
 - Require full automated regression gates for code changes, per-layer tests and
   CI registration. Expand P1-001 scope/test traceability to backend/API/security,
   contracts, encrypted persistence, migrations, reminders and both native platforms;

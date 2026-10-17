@@ -1,7 +1,7 @@
 import hashlib
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Annotated, Protocol
+from typing import Annotated, Any, Protocol
 from uuid import UUID
 
 from fastapi import Header, Request
@@ -9,10 +9,13 @@ from sqlalchemy import Connection, and_, select
 
 from sarti_backend.core.errors import AuthenticationRequired
 from sarti_backend.db.schema import devices, sessions
+from sarti_backend.households.expiry import expire_memberships
 
 
 class ConnectableDatabase(Protocol):
     def connect(self) -> Connection: ...
+
+    def transaction(self) -> Any: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,4 +54,6 @@ def require_device(
         row = connection.execute(statement).one_or_none()
     if row is None:
         raise AuthenticationRequired
+    with database.transaction() as connection:
+        expire_memberships(connection, row.adult_id)
     return AuthenticatedDevice(adult_id=row.adult_id, device_id=row.device_id)

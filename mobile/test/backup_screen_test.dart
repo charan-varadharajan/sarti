@@ -1,3 +1,5 @@
+import 'support/recovery_confirmation_helper.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sarti_mobile/src/features/backup/backup_screen.dart';
@@ -34,6 +36,8 @@ void main() {
             .onPressed,
         isNull,
       );
+      await confirmFixturePhrase(tester, phrase);
+      await tester.ensureVisible(find.byType(Checkbox));
       await tester.tap(find.byType(Checkbox));
       await tester.pump();
       await tester.ensureVisible(find.text('Encrypt and upload backup'));

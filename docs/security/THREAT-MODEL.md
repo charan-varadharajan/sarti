@@ -84,3 +84,23 @@ concurrent quotas, expiry/account purge; CONFLICT-RETIRE and AAD-HTTP causal
 retirement/stale rejection; NLP-BATCH-SEC atomic cross-family rollback;
 UNDO-MOB dirty/reverted/cancel/expiry plus existing explicit Delete journey;
 FAMILY-HUB encrypted peer update and guardian/foreign-write denial.
+
+
+## Stage 5 scoped-membership threats — ADR-041 foundation
+
+| Threat | Current foundation control / evidence | Remaining acceptance |
+| --- | --- | --- |
+| Scoped admin escalates child access through old invite/backup paths | BUG-024/025 explicit resource checks; ordinary re-entry clears revoked admin role; test_context_administration.py | Operation-bound legacy mutation UI/audit integration |
+| Simultaneous final-admin demotions | Context/ordered adult-resource locks; real PostgreSQL concurrent self-demotions leave one administrator | Closure/transfer/account deletion journey |
+| Stolen session replays or changes sensitive intent | Current-phone WebAuthn; five-minute hashed single-use scoped proof, current session/device/ACL; test_sensitive_step_up.py | Physical ceremonies and all sensitive routes |
+| Caregiver receives broad family keys | New role/grant API denies household profile/calendar/audit and write grants; expiry rotates lost grants | Reviewed independent ciphertext copies and shipping caregiver UX |
+| Household switch corrupts/reveals another scope | Pinned SQLCipher queries/private/recovery state, global upload serialization and exact interrupted retry; multi_household_state_test.dart | Shipping selector/runtime/enrollment and stale editor acceptance |
+| Multi-household backup exposes unrelated keys | Encrypted-copy sanitization; real snapshot restore inspection and wrong-key/migration tests | Occupied-store scoped import and complete export step-up |
+| Client supplies misleading audit narration | Ciphertext kept separate from authoritative action/target/outcome/revision; atomic DB transaction and AEAD fixture | Client viewer must verify narration against outcome metadata |
+| Downgrade restores implicit legacy owner power | Migration 0012 refuses scoped-admin escalation; actual guarded Alembic rollback fixture | Coordinated beta client/backend rollout |
+| Recovery or deletion resurrects expired content | Existing hard retention and current-authority recovery gate preserved | Stage 5 manual trash/restore and closure/purge remain unimplemented |
+
+No permanent server decryption key, new cloud fallback or service was introduced.
+Old downloaded content, external backups and physical/provider acceptance remain
+outside the automated component-test guarantee. These controls do not establish
+full Stage 5 completion; see ../STAGE-5-REPORT.md.

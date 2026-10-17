@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:sarti_mobile/src/core/backup/backup_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 import 'package:sarti_mobile/src/core/network/sarti_api.dart';
@@ -729,13 +730,17 @@ void familyRecoveryScenarios() {
         'calendar',
         1,
       ]);
-      final blob = await BackupRecovery.snapshot(
-        database: source,
-        key: sourceKey,
-        phrase: phrase,
+      // Craft a validly encrypted but out-of-scope input without the shipping
+      // export sanitizer, which now strips other authorized contexts.
+      final malformedPath = '${dir.path}/foreign-catalog.srtbk';
+      BackupService.createBackup(
+        databasePath: source.path,
+        outputPath: malformedPath,
+        databaseKey: sourceKey,
+        recoveryPhrase: phrase,
         sodium: sodium,
-        familyId: family,
       );
+      final blob = File(malformedPath).readAsBytesSync();
       final empty = SartiDatabase.open(
         '${dir.path}/scope-empty.db',
         sodium.randombytes.buf(32),
