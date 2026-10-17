@@ -102,3 +102,21 @@ maintenance entry point, `python -m sarti_backend.households.maintenance`. It
 outputs counts only and is exercised by PostgreSQL tests and isolated Docker
 smoke. Scheduling and purge-timing acceptance remain deployment work; see the
 operations runbook. Read-time expiry is enforced without waiting for a scheduler.
+
+
+## Interrupted upload after lost context authority (BUG-026)
+
+`POST /v1/sync/sequence-review` accepts operation/family/resource UUIDs, original
+sequence and ciphertext digest in the authenticated body. It rechecks current
+session/device under resource→device locks and requires lost write authority.
+It returns only the caller's device ID/high-water and matching own operation
+receipt: accepted, not_accepted (sequence never reached), or unknown (receipt
+expired/missing with high-water already reached). No other-device receipt,
+ciphertext, profile or key is returned, and no sequence is mutated/reserved.
+Bindings must match an available own receipt. Responses are no-store.
+
+The shipping Households card requires explicit preservation review and rejects
+changed local work/session/device/receipt. Exact original envelopes and payload/
+vector are quarantined in local v11, not discarded/renumbered. Other contexts can
+then synchronize at server high-water+1. Quarantined work is not automatically
+re-published if access later returns. Existing relay TTL is unchanged.

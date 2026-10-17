@@ -47,76 +47,7 @@ class BackupRecovery {
       recoveredKey = result.databaseKey;
       final restored = SartiDatabase.open(pending.path, recoveredKey);
       try {
-        final families = restored.raw.select('SELECT id FROM households');
-        if (families.length != 1 || families.single['id'] != familyId) {
-          throw const BackupException('Backup belongs to a different family.');
-        }
-        final scope = restored.raw.select(
-          "SELECT value FROM app_preferences WHERE key='backup-scope-v1'",
-        );
-        if (adultId != null) {
-          if (scope.isEmpty ||
-              scope.single['value'] != 'adult:$adultId' ||
-              restored.raw.select(
-                'SELECT 1 FROM personal_calendars WHERE adult_id!=?',
-                [adultId],
-              ).isNotEmpty) {
-            throw const BackupException(
-              'Private backup belongs to a different adult.',
-            );
-          }
-        } else if (restored.raw
-            .select('SELECT 1 FROM personal_calendars')
-            .isNotEmpty) {
-          throw const BackupException(
-            'Private content requires adult-specific recovery.',
-          );
-        }
-        final integrity = restored.raw.select('PRAGMA integrity_check');
-        if (integrity.single.values.single != 'ok' ||
-            restored.raw.select('PRAGMA foreign_key_check').isNotEmpty) {
-          throw const BackupException('Backup database is damaged.');
-        }
-        restored.transaction(() {
-          if (adultId == null) {
-            CalendarRepository(
-              restored,
-              deviceId: newId(),
-            ).initializeFamilyRecovery();
-          }
-          for (final table in [
-            'outbox',
-            'sync_state',
-            'device_sync_state',
-            'app_preferences',
-            if (adultId != null) 'recovery_intents',
-            if (adultId != null) 'recovery_state',
-          ]) {
-            restored.raw.execute('DELETE FROM $table');
-          }
-          if (adultId == null) {
-            restored.raw.execute(
-              "INSERT INTO app_preferences VALUES ('retention-recovery-pending','true')",
-            );
-          }
-          if (adultId == null) {
-            final row = restored.raw
-                .select('SELECT profile_vector_json FROM recovery_state')
-                .single;
-            if (recoveryVector(row['profile_vector_json']) != null) {
-              restored.raw.execute('INSERT INTO app_preferences VALUES (?,?)', [
-                'household-vector-$familyId',
-                row['profile_vector_json'],
-              ]);
-            }
-          }
-          {
-            restored.raw.execute('INSERT INTO app_preferences VALUES (?,?)', [
-              'family-access-$familyId',
-              jsonEncode({'role': 'guardian', 'permission': 'read'}),
-            ]);
-          }
-        });
+        _prepareRestored(restored, familyId, adultId);
       } finally {
         restored.close();
       }
@@ -124,6 +55,209 @@ class BackupRecovery {
     } catch (_) {
       if (pending.existsSync()) pending.deleteSync();
       rethrow;
+    } finally {
+      recoveredKey?.fillRange(0, recoveredKey.length, 0);
+      folder.deleteSync(recursive: true);
+    }
+  }
+
+  static void _prepareRestored(
+    SartiDatabase restored,
+    String familyId,
+    String? adultId,
+  ) {
+    final families = restored.raw.select('SELECT id FROM households');
+    if (families.length != 1 || families.single['id'] != familyId) {
+      throw const BackupException('Backup belongs to a different family.');
+    }
+    final scope = restored.raw.select(
+      "SELECT value FROM app_preferences WHERE key='backup-scope-v1'",
+    );
+    if (adultId != null) {
+      if (scope.isEmpty ||
+          scope.single['value'] != 'adult:$adultId' ||
+          restored.raw.select(
+            'SELECT 1 FROM personal_calendars WHERE adult_id!=?',
+            [adultId],
+          ).isNotEmpty) {
+        throw const BackupException(
+          'Private backup belongs to a different adult.',
+        );
+      }
+    } else if (restored.raw
+        .select('SELECT 1 FROM personal_calendars')
+        .isNotEmpty) {
+      throw const BackupException(
+        'Private content requires adult-specific recovery.',
+      );
+    }
+    final integrity = restored.raw.select('PRAGMA integrity_check');
+    if (integrity.single.values.single != 'ok' ||
+        restored.raw.select('PRAGMA foreign_key_check').isNotEmpty) {
+      throw const BackupException('Backup database is damaged.');
+    }
+    restored.transaction(() {
+      if (adultId == null) {
+        CalendarRepository(
+          restored,
+          deviceId: newId(),
+        ).initializeFamilyRecovery();
+      }
+      for (final table in [
+        'outbox',
+        'sync_state',
+        'device_sync_state',
+        'app_preferences',
+        if (adultId != null) 'recovery_intents',
+        if (adultId != null) 'recovery_state',
+      ]) {
+        restored.raw.execute('DELETE FROM $table');
+      }
+      if (adultId == null) {
+        restored.raw.execute(
+          "INSERT INTO app_preferences VALUES ('retention-recovery-pending','true')",
+        );
+      }
+      if (adultId == null) {
+        final row = restored.raw
+            .select('SELECT profile_vector_json FROM recovery_state')
+            .single;
+        if (recoveryVector(row['profile_vector_json']) != null) {
+          restored.raw.execute('INSERT INTO app_preferences VALUES (?,?)', [
+            'household-vector-$familyId',
+            row['profile_vector_json'],
+          ]);
+        }
+      }
+      {
+        restored.raw.execute('INSERT INTO app_preferences VALUES (?,?)', [
+          'family-access-$familyId',
+          jsonEncode({'role': 'guardian', 'permission': 'read'}),
+        ]);
+      }
+    });
+  }
+
+  /// Import a missing family in one live SQLCipher transaction. The current
+  /// database/key/device identity stays; in-flight writes to other families can
+  /// finish against the same store, so no file activation can lose late work.
+  static Future<void> importHousehold({
+    required Uint8List blob,
+    required String phrase,
+    required String familyId,
+    required SartiDatabase current,
+    required Sodium sodium,
+  }) async {
+    if (current.raw.select('SELECT 1 FROM households WHERE id=?', [
+      familyId,
+    ]).isNotEmpty) {
+      throw const BackupException('This household is already on this phone.');
+    }
+    final folder = Directory.systemTemp.createTempSync('sarti-scoped-import-');
+    Uint8List? recoveredKey;
+    try {
+      final backup = File('${folder.path}/snapshot.srtbk')
+        ..writeAsBytesSync(blob);
+      final path = '${folder.path}/restored.db';
+      final result = BackupService.restoreBackup(
+        backupPath: backup.path,
+        outputPath: path,
+        recoveryPhrase: phrase,
+        sodium: sodium,
+      );
+      recoveredKey = result.databaseKey;
+      final restored = SartiDatabase.open(path, recoveredKey);
+      try {
+        _prepareRestored(restored, familyId, null);
+        Set<String> resourceIds(SartiDatabase db) => db.raw
+            .select(
+              'SELECT calendar_resource_id AS id FROM households UNION SELECT id FROM children UNION SELECT id FROM participant_profiles UNION SELECT resource_id AS id FROM resource_catalog UNION SELECT resource_id AS id FROM personal_calendars UNION SELECT resource_id AS id FROM resource_keys',
+            )
+            .map((r) => r['id'] as String)
+            .toSet();
+        final incoming = resourceIds(restored);
+        if (incoming.intersection(resourceIds(current)).isNotEmpty) {
+          throw const BackupException(
+            'Snapshot resource identities conflict with this phone.',
+          );
+        }
+        for (final row in restored.raw.select('SELECT * FROM conflicts')) {
+          if (!incoming.contains(row['resource_id'])) {
+            throw const BackupException('Snapshot conflict scope is invalid.');
+          }
+          for (final column in ['local_payload_json', 'remote_payload_json']) {
+            final payload = jsonDecode(row[column] as String) as Map;
+            if (payload['householdId'] != familyId ||
+                payload['calendarResourceId'] != row['resource_id']) {
+              throw const BackupException(
+                'Snapshot conflict content is outside this household.',
+              );
+            }
+          }
+        }
+        current.transaction(() {
+          // Fixed table order respects all foreign keys. Columns are taken from
+          // the trusted current schema; untrusted snapshot SQL is never executed
+          // against the live store. Plain INSERT rejects every identity collision.
+          for (final table in [
+            'households',
+            'guardians',
+            'children',
+            'participant_profiles',
+            'personal_calendars',
+            'events',
+            'event_children',
+            'event_participants',
+            'reminders',
+            'event_versions',
+            'child_sync',
+            'child_profile_versions',
+            'appointment_shares',
+            'resource_catalog',
+            'resource_keys',
+            'calendar_deletions',
+            'retention_conflicts',
+            'conflicts',
+            'recovery_state',
+            'recovery_intents',
+          ]) {
+            final columns = current.raw
+                .select('PRAGMA table_info($table)')
+                .map((r) => r['name'] as String)
+                .toList();
+            final names = columns.map((c) => '"$c"').join(',');
+            final placeholders = List.filled(columns.length, '?').join(',');
+            for (final row in restored.raw.select(
+              'SELECT $names FROM $table',
+            )) {
+              current.raw.execute(
+                'INSERT INTO $table ($names) VALUES ($placeholders)',
+                [for (final name in columns) row[name]],
+              );
+            }
+          }
+          for (final key in [
+            'household-vector-$familyId',
+            'family-access-$familyId',
+          ]) {
+            final rows = restored.raw.select(
+              'SELECT value FROM app_preferences WHERE key=?',
+              [key],
+            );
+            if (rows.isNotEmpty) {
+              current.raw.execute('INSERT INTO app_preferences VALUES (?,?)', [
+                key,
+                rows.single['value'],
+              ]);
+            }
+          }
+          if (current.raw.select('PRAGMA foreign_key_check').isNotEmpty) {
+            throw const BackupException('Snapshot relationships are invalid.');
+          }
+        });
+      } finally {
+        restored.close();
+      }
     } finally {
       recoveredKey?.fillRange(0, recoveredKey.length, 0);
       folder.deleteSync(recursive: true);

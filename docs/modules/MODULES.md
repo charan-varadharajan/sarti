@@ -169,3 +169,21 @@ word component holds random-position answers only transiently. Prepared native
 foundation entry is registered alongside existing journeys. Shipping selectors,
 admin proof/audit flow, caregiver copies, occupied-store import and deletion
 remain pending; registration/adapter tests are not full product acceptance.
+
+
+Stage 5 household selector is the explicit local context entry point; repository
+selection persists encrypted on device. Runtime captures a context list, serializes
+uploads across the device and pins recovery/retention/reminder work per context.
+Guardian routes retain pinned repositories; explicit additional enrollment never
+overwrites another household. SyncEngine owns reviewed receipt quarantine under
+its existing device queue. Server sequence review is metadata-only/read-only.
+
+BackupRecovery.importHousehold prepares/validates a family-only snapshot in an
+encrypted temporary file, then plain-inserts fixed trusted-schema columns in one
+live transaction. No file activation, identity rebind or unrelated key/counter
+reset occurs. Guardian profile writes use household-qualified conflict targets.
+
+EmailSuggestionInbox verifies v2 family/suggestion binding and exposes scoped
+views. The email gateway/listing uses current calendar-resource authorization;
+care-calendar-only recipients receive no broad household email. No family email
+plaintext persists on the server and no new cloud inference is introduced.

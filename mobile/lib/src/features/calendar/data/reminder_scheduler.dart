@@ -9,6 +9,25 @@ abstract interface class ReminderScheduler {
   Future<void> cancelFor(String eventId);
 }
 
+/// Reconcile one pinned household after download, including while another is visible.
+Future<void> reconcileHouseholdReminders(
+  ReminderScheduler scheduler,
+  String householdId,
+  List<CalendarEvent> before,
+  List<CalendarEvent> after,
+) async {
+  if ([...before, ...after].any((e) => e.householdId != householdId)) {
+    throw StateError('Reminder reconciliation crossed household boundaries.');
+  }
+  final currentIds = after.map((e) => e.id).toSet();
+  for (final event in before) {
+    if (!currentIds.contains(event.id)) await scheduler.cancelFor(event.id);
+  }
+  for (final event in after) {
+    await scheduler.replaceFor(event);
+  }
+}
+
 class LocalReminderScheduler implements ReminderScheduler {
   LocalReminderScheduler([FlutterLocalNotificationsPlugin? plugin])
     : _plugin = plugin ?? FlutterLocalNotificationsPlugin();

@@ -184,3 +184,36 @@ unattributable to this snapshot are excluded; causal event/profile vectors and
 protected recovery intent remain. Live data is not changed. Scoped import into
 an occupied store remains pending and fails safely through the existing empty-
 store guard. No multi-household restore acceptance is claimed.
+
+
+### Stage 5 v11: unavailable-context pending intent
+
+`recovery_intents.original_envelope_json` preserves exact former upload bytes;
+`server_receipt` is accepted/not_accepted/unknown. Explicit receipt review moves
+pending rows transactionally to quarantined local intent; original payload/vector
+and operation ID stay. Unknown is not an acknowledgment. The device counter uses
+its authenticated server high-water under the same local serialization gate;
+no abandoned ciphertext is renumbered or sent automatically. Snapshots filter
+quarantine by household and exclude private scopes through existing sanitization.
+The fields are SQLCipher encrypted; no new recovery secret or primitive.
+
+### Stage 5 v12: independent guardian profile in each household
+
+Guardians use composite (household_id,id) identity; pickup/dropoff references
+include household_id. The same enrolled adult can have independent names in A/B;
+foreign-only pickup assignments fail at SQL level. Migration rebuilds the two
+referenced tables transactionally with FK cascades disabled only during synchronous
+open, checks all FKs before commit and always restores enforcement. No async/live
+caller sees the transition. Invalid legacy cross-scope assignments roll back.
+
+Missing-household restore imports validated prepared snapshot rows via plain
+INSERT in one live SQLCipher transaction. Collision fails and rolls back; no
+INSERT REPLACE against unrelated data. Device counter/cursors/outbox/current
+selection/global preferences and all unrelated content/keys remain. Imported
+old outbox bindings become review-gated scoped recovery intent, not live uploads.
+No file/key replacement or new protected journal is needed for this merge.
+
+Quarantine does not extend calendar retention: an expired acknowledged calendar
+body may be removed while unresolved original intent/envelope remains protected
+separately under the existing recovery policy. Active unsent outbox work still
+defers cleanup; unrelated households' pending work does not block it.

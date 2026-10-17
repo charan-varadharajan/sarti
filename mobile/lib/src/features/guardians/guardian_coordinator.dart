@@ -16,7 +16,9 @@ class GuardianCoordinator extends ChangeNotifier {
     required this.keys,
     required this.synchronize,
     this.onLocalChanged,
+    this.joining = false,
   });
+  final bool joining;
   final SartiDatabase database;
   final CalendarRepository repository;
   final GuardianApi api;
@@ -31,6 +33,14 @@ class GuardianCoordinator extends ChangeNotifier {
   bool _disposed = false;
 
   RemoteFamily? get family {
+    if (joining) {
+      final pending = database.raw.select(
+        "SELECT value FROM app_preferences WHERE key='joining-household'",
+      );
+      return pending.isEmpty
+          ? null
+          : families.where((f) => f.id == pending.single['value']).firstOrNull;
+    }
     final local = repository.load();
     if (local != null) {
       return families.where((f) => f.id == local.householdId).firstOrNull;
@@ -39,6 +49,7 @@ class GuardianCoordinator extends ChangeNotifier {
   }
 
   bool get isOwner =>
+      !joining &&
       repository.load() != null &&
       family?.role == 'owner' &&
       family?.status == 'active';
@@ -83,75 +94,84 @@ class GuardianCoordinator extends ChangeNotifier {
   Future<void> refresh() => _run(_refresh);
 
   Future<void> _refresh() async {
-    families = await api.listFamilies();
-    var remote = family;
-    final joining = remote;
-    if (repository.load() == null &&
-        joining != null &&
-        joining.status == 'active' &&
-        joining.role == 'guardian') {
-      final calendar = joining.resources
+    final refreshed = await api.listFamilies();
+    if (_disposed) return;
+    families = refreshed;
+    final pending = database.raw.select(
+      "SELECT value FROM app_preferences WHERE key='joining-household'",
+    );
+    final candidate = pending.isNotEmpty
+        ? families.where((f) => f.id == pending.single['value']).firstOrNull
+        : repository.load() == null && families.length == 1
+        ? families.single
+        : null;
+    if (candidate != null &&
+        candidate.status == 'active' &&
+        candidate.role == 'guardian') {
+      final calendar = candidate.resources
           .where((r) => r.kind == 'calendar')
           .single;
       if (!{'read', 'write', 'admin'}.contains(calendar.permission)) {
         throw StateError('Calendar permission is missing.');
       }
       database.transaction(() {
-        database.raw.execute(
-          'INSERT INTO households(id,display_name,created_at,calendar_resource_id) VALUES (?,?,?,?)',
-          [
-            joining.id,
-            'Family calendar',
-            DateTime.now().toUtc().toIso8601String(),
-            calendar.id,
-          ],
-        );
-        database.raw.execute(
-          'INSERT INTO sync_state(family_id,server_cursor) VALUES (?,?)',
-          [joining.id, joining.syncStartCursor],
-        );
-        database.raw.execute(
-          'INSERT OR REPLACE INTO app_preferences(key,value) VALUES (?,?)',
-          [
-            'family-access-${joining.id}',
-            jsonEncode({'role': 'guardian', 'permission': calendar.permission}),
-          ],
-        );
+        if (database.raw.select('SELECT 1 FROM households WHERE id=?', [
+          candidate.id,
+        ]).isEmpty) {
+          database.raw.execute(
+            'INSERT INTO households(id,display_name,created_at,calendar_resource_id) VALUES (?,?,?,?)',
+            [
+              candidate.id,
+              'Family calendar',
+              DateTime.now().toUtc().toIso8601String(),
+              calendar.id,
+            ],
+          );
+          database.raw.execute(
+            'INSERT INTO sync_state(family_id,server_cursor) VALUES (?,?)',
+            [candidate.id, candidate.syncStartCursor],
+          );
+        }
+        if (joining) repository.selectHousehold(candidate.id);
       });
-      onLocalChanged?.call();
     }
-    remote = family;
-    if (remote != null && remote.status == 'active') {
-      final calendar = remote.resources
-          .where((r) => r.kind == 'calendar')
+    // Refresh every known household's authority, never reuse the visible one's.
+    for (final local in repository.localFamilies()) {
+      final remote = families
+          .where((f) => f.id == local.householdId && f.status == 'active')
           .firstOrNull;
-      database.raw.execute(
-        'INSERT OR REPLACE INTO app_preferences(key,value) VALUES (?,?)',
-        [
-          'family-access-${remote.id}',
-          jsonEncode({'role': remote.role, 'permission': calendar?.permission}),
-        ],
-      );
-      await synchronize();
-      onLocalChanged?.call();
-    } else if (repository.load() case final local?) {
       final previous = database.raw.select(
         'SELECT value FROM app_preferences WHERE key=?',
         ['family-access-${local.householdId}'],
       );
-      if (previous.isNotEmpty &&
-          {'guardian', 'revoked'}.contains(
-            (jsonDecode(previous.single['value'] as String) as Map)['role'],
-          )) {
+      if (remote != null) {
+        final calendar = remote.resources
+            .where((r) => r.kind == 'calendar')
+            .firstOrNull;
         database.raw.execute(
-          'INSERT OR REPLACE INTO app_preferences(key,value) VALUES (?,?)',
+          'INSERT OR REPLACE INTO app_preferences VALUES (?,?)',
+          [
+            'family-access-${local.householdId}',
+            jsonEncode({
+              'role': remote.role,
+              'permission': calendar?.permission,
+            }),
+          ],
+        );
+      } else if (previous.isNotEmpty) {
+        database.raw.execute(
+          'INSERT OR REPLACE INTO app_preferences VALUES (?,?)',
           [
             'family-access-${local.householdId}',
             jsonEncode({'role': 'revoked', 'permission': null}),
           ],
         );
-        message = 'Your family access was removed. Earlier copies remain on this phone.';
       }
+    }
+    onLocalChanged?.call();
+    if (family?.status == 'active') {
+      await synchronize();
+      onLocalChanged?.call();
     }
     invitations = isOwner ? await api.listInvitations(family!.id) : [];
     final current = invitation;
@@ -168,9 +188,10 @@ class GuardianCoordinator extends ChangeNotifier {
   }
 
   Future<RemoteFamily> _owner() async {
+    final expectedId = repository.load()?.householdId;
     await synchronize(); // Provision/drain offline writes before taking a baseline.
     families = await api.listFamilies();
-    if (!isOwner) {
+    if (repository.load()?.householdId != expectedId || !isOwner) {
       throw StateError('Only the family owner can invite guardians.');
     }
     return family!;
@@ -183,10 +204,14 @@ class GuardianCoordinator extends ChangeNotifier {
   });
 
   Future<void> accept(String input) => _run(() async {
-    if (repository.load() != null) {
-      throw StateError('This phone already has a family.');
+    if (repository.load() != null && !joining) {
+      throw StateError('Use Join another household to accept this invitation.');
     }
-    await api.acceptInvitation(invitationToken(input));
+    final id = await api.acceptInvitation(invitationToken(input));
+    database.raw.execute(
+      "INSERT OR REPLACE INTO app_preferences VALUES ('joining-household',?)",
+      [id],
+    );
     InvitationLinks.token.value = null;
     await _refresh();
     message = 'Invitation accepted. Compare your code with the owner and wait for approval.';

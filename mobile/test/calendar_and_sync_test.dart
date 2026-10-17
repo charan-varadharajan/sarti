@@ -67,6 +67,16 @@ void main() {
       CREATE TABLE outbox(operation_id TEXT PRIMARY KEY, family_id TEXT NOT NULL, resource_id TEXT NOT NULL, kind TEXT NOT NULL, payload_json TEXT NOT NULL, vector_json TEXT NOT NULL, state TEXT NOT NULL, created_at TEXT NOT NULL) STRICT;
       CREATE TABLE conflicts(id TEXT PRIMARY KEY, resource_id TEXT NOT NULL, local_operation_id TEXT NOT NULL, remote_operation_id TEXT NOT NULL, local_payload_json TEXT NOT NULL, remote_payload_json TEXT NOT NULL, status TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE(local_operation_id, remote_operation_id)) STRICT;
       CREATE TABLE sync_state(family_id TEXT PRIMARY KEY, server_cursor INTEGER NOT NULL DEFAULT 0) STRICT;
+      CREATE TABLE guardians(id TEXT PRIMARY KEY,household_id TEXT NOT NULL REFERENCES households(id) ON DELETE CASCADE,display_name TEXT NOT NULL) STRICT;
+      CREATE TABLE events(
+        id TEXT PRIMARY KEY,household_id TEXT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+        calendar_resource_id TEXT NOT NULL,title TEXT NOT NULL,notes TEXT,local_start TEXT NOT NULL,
+        timezone TEXT NOT NULL,duration_minutes INTEGER NOT NULL CHECK(duration_minutes>0),
+        status TEXT NOT NULL CHECK(status IN ('scheduled','cancelled')),recurrence_json TEXT,
+        pickup_guardian_id TEXT REFERENCES guardians(id),dropoff_guardian_id TEXT REFERENCES guardians(id),
+        revision INTEGER NOT NULL CHECK(revision>0),updated_at TEXT NOT NULL,
+        deleted INTEGER NOT NULL DEFAULT 0 CHECK(deleted IN (0,1))
+      ) STRICT;
       CREATE TABLE private_events(id TEXT PRIMARY KEY, title TEXT NOT NULL) STRICT;
       INSERT INTO households VALUES ('family', 'Family', '2026-01-01T00:00:00Z');
       INSERT INTO children VALUES ('child', 'family', 'Mia', 4287524079);

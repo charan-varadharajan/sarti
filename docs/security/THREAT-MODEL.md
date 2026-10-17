@@ -104,3 +104,11 @@ No permanent server decryption key, new cloud fallback or service was introduced
 Old downloaded content, external backups and physical/provider acceptance remain
 outside the automated component-test guarantee. These controls do not establish
 full Stage 5 completion; see ../STAGE-5-REPORT.md.
+
+
+Stage 5 unavailable-context denial of service / BUG-026: exact uncertain upload
+may occupy a device sequence after resource revocation. Explicit own-device
+receipt review under current auth and resource/device locks, bounded metadata-only
+response, stale-review rejection and encrypted local quarantine allow independent
+contexts to resume without replay or silently abandoning work. Expired receipts
+cannot establish delivery; original content remains preserved for later review.

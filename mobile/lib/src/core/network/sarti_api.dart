@@ -57,13 +57,14 @@ class RemoteFamily {
 
 class EncryptedEmailDelivery {
   const EncryptedEmailDelivery({
+    required this.familyId,
     required this.suggestionId,
     required this.ciphertext,
     required this.receivedAt,
     required this.expiresAt,
   });
 
-  final String suggestionId;
+  final String familyId, suggestionId;
   final Uint8List ciphertext;
   final DateTime receivedAt;
   final DateTime expiresAt;
@@ -168,6 +169,7 @@ abstract interface class GuardianApi {
 class SartiApiClient
     implements
         EncryptedRelay,
+        SequenceReviewRelay,
         ResourceKeyApi,
         GuardianApi,
         ExtendedResourceApi {
@@ -177,6 +179,32 @@ class SartiApiClient
   final Uri baseUri;
   final HttpClient _http;
   String? sessionToken;
+
+  @override
+  Future<SequenceReceipt> reviewSequence(RelayEnvelope original) async {
+    final session = sessionToken;
+    final result = await _json(
+      'POST',
+      '/v1/sync/sequence-review',
+      authenticated: true,
+      body: {
+        'operation_id': original.operationId,
+        'family_id': original.familyId,
+        'resource_id': original.resourceId,
+        'device_sequence': original.deviceSequence,
+        'content_digest': _encode(original.contentDigest),
+      },
+    );
+    if (session == null || sessionToken != session) {
+      throw StateError('Session changed during receipt review.');
+    }
+    return SequenceReceipt(
+      operationId: result['operation_id'] as String,
+      deviceId: result['device_id'] as String,
+      lastDeviceSequence: result['last_device_sequence'] as int,
+      receipt: result['receipt'] as String,
+    );
+  }
 
   @override
   Future<GuardianInvitation> createInvitation(String familyId) async {
@@ -617,6 +645,7 @@ class SartiApiClient
     return response
         .map(
           (value) => EncryptedEmailDelivery(
+            familyId: value['family_id'] as String,
             suggestionId: value['suggestion_id'] as String,
             ciphertext: _decode(value['ciphertext'] as String),
             receivedAt: DateTime.parse(value['received_at'] as String),

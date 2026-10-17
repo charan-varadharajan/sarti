@@ -269,3 +269,27 @@ Limits: legacy sensitive-route integration, review/copy UI, complete scoped impo
 closure/purge and restore remain in progress. Existing routes are not claimed to
 have the new operation-bound safeguards. Device/server cannot guarantee erasure
 of previously downloaded ciphertext, decrypted copies or earlier external backups.
+
+
+BUG-026 receipt reconciliation requires the current session/device and confirmed
+lost write authority under upload/removal lock ordering. It returns only the
+caller-device high-water and bound own receipt metadata; no revoked household
+content/key reads. Local review is invalidated by changed work/session/device and
+serialized with uploads. Quarantine preserves original bytes and never silently
+renumbers or republishes them; expiry is unknown rather than a false acceptance.
+Tests: test_sequence_review.py, sequence_reconciliation_test.dart and
+sequence_review_api_test.dart. Physical/provider compatibility is not inferred.
+
+
+BUG-028: device-sealed email v2 binds both family and suggestion IDs; response
+metadata must match after decryption. UI uses household-filtered suggestions and
+stale selection cannot propose into a different calendar. Recipient/listing SQL
+requires a current live household calendar read grant and eligible non-care role,
+not membership alone. Legacy unbound v1 mail fails closed; no guessed migration.
+Tests: test_email_household_scope.py and email_suggestion_inbox_test.dart, with
+real PostgreSQL and sealed-box decryption plus prepared shipping UI checks.
+
+Quarantine does not extend calendar retention: an expired acknowledged calendar
+body may be removed while unresolved original intent/envelope remains protected
+separately under the existing recovery policy. Active unsent outbox work still
+defers cleanup; unrelated households' pending work does not block it.

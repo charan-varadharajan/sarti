@@ -51,6 +51,21 @@ abstract interface class EncryptedRelay {
   Future<RelayPage> download(String familyId, int cursor);
 }
 
+class SequenceReceipt {
+  const SequenceReceipt({
+    required this.operationId,
+    required this.deviceId,
+    required this.lastDeviceSequence,
+    required this.receipt,
+  });
+  final String operationId, deviceId, receipt;
+  final int lastDeviceSequence;
+}
+
+abstract interface class SequenceReviewRelay {
+  Future<SequenceReceipt> reviewSequence(RelayEnvelope original);
+}
+
 /// The relay rejected a conflicting/stale envelope; no content was accepted.
 class RelayConflict implements Exception {}
 
@@ -65,6 +80,17 @@ class SyncReport {
   final int applied;
   final int conflicts;
 }
+
+String pendingOperationFingerprint(SartiDatabase database, String familyId) =>
+    jsonEncode(
+      database.raw
+          .select(
+            "SELECT * FROM outbox WHERE family_id=? AND state='pending' ORDER BY operation_id",
+            [familyId],
+          )
+          .map((r) => Map<String, Object?>.from(r))
+          .toList(),
+    );
 
 class SyncEngine {
   SyncEngine({
@@ -88,7 +114,9 @@ class SyncEngine {
   Future<SyncReport> synchronize(
     String familyId, {
     bool downloadOnly = false,
-  }) async {
+  }) => _serialized(() => _synchronize(familyId, downloadOnly: downloadOnly));
+
+  Future<T> _serialized<T>(Future<T> Function() action) async {
     while (true) {
       final previous = _queues[database];
       if (previous == null) break;
@@ -97,7 +125,7 @@ class SyncEngine {
     final gate = Completer<void>();
     _queues[database] = gate;
     try {
-      return await _synchronize(familyId, downloadOnly: downloadOnly);
+      return await action();
     } finally {
       // Release before delivering success/error to the caller. No failed future
       // or callback tied to a former widget-test zone remains in the scheduler.
@@ -105,6 +133,97 @@ class SyncEngine {
       gate.complete();
     }
   }
+
+  String pendingFingerprint(String familyId) =>
+      pendingOperationFingerprint(database, familyId);
+
+  /// Explicit review preserves original bytes as quarantined encrypted local
+  /// intent. No abandoned payload is renumbered or silently republished.
+  Future<int> quarantineUnavailableFamily(
+    String familyId, {
+    required String reviewedFingerprint,
+  }) => _serialized(() async {
+    if (relay is! SequenceReviewRelay ||
+        pendingFingerprint(familyId) != reviewedFingerprint) {
+      throw StateError('Review the current pending changes.');
+    }
+    final rows = database.raw.select(
+      "SELECT * FROM outbox WHERE family_id=? AND state='pending' ORDER BY operation_id",
+      [familyId],
+    );
+    final uncertain = rows.where((r) => r['envelope_json'] != null).toList();
+    if (uncertain.length != 1) {
+      throw StateError('One exact uncertain upload is required.');
+    }
+    final original = _restoreEnvelope(
+      uncertain.single['envelope_json'] as String,
+    );
+    if (original.authorDeviceId != deviceId || original.familyId != familyId) {
+      throw StateError('The original upload belongs to a different device.');
+    }
+    final receipt = await (relay as SequenceReviewRelay).reviewSequence(
+      original,
+    );
+    if (receipt.operationId != original.operationId ||
+        receipt.deviceId != deviceId ||
+        receipt.lastDeviceSequence < 0 ||
+        receipt.lastDeviceSequence >= 9223372036854775807 ||
+        !{'accepted', 'not_accepted', 'unknown'}.contains(receipt.receipt) ||
+        (receipt.receipt == 'accepted' &&
+            receipt.lastDeviceSequence < original.deviceSequence) ||
+        (receipt.receipt == 'not_accepted' &&
+            receipt.lastDeviceSequence >= original.deviceSequence) ||
+        (receipt.receipt == 'unknown' &&
+            receipt.lastDeviceSequence < original.deviceSequence) ||
+        pendingFingerprint(familyId) != reviewedFingerprint) {
+      throw StateError('The receipt or reviewed changes do not match.');
+    }
+    final counter = database.raw.select(
+      'SELECT next_device_sequence FROM device_sync_state WHERE device_id=?',
+      [deviceId],
+    );
+    if (counter.isEmpty ||
+        receipt.lastDeviceSequence + 1 <
+            (counter.single['next_device_sequence'] as int)) {
+      throw StateError('The server sequence moved backwards.');
+    }
+    database.transaction(() {
+      for (final row in rows) {
+        // A preexisting recovery intent is preserved rather than overwritten.
+        if (database.raw.select(
+          'SELECT 1 FROM recovery_intents WHERE source_operation_id=? OR queued_operation_id=?',
+          [row['operation_id'], row['operation_id']],
+        ).isNotEmpty) {
+          throw StateError('Finish the existing scoped recovery review first.');
+        }
+        database.raw.execute(
+          "INSERT INTO recovery_intents(source_operation_id,family_id,resource_id,kind,payload_json,vector_json,status,reason,original_envelope_json,server_receipt) VALUES (?,?,?,?,?,?,'quarantined','lost_write_authority',?,?)",
+          [
+            row['operation_id'],
+            familyId,
+            row['resource_id'],
+            row['kind'],
+            row['payload_json'],
+            row['vector_json'],
+            row['envelope_json'],
+            row['envelope_json'] == null ? 'not_accepted' : receipt.receipt,
+          ],
+        );
+        database.raw.execute('DELETE FROM outbox WHERE operation_id=?', [
+          row['operation_id'],
+        ]);
+      }
+      database.raw.execute(
+        'UPDATE device_sync_state SET next_device_sequence=? WHERE device_id=?',
+        [receipt.lastDeviceSequence + 1, deviceId],
+      );
+      database.raw.execute(
+        'UPDATE sync_state SET next_device_sequence=? WHERE family_id=?',
+        [receipt.lastDeviceSequence + 1, familyId],
+      );
+    });
+    return rows.length;
+  });
 
   Future<SyncReport> _synchronize(
     String familyId, {

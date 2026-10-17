@@ -77,11 +77,24 @@ class _NaturalLanguageEventDialogState
   String? _pickupGuardianId;
   bool _loading = false;
 
-  FamilyCalendar get _family => widget.controller.family!;
+  late final FamilyCalendar _family;
+  bool _checkHousehold() {
+    if (widget.controller.family?.householdId == _family.householdId) {
+      return true;
+    }
+    if (mounted) {
+      setState(() {
+        _loading = false;
+        _saveError = 'Household changed. Cancel and reopen your description.';
+      });
+    }
+    return false;
+  }
 
   @override
   void initState() {
     super.initState();
+    _family = widget.controller.family!;
     final initial = widget.initialInput?.trim();
     if (initial != null && initial.isNotEmpty) {
       _input.text = initial;
@@ -99,7 +112,7 @@ class _NaturalLanguageEventDialogState
   }
 
   Future<void> _preview() async {
-    if (_input.text.trim().isEmpty) return;
+    if (!_checkHousehold() || _input.text.trim().isEmpty) return;
     setState(() => _loading = true);
     final zone = tz.getLocation(widget.controller.timezone);
     final bases = const DeterministicEventParser().parseAll(
@@ -110,7 +123,7 @@ class _NaturalLanguageEventDialogState
     for (final base in bases) {
       proposals.add(await widget.provider.tryEnrich(base));
     }
-    if (!mounted) return;
+    if (!mounted || !_checkHousehold()) return;
     _proposals = proposals;
     _drafts.clear();
     _index = 0;
@@ -190,7 +203,8 @@ class _NaturalLanguageEventDialogState
   }
 
   Future<void> _cloudAssist() async {
-    if (_loading ||
+    if (!_checkHousehold() ||
+        _loading ||
         _proposal == null ||
         widget.cloudApi == null ||
         widget.cloudConsent?.enabled != true) {
@@ -228,7 +242,11 @@ class _NaturalLanguageEventDialogState
         childAliases: {for (final c in _family.children) c.name: c.cloudAlias},
         guardianNames: _family.guardians.map((g) => g.name),
       );
-      if (!mounted || widget.cloudConsent?.enabled != true) return;
+      if (!mounted ||
+          !_checkHousehold() ||
+          widget.cloudConsent?.enabled != true) {
+        return;
+      }
       setState(() {
         if (identical(enriched, _proposal)) {
           _saveError = 'Cloud assist added no verified information. Continue with the local preview.';
@@ -272,6 +290,7 @@ class _NaturalLanguageEventDialogState
   }
 
   void _save() {
+    if (!_checkHousehold()) return;
     if (_title.text.trim().isEmpty || _date == null || _time == null) return;
     final start = DateTime(
       _date!.year,
@@ -335,7 +354,13 @@ class _NaturalLanguageEventDialogState
           : 'Review suggestion ${_index + 1} of ${_proposals.length}',
     ),
     content: SingleChildScrollView(
-      child: _proposal == null ? _buildInput() : _buildReview(),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _proposal == null ? _buildInput() : _buildReview(),
+          if (_proposal == null && _saveError != null) Text(_saveError!),
+        ],
+      ),
     ),
     actions: [
       TextButton(

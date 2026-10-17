@@ -142,4 +142,80 @@ void main() {
     expect(wakeUps, 1);
     await runtime.dispose();
   });
+  test('S5-OFFLINE-002 captured household pass continues after unrelated membership denial', () async {
+    const other = FamilyCalendar(
+      householdId: 'other',
+      name: 'Other',
+      calendarResourceId: 'other-calendar',
+      children: [],
+      guardians: [],
+      events: [],
+      openConflicts: 0,
+    );
+    var selected = family;
+    final gate = Completer<void>();
+    final synced = <String>[];
+    final woken = <String>[];
+    final runtime = AuthenticatedSyncRuntime(
+      readFamily: () => selected,
+      readFamilies: () => [family, other],
+      provisionFamily: (id, _) async =>
+          RemoteFamily(id: id, role: 'owner', status: 'active', resources: []),
+      synchronizeFamily: (id) async {
+        synced.add(id);
+        if (id == 'family') {
+          await gate.future;
+          throw const SartiApiException(403);
+        }
+        return const SyncReport(uploaded: 1, applied: 1, conflicts: 0);
+      },
+      sendWakeUp: (id) async {
+        woken.add(id);
+        return 1;
+      },
+      registerPushToken: (_) async {},
+      initializePush: () async =>
+          const FirebasePushInitialization.unavailable(),
+    );
+    final operation = runtime.start();
+    final checked = expectLater(operation, throwsA(isA<SartiApiException>()));
+    await Future<void>.delayed(Duration.zero);
+    selected = other;
+    gate.complete();
+    await checked;
+    expect(synced, ['family', 'other']);
+    expect(woken, ['other']);
+    await runtime.dispose();
+  });
+
+  test('S5-OFFLINE-003 disposal drains an in-flight context before storage can be replaced', () async {
+    final gate = Completer<void>();
+    var writesFinished = false;
+    final runtime = AuthenticatedSyncRuntime(
+      readFamily: () => family,
+      provisionFamily: (id, _) async =>
+          RemoteFamily(id: id, role: 'owner', status: 'active', resources: []),
+      synchronizeFamily: (_) async {
+        await gate.future;
+        writesFinished = true;
+        return const SyncReport(uploaded: 0, applied: 0, conflicts: 0);
+      },
+      sendWakeUp: (_) async => 0,
+      registerPushToken: (_) async {},
+      initializePush: () async =>
+          const FirebasePushInitialization.unavailable(),
+    );
+    final operation = runtime.start();
+    await Future<void>.delayed(Duration.zero);
+    var disposed = false;
+    final disposal = runtime.dispose().then((_) {
+      disposed = true;
+    });
+    await Future<void>.delayed(Duration.zero);
+    expect(disposed, isFalse);
+    gate.complete();
+    await Future.wait([operation, disposal]);
+    expect(writesFinished, isTrue);
+    expect(disposed, isTrue);
+  });
 }

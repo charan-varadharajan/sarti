@@ -49,3 +49,14 @@ Local schema stays v9; existing migration history is unchanged.
 | `0013` | PostgreSQL | New scoped resource kinds and ciphertext audit/outcome receipts with expiry | Real AEAD/audit/administration tests and guarded migration roundtrip |
 
 Stage 5 foundations under approved ADR-041; full product acceptance remains open.
+
+
+Local v11 (Stage 5 / BUG-026) adds nullable original-envelope and bounded server-
+receipt provenance to encrypted recovery intents. It preserves v10 counters,
+keys, pending envelopes and private bindings. No PostgreSQL schema change for
+receipt review: server uses existing seven-day operations and device high-water.
+
+Local v12 (BUG-027) changes guardians to PRIMARY KEY(household_id,id) and rebuilds
+events with household-qualified pickup/dropoff foreign keys. Migration retains
+all event relationships, vectors, keys and outbox bytes; invalid legacy cross-
+household assignments roll back and require explicit repair, never guessed.

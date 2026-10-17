@@ -106,3 +106,14 @@ shown: a stable cursor does not prove all household history is current.
 No endpoints, server retention, backup magic/version, or permanent server keys
 change. Local schema v9 requires a compatible reader. See ADR-040 and
 ../testing/BUG-022-VERIFICATION.md for exact evidence and platform limits.
+
+
+Stage 5: Households → Restore another household discovers current authenticated
+family snapshots for missing local contexts. Multiple candidates require explicit
+selection using opaque household codes (names are not server plaintext). Family-
+only import validates/decrypts to a temporary SQLCipher store, strips old device
+publication state to review-gated intent, and inserts into the live store in one
+transaction. It keeps live key/device identity/global counter/cursors/outbox and
+other households/private keys. Identity collision rolls back. Existing household
+overwrite and occupied private import are not offered. Empty replacement restore
+drains writers before protected file/key activation and restarts on failure.

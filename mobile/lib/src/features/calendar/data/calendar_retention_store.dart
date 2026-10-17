@@ -65,7 +65,10 @@ extension CalendarRetentionStore on CalendarRepository {
   }
 
   bool _hasPendingEvent(String id) => database.raw
-      .select("SELECT payload_json FROM outbox WHERE state='pending'")
+      .select(
+        "SELECT payload_json FROM outbox WHERE family_id=? AND state='pending'",
+        [selectedHouseholdId],
+      )
       .any((r) => (jsonDecode(r['payload_json'] as String) as Map)['id'] == id);
 
   bool _retentionBlocked(
@@ -125,7 +128,9 @@ extension CalendarRetentionStore on CalendarRepository {
   /// Called only after current authenticated policy/authority and complete catch-up.
   List<String> sweepRetention(DateTime now, {required bool canAdminister}) {
     final policy = retentionPolicy;
-    if (policy == null || policy['enabled'] != true) return [];
+    if (retentionPaused || policy == null || policy['enabled'] != true) {
+      return [];
+    }
     final family = load()!;
     final period = CalendarRetention.values.byName(policy['period'] as String);
     final deleted = <String>[];

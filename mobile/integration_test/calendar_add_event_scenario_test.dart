@@ -50,6 +50,16 @@ void main() {
     await tester.tap(find.byTooltip('Show agenda'));
     await tester.pumpAndSettle();
 
+    // The one-hour default can cross midnight. Inspect the saved date, as the
+    // matching widget scenario already does, rather than assuming today.
+    final period = find.byKey(const Key('calendar-period'));
+    final savedDate = MaterialLocalizations.of(tester.element(period))
+        .formatFullDate(harness.controller.family!.events.single.localStart);
+    if (tester.widget<Text>(period).data != savedDate) {
+      await tester.tap(find.byTooltip('Next period'));
+      await tester.pumpAndSettle();
+    }
+    expect(tester.widget<Text>(period).data, savedDate);
     expect(find.text('Swimming'), findsOneWidget);
     expect(harness.controller.family!.events.single.childIds, hasLength(1));
     expect(harness.controller.family!.events.single.recurrence, isNotNull);

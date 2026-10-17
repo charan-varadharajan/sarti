@@ -137,3 +137,14 @@ headless startup/software rendering follows [Android's emulator CLI](https://dev
 and [acceleration documentation](https://developer.android.com/studio/run/emulator-acceleration).
 Remote Linux-emulator execution remains unverified until GitHub executes the
 updated workflow; local macOS Android tests do not prove that compatibility.
+
+
+Stage 5 household beta upgrade: deploy current backend before enabling the new
+mobile context features. Email sealed payload v2 binds household/suggestion IDs;
+new clients reject old unbound v1 deliveries, which require resubmission if still
+needed. Seven-day email/relay expiry is unchanged. Local v11/v12 are forward
+migrations preserving pending bytes/relationships; invalid legacy cross-household
+pickups fail closed and need explicit repair rather than a guessed reassignment.
+Do not downgrade a v12 store using an older mobile binary. No production rollout
+is performed while hosting is deferred. Physical/device/provider acceptance and
+remaining Stage 5 administration/deletion/restore journeys are still open.

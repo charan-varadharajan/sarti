@@ -4,6 +4,7 @@ import '../../../core/network/sarti_api.dart';
 
 import 'family_setup_screen.dart';
 import 'family_management_screen.dart';
+import 'household_selector_screen.dart';
 import 'calendar_retention_screen.dart';
 import '../data/calendar_repository.dart';
 import 'household_profiles_screen.dart';
@@ -32,6 +33,9 @@ class CalendarScreen extends StatelessWidget {
     this.onBackup,
     this.onPersonalBackup,
     this.onGuardians,
+    this.onJoinHousehold,
+    this.onReviewPending,
+    this.onRestoreHousehold,
     this.onRecovery,
     this.onRecoverySetup,
     this.canWrite = true,
@@ -44,7 +48,10 @@ class CalendarScreen extends StatelessWidget {
   final NativeEventAiProvider? nativeAi;
   final EmailSuggestionInbox? emailInbox;
   final VoidCallback? onBackup, onPersonalBackup;
-  final VoidCallback? onGuardians, onRecovery, onRecoverySetup;
+  final VoidCallback? onGuardians, onJoinHousehold, onRecovery, onRecoverySetup;
+  final Future<int> Function(String familyId, String fingerprint)?
+  onReviewPending;
+  final VoidCallback? onRestoreHousehold;
   final bool canWrite, canManageChildren;
 
   @override
@@ -65,6 +72,19 @@ class CalendarScreen extends StatelessWidget {
             PopupMenuButton<String>(
               tooltip: 'More',
               onSelected: (value) {
+                if (value == 'households') {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => HouseholdSelectorScreen(
+                        controller: controller,
+                        onGuardians: onJoinHousehold,
+                        onRecoverySetup: onRecoverySetup,
+                        onReviewPending: onReviewPending,
+                        onRestoreHousehold: onRestoreHousehold,
+                      ),
+                    ),
+                  );
+                }
                 if (value == 'family') {
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
@@ -102,6 +122,10 @@ class CalendarScreen extends StatelessWidget {
                 if (value == 'private-backup') onPersonalBackup?.call();
               },
               itemBuilder: (_) => [
+                const PopupMenuItem(
+                  value: 'households',
+                  child: Text('Households'),
+                ),
                 PopupMenuItem(
                   enabled: !controller.repository.recoveryPending,
                   value: 'family',
@@ -149,8 +173,12 @@ class CalendarScreen extends StatelessWidget {
                   tooltip: 'Email suggestions',
                   onPressed: () => _showEmailSuggestions(context),
                   icon: Badge(
-                    isLabelVisible: emailInbox!.suggestions.isNotEmpty,
-                    label: Text('${emailInbox!.suggestions.length}'),
+                    isLabelVisible: emailInbox!
+                        .forHousehold(family.householdId)
+                        .isNotEmpty,
+                    label: Text(
+                      '${emailInbox!.forHousehold(family.householdId).length}',
+                    ),
                     child: const Icon(Icons.mark_email_unread_outlined),
                   ),
                 ),
@@ -389,6 +417,7 @@ class CalendarScreen extends StatelessWidget {
 
   Future<void> _showEmailSuggestions(BuildContext context) async {
     final inbox = emailInbox!;
+    final householdId = controller.family!.householdId;
     await showModalBottomSheet<void>(
       context: context,
       builder: (sheetContext) => ListenableBuilder(
@@ -405,7 +434,7 @@ class CalendarScreen extends StatelessWidget {
               const Text(
                 'Email is untrusted. Sarti interprets it on this phone and never changes the calendar without your approval.',
               ),
-              if (inbox.suggestions.isEmpty)
+              if (inbox.forHousehold(householdId).isEmpty)
                 ListTile(
                   title: Text(
                     inbox.unavailable
@@ -413,7 +442,7 @@ class CalendarScreen extends StatelessWidget {
                         : 'No pending suggestions',
                   ),
                 ),
-              for (final suggestion in inbox.suggestions)
+              for (final suggestion in inbox.forHousehold(householdId))
                 Card(
                   child: ListTile(
                     title: Text(
@@ -423,6 +452,10 @@ class CalendarScreen extends StatelessWidget {
                     ),
                     subtitle: Text('From ${suggestion.sender}'),
                     onTap: () async {
+                      if (controller.family?.householdId != householdId) {
+                        Navigator.pop(sheetContext);
+                        return;
+                      }
                       final saved = await showNaturalLanguageEventDialog(
                         context,
                         controller: controller,
@@ -740,6 +773,13 @@ class CalendarScreen extends StatelessWidget {
             if (event != null)
               TextButton(
                 onPressed: () {
+                  if (controller.family?.householdId != family.householdId) {
+                    setState(
+                      () => error =
+                          'Household changed. Close and reopen this event.',
+                    );
+                    return;
+                  }
                   final current = controller.family?.events
                       .where((e) => e.id == event.id)
                       .firstOrNull;
@@ -766,6 +806,7 @@ class CalendarScreen extends StatelessWidget {
                   ? null
                   : () {
                       try {
+                        controller.requireHousehold(family.householdId);
                         if (event != null &&
                             controller.family?.events
                                     .where((e) => e.id == event.id)

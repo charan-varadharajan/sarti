@@ -182,6 +182,28 @@ class CalendarRepository {
     );
   }
 
+  /// Retry an uncertain upload before consuming the device sequence elsewhere.
+  List<FamilyCalendar> localFamilies() => database.raw
+      .select(
+        "SELECT h.id FROM households h ORDER BY EXISTS(SELECT 1 FROM outbox o WHERE o.family_id=h.id AND o.state='pending' AND o.envelope_json IS NOT NULL) DESC,h.created_at,h.id",
+      )
+      .map((row) => forHousehold(row['id'] as String).load()!)
+      .toList();
+
+  bool hasRevokedAccess(String id) {
+    final rows = database.raw.select(
+      'SELECT value FROM app_preferences WHERE key=?',
+      ['family-access-$id'],
+    );
+    if (rows.isEmpty) return false;
+    try {
+      return (jsonDecode(rows.single['value'] as String) as Map)['role'] ==
+          'revoked';
+    } catch (_) {
+      return true;
+    }
+  }
+
   FamilyCalendar? load() {
     final households = database.raw.select(
       'SELECT * FROM households WHERE id=?',
@@ -285,7 +307,10 @@ class CalendarRepository {
     String? familyId,
     String? calendarResourceId,
   }) {
-    requireRecoveryReady();
+    if (this.householdId != null) {
+      throw StateError('Create a household from the account repository.');
+    }
+    // Recovery in another household does not block an independent new one.
     final householdId = familyId ?? newId();
     final resourceId = calendarResourceId ?? newId();
     final guardianId = newId();
@@ -388,16 +413,8 @@ class CalendarRepository {
     }
 
     database.transaction(() {
-      final existing = database.raw.select(
-        'SELECT household_id FROM guardians WHERE id = ?',
-        [guardianId],
-      );
-      if (existing.isNotEmpty &&
-          existing.single['household_id'] != family.householdId) {
-        throw StateError('Guardian scope mismatch.');
-      }
       database.raw.execute(
-        'INSERT INTO guardians(id, household_id, display_name) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET display_name=excluded.display_name',
+        'INSERT INTO guardians(id, household_id, display_name) VALUES (?, ?, ?) ON CONFLICT(household_id,id) DO UPDATE SET display_name=excluded.display_name',
         [guardianId, family.householdId, guardianName.trim()],
       );
       for (final child in family.children.where(
@@ -546,13 +563,6 @@ class CalendarRepository {
           (value['name'] as String).length > 120) {
         throw StateError('Invalid guardian profile.');
       }
-      final existing = database.raw.select(
-        'SELECT household_id FROM guardians WHERE id=?',
-        [value['id']],
-      );
-      if (existing.isNotEmpty && existing.single['household_id'] != familyId) {
-        throw StateError('Guardian scope mismatch.');
-      }
     }
     if (database.raw.select('SELECT 1 FROM households WHERE id=?', [
       familyId,
@@ -597,7 +607,7 @@ class CalendarRepository {
       ]);
       for (final value in guardians) {
         database.raw.execute(
-          'INSERT INTO guardians(id, household_id, display_name) VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET display_name=excluded.display_name',
+          'INSERT INTO guardians(id, household_id, display_name) VALUES (?,?,?) ON CONFLICT(household_id,id) DO UPDATE SET display_name=excluded.display_name',
           [value['id'], familyId, value['name']],
         );
       }

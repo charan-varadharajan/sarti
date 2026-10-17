@@ -17,6 +17,7 @@ typedef PushInitializer = Future<FirebasePushInitialization> Function();
 class AuthenticatedSyncRuntime {
   factory AuthenticatedSyncRuntime({
     required FamilyReader readFamily,
+    List<FamilyCalendar> Function()? readFamilies,
     required FamilyProvisioner provisionFamily,
     required FamilySynchronizer synchronizeFamily,
     required WakeUpSender sendWakeUp,
@@ -28,6 +29,7 @@ class AuthenticatedSyncRuntime {
     Future<void> Function()? refreshSuggestions,
   }) => AuthenticatedSyncRuntime._(
     readFamily,
+    readFamilies,
     provisionFamily,
     synchronizeFamily,
     sendWakeUp,
@@ -41,6 +43,7 @@ class AuthenticatedSyncRuntime {
 
   AuthenticatedSyncRuntime._(
     this._readFamily,
+    this._readFamilies,
     this._provisionFamily,
     this._synchronizeFamily,
     this._sendWakeUp,
@@ -53,6 +56,7 @@ class AuthenticatedSyncRuntime {
   );
 
   final FamilyReader _readFamily;
+  final List<FamilyCalendar> Function()? _readFamilies;
   final FamilyProvisioner _provisionFamily;
   final FamilySynchronizer _synchronizeFamily;
   final WakeUpSender _sendWakeUp;
@@ -110,30 +114,50 @@ class AuthenticatedSyncRuntime {
   }
 
   Future<void> _synchronizeOnce() async {
-    final family = _readFamily();
-    if (family == null) return;
-    try {
-      if (_provisionedFamilies.add(family.householdId)) {
-        try {
-          await _provisionFamily(family.householdId, family.calendarResourceId);
-        } catch (_) {
-          _provisionedFamilies.remove(family.householdId);
+    final selected = _readFamily();
+    // Capture IDs once; selection during an await never redirects this pass.
+    final families = _readFamilies?.call() ?? [?selected];
+    Object? firstError;
+    StackTrace? firstStack;
+    for (final family in families) {
+      if (_disposed) break;
+      try {
+        if (_provisionedFamilies.add(family.householdId)) {
+          try {
+            await _provisionFamily(
+              family.householdId,
+              family.calendarResourceId,
+            );
+          } catch (_) {
+            _provisionedFamilies.remove(family.householdId);
+            rethrow;
+          }
+        }
+        if (_disposed) break;
+        final report = await _synchronizeFamily(family.householdId);
+        if (report.applied > 0 || report.conflicts > 0) {
+          _onRemoteApplied?.call();
+        }
+        if (report.uploaded > 0) await _sendWakeUp(family.householdId);
+      } catch (error, stack) {
+        if (error is SartiApiException && error.statusCode == 401) {
+          _onSessionExpired?.call();
           rethrow;
         }
+        // An unavailable membership must not suppress unrelated downloads.
+        // The engine still refuses uploads past an uncertain device sequence.
+        firstError ??= error;
+        firstStack ??= stack;
       }
-      final report = await _synchronizeFamily(family.householdId);
-      if (report.applied > 0 || report.conflicts > 0) _onRemoteApplied?.call();
-      if (report.uploaded > 0) await _sendWakeUp(family.householdId);
+    }
+    if (!_disposed) {
       try {
         await _refreshSuggestions?.call();
       } catch (_) {
-        // The inbox exposes its unavailable state. Email polling must not turn a
-        // successful calendar upload into a retry or suppress its peer wake-up.
+        // Inbox availability is separate from a successful calendar upload.
       }
-    } on SartiApiException catch (error) {
-      if (error.statusCode == 401) _onSessionExpired?.call();
-      rethrow;
     }
+    if (firstError != null) Error.throwWithStackTrace(firstError, firstStack!);
   }
 
   void applicationForegrounded() {
@@ -148,5 +172,10 @@ class AuthenticatedSyncRuntime {
     if (_disposed) return;
     _disposed = true;
     await _push?.dispose();
+    try {
+      await _activeSync;
+    } catch (_) {
+      // The original synchronize caller receives the error. Disposal drains it.
+    }
   }
 }

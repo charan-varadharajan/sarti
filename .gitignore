@@ -22,3 +22,4 @@ mobile/ios/Flutter/Generated.xcconfig
 mobile/ios/Flutter/flutter_export_environment.sh
 mobile/android/.gradle/
 mobile/android/local.properties
+mobile/android/build/

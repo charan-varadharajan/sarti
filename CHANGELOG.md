@@ -20,6 +20,32 @@ Versioning follows [ADR-030](docs/architecture/adr/030-release-versioning.md) an
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-10-17 (build 8; Stage 5 households, development only)
+
+### Added
+- Stage 5 household selector, progressive additional setup, explicit second-
+  household enrollment, pinned sync/recovery/retention and reminder reconciliation.
+- Atomic missing-household encrypted snapshot import retains occupied stores,
+  current device identity, private keys and other households' in-flight work.
+- Prepared native and widget tests for switching, stale editors, independent
+  reminders, invitation isolation and interrupted-upload review.
+
+### Fixed
+- BUG-029: native add-event acceptance follows the saved date when the one-hour
+  default crosses midnight; matches the existing widget fixture without changing
+  calendar behavior or weakening persistence/recurrence assertions.
+- BUG-028: bind sealed email suggestions to their household, filter the calendar
+  inbox, reject stale/mismatched suggestions and exclude limited/no-calendar
+  recipients through current resource permission checks.
+- BUG-027: scope guardian identity and pickup/dropoff references by household;
+  local v12 migration retains relationships, keys and exact retries and refuses
+  legacy cross-household assignments without silently rewriting them.
+- BUG-026: preserve original pending intent and exact upload bytes through explicit
+  receipt review/quarantine after lost household authority; unrelated households
+  can resume without skipping server sequence numbers or assuming expired receipts
+  were accepted. Local SQLCipher v11 retains original-envelope/receipt provenance.
+
+
 ## [0.6.0] — 2026-10-16 (build 7; Stage 5 foundation, development only)
 
 ### Fixed

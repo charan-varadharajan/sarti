@@ -6,7 +6,7 @@ import 'package:sqlite3/sqlite3.dart';
 class SartiDatabase {
   SartiDatabase._(this.raw, this.path);
 
-  static const schemaVersion = 10;
+  static const schemaVersion = 12;
 
   final Database raw;
   final String path;
@@ -348,6 +348,66 @@ class SartiDatabase {
         }
         raw.userVersion = 10;
       });
+    }
+    if (raw.userVersion < 11) {
+      transaction(() {
+        raw.execute('''ALTER TABLE recovery_intents ADD COLUMN original_envelope_json TEXT;
+          ALTER TABLE recovery_intents ADD COLUMN server_receipt TEXT
+            CHECK(server_receipt IN ('accepted','not_accepted','unknown'));
+        ''');
+        raw.userVersion = 11;
+      });
+    }
+    if (raw.userVersion < 12) {
+      // Rebuild referenced tables without triggering deletion cascades. No await
+      // or live caller can access this database until open/migration completes.
+      raw.execute('PRAGMA foreign_keys=OFF');
+      try {
+        transaction(() {
+          raw.execute('''
+            CREATE TABLE guardians_scoped (
+              id TEXT NOT NULL,
+              household_id TEXT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+              display_name TEXT NOT NULL,
+              PRIMARY KEY(household_id,id)
+            ) STRICT;
+            INSERT INTO guardians_scoped SELECT * FROM guardians;
+            DROP TABLE guardians;
+            ALTER TABLE guardians_scoped RENAME TO guardians;
+            CREATE TABLE events_scoped (
+              id TEXT PRIMARY KEY,
+              household_id TEXT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+              calendar_resource_id TEXT NOT NULL,
+              title TEXT NOT NULL,
+              notes TEXT,
+              local_start TEXT NOT NULL,
+              timezone TEXT NOT NULL,
+              duration_minutes INTEGER NOT NULL CHECK(duration_minutes > 0),
+              status TEXT NOT NULL CHECK(status IN ('scheduled','cancelled')),
+              recurrence_json TEXT,
+              pickup_guardian_id TEXT,
+              dropoff_guardian_id TEXT,
+              revision INTEGER NOT NULL CHECK(revision > 0),
+              updated_at TEXT NOT NULL,
+              deleted INTEGER NOT NULL DEFAULT 0 CHECK(deleted IN (0,1)),
+              FOREIGN KEY(household_id,pickup_guardian_id) REFERENCES guardians(household_id,id),
+              FOREIGN KEY(household_id,dropoff_guardian_id) REFERENCES guardians(household_id,id)
+            ) STRICT;
+            INSERT INTO events_scoped SELECT * FROM events;
+            DROP TABLE events;
+            ALTER TABLE events_scoped RENAME TO events;
+            CREATE INDEX ix_events_household_start ON events(household_id,local_start) WHERE deleted=0;
+          ''');
+          if (raw.select('PRAGMA foreign_key_check').isNotEmpty) {
+            throw StateError(
+              'Existing guardian assignments require scoped repair.',
+            );
+          }
+          raw.userVersion = 12;
+        });
+      } finally {
+        raw.execute('PRAGMA foreign_keys=ON');
+      }
     }
   }
 

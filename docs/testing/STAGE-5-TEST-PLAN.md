@@ -94,3 +94,14 @@ exist and pass, required gates run and any physical/provider limits are explicit
 Remaining table entries stay planned. Existing legacy functional scenarios continue
 to run through default suites and native allowlist. No physical passkey or completed
 multi-household product journey is inferred from these component tests.
+
+
+Household milestone implementation now includes S5-HOUSEHOLD-002–006,
+S5-INVITE-002, S5-OFFLINE-002–005 and API transport cases. See TEST-SCENARIOS.md
+for prepared entry/negative cases. BUG-026 covers removed-context uncertain upload
+reconciliation; scoped occupied-store import and complete administration/assisted
+recovery/deletion/restore journeys remain separate uncompleted requirements.
+
+Guardian v12 scope/actual encrypted legacy rollback (S5-HOUSEHOLD-007/MIGRATE-002)
+and occupied-store family-only import with in-flight A crypto/negative collision
+coverage (S5-RECOVERY-002/003) are implemented. Final gate results remain pending.

@@ -21,6 +21,8 @@ from sarti_backend.db.schema import (
     email_suggestions,
     families,
     memberships,
+    permissions,
+    resources,
 )
 
 _MAX_BODY_BYTES = 102_400  # 100 KB
@@ -56,6 +58,7 @@ class EmailSuggestionResponse(BaseModel):
 class EncryptedEmailSuggestion(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    family_id: UUID
     suggestion_id: UUID
     ciphertext: str
     received_at: datetime
@@ -64,6 +67,27 @@ class EncryptedEmailSuggestion(BaseModel):
 
 router = APIRouter(prefix="/v1/email", tags=["email"])
 Authenticated = Annotated[AuthenticatedDevice, Depends(require_device)]
+
+
+def _email_scope() -> Any:
+    # Full household email is never delivered to a care-calendar-only recipient.
+    return (
+        select(resources.c.id)
+        .join(permissions, permissions.c.resource_id == resources.c.id)
+        .join(families, families.c.id == resources.c.family_id)
+        .where(
+            resources.c.family_id == memberships.c.family_id,
+            resources.c.kind == "calendar",
+            resources.c.deleted_at.is_(None),
+            families.c.context_kind == "household",
+            families.c.deleted_at.is_(None),
+            permissions.c.adult_id == memberships.c.adult_id,
+            permissions.c.permission.in_(("read", "write", "admin")),
+            memberships.c.role.in_(("owner", "administrator", "guardian")),
+            (memberships.c.expires_at.is_(None) | (memberships.c.expires_at > datetime.now(UTC))),
+        )
+        .exists()
+    )
 
 
 def _require_worker_secret(
@@ -159,6 +183,7 @@ def ingest_email(
                 and_(
                     memberships.c.family_id == family_id,
                     memberships.c.status == "active",
+                    _email_scope(),
                     devices.c.state == "active",
                 )
             )
@@ -169,7 +194,8 @@ def ingest_email(
         suggestion_id = uuid4()
         plaintext = json.dumps(
             {
-                "version": 1,
+                "version": 2,
+                "family_id": str(family_id),
                 "suggestion_id": str(suggestion_id),
                 "sender": payload.sender,
                 "subject": subject,
@@ -216,6 +242,7 @@ def list_suggestions(request: Request, actor: Authenticated) -> list[EncryptedEm
         rows = connection.execute(
             select(
                 email_suggestions.c.id,
+                email_suggestions.c.family_id,
                 email_suggestion_deliveries.c.ciphertext,
                 email_suggestions.c.received_at,
                 email_suggestions.c.expires_at,
@@ -235,6 +262,7 @@ def list_suggestions(request: Request, actor: Authenticated) -> list[EncryptedEm
             .where(
                 and_(
                     email_suggestion_deliveries.c.device_id == actor.device_id,
+                    _email_scope(),
                     email_suggestion_deliveries.c.status == "pending",
                     email_suggestions.c.expires_at > now,
                 )
@@ -243,6 +271,7 @@ def list_suggestions(request: Request, actor: Authenticated) -> list[EncryptedEm
         ).all()
     return [
         EncryptedEmailSuggestion(
+            family_id=row.family_id,
             suggestion_id=row.id,
             ciphertext=base64.urlsafe_b64encode(row.ciphertext).rstrip(b"=").decode("ascii"),
             received_at=row.received_at,

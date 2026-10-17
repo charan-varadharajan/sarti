@@ -65,12 +65,22 @@ class _AuthenticatedCalendarBootstrapState
     with WidgetsBindingObserver {
   SartiApiClient? _api;
   AuthenticatedSyncRuntime? _runtime;
+  SyncEngine? _engine;
   CalendarController? _controller;
   GuardianCoordinator? _guardians;
   bool _guardianRouteOpen = false;
   EmailSuggestionInbox? _emailInbox;
   late final SessionStore _sessions = SessionStore(widget.secrets);
-  FamilyRecoveryCoordinator? _recovery;
+  final Map<String, FamilyRecoveryCoordinator> _recoveries = {};
+  FamilyRecoveryCoordinator? get _recovery =>
+      _recoveries[_controller?.family?.householdId];
+  void _disposeRecoveries() {
+    for (final recovery in _recoveries.values) {
+      recovery.dispose();
+    }
+    _recoveries.clear();
+  }
+
   Timer? _retentionTimer;
   bool _loading = true;
   bool _authenticating = false;
@@ -88,7 +98,7 @@ class _AuthenticatedCalendarBootstrapState
   void _invitationReceived() {
     if (!mounted || InvitationLinks.token.value == null) return;
     if (_api?.sessionToken != null && _guardians != null) {
-      unawaited(_openGuardians());
+      unawaited(_openGuardians(join: true));
     } else {
       setState(() {});
     }
@@ -115,7 +125,7 @@ class _AuthenticatedCalendarBootstrapState
 
   bool get _canManageFamily => _controller?.canManageFamily ?? false;
 
-  Future<void> _openGuardians() async {
+  Future<void> _openGuardians({bool join = false}) async {
     if (_api == null) {
       await openGuardianManagement(context, null);
       return;
@@ -149,8 +159,20 @@ class _AuthenticatedCalendarBootstrapState
       await _authenticate(register: register);
       if (!mounted || _api?.sessionToken == null) return;
     }
-    final guardians = _guardians;
-    if (guardians == null || _guardianRouteOpen || !mounted) return;
+    if (_guardians == null || _guardianRouteOpen || !mounted) return;
+    final controller = _controller!;
+    final familyId = controller.family?.householdId;
+    final guardians = GuardianCoordinator(
+      database: widget.database,
+      repository: join || familyId == null
+          ? controller.repository
+          : controller.repository.forHousehold(familyId),
+      api: _api!,
+      keys: widget.keys,
+      synchronize: () => _runtime?.synchronize() ?? Future<void>.value(),
+      onLocalChanged: controller.refresh,
+      joining: join,
+    );
     _guardianRouteOpen = true;
     try {
       await guardians.refresh();
@@ -165,6 +187,7 @@ class _AuthenticatedCalendarBootstrapState
         ),
       );
     } finally {
+      guardians.dispose();
       _guardianRouteOpen = false;
     }
   }
@@ -288,6 +311,8 @@ class _AuthenticatedCalendarBootstrapState
   }
 
   Future<void> _activateAuthenticated(AuthenticatedSession session) async {
+    await _runtime?.dispose();
+    _disposeRecoveries();
     final api = _api!;
     api.sessionToken = session.token;
     late final AuthenticatedSyncRuntime runtime;
@@ -320,14 +345,46 @@ class _AuthenticatedCalendarBootstrapState
       deviceId: session.deviceId,
       api: api,
     );
+    FamilyRecoveryCoordinator recoveryFor(String familyId) =>
+        _recoveries.putIfAbsent(familyId, () {
+          final scoped = controller.repository.forHousehold(familyId);
+          return FamilyRecoveryCoordinator(
+            repository: scoped,
+            listFamilies: api.listFamilies,
+            prepareKeys: () =>
+                resourceKeys.prepare(familyId, recoveryOnly: true),
+            sync: (downloadOnly) =>
+                engine.synchronize(familyId, downloadOnly: downloadOnly),
+            readPolicy: () => api.calendarRetention(familyId),
+            provisionResource: (id, kind, share) => api.provisionResource(
+              familyId,
+              id,
+              kind,
+              shareWithCalendarGuardians: share,
+            ),
+            newResourceKey: () => widget.sodium.randombytes.buf(32),
+            onChanged: controller.refresh,
+            afterPublish: () async {
+              await api.sendSyncWakeUp(familyId);
+            },
+          );
+        });
+    for (final family in controller.repository.localFamilies()) {
+      recoveryFor(family.householdId);
+    }
     runtime = AuthenticatedSyncRuntime(
       readFamily: () => controller.family,
+      readFamilies: () => controller.repository
+          .localFamilies()
+          .where((f) => !controller.repository.hasRevokedAccess(f.householdId))
+          .toList(),
       provisionFamily: (familyId, calendarId) async {
         final registered = await api.listFamilies();
         final existing = registered
             .where((f) => f.id == familyId && f.status == 'active')
             .firstOrNull;
-        if (existing == null && controller.repository.recoveryPending) {
+        if (existing == null &&
+            controller.repository.forHousehold(familyId).recoveryPending) {
           throw StateError('Recovery cannot recreate the family.');
         }
         return existing ??
@@ -341,8 +398,18 @@ class _AuthenticatedCalendarBootstrapState
             );
       },
       synchronizeFamily: (familyId) async {
-        if (controller.repository.recoveryPending) {
-          return _recovery!.synchronize();
+        final scoped = controller.repository.forHousehold(familyId);
+        final beforeEvents = scoped.load()!.events;
+        final recovery = recoveryFor(familyId);
+        if (scoped.recoveryPending) {
+          final report = await recovery.synchronize();
+          await reconcileHouseholdReminders(
+            widget.reminders,
+            familyId,
+            beforeEvents,
+            scoped.load()!.events,
+          );
+          return report;
         }
         await resourceKeys.prepare(familyId);
         controller.refresh();
@@ -369,8 +436,9 @@ class _AuthenticatedCalendarBootstrapState
         }
         if (!caughtUp) throw StateError('Calendar catch-up is incomplete.');
         final policy = await api.calendarRetention(familyId);
-        controller.repository.cacheRetentionPolicy(policy);
-        final removed = controller.applyRetention(
+        scoped.cacheRetentionPolicy(policy);
+        final removed = scoped.sweepRetention(
+          DateTime.now(),
           canAdminister: policy['can_manage'] == true,
         );
         if (removed.isNotEmpty) {
@@ -379,6 +447,12 @@ class _AuthenticatedCalendarBootstrapState
           applied += report.applied;
           conflicts += report.conflicts;
         }
+        await reconcileHouseholdReminders(
+          widget.reminders,
+          familyId,
+          beforeEvents,
+          scoped.load()!.events,
+        );
         controller.refresh();
         return SyncReport(
           uploaded: uploaded,
@@ -394,31 +468,6 @@ class _AuthenticatedCalendarBootstrapState
       reportPushFailure: (_) => _showSyncIssue(),
       refreshSuggestions: emailInbox.refresh,
     );
-    _recovery?.dispose();
-    _recovery = FamilyRecoveryCoordinator(
-      repository: controller.repository,
-      listFamilies: api.listFamilies,
-      prepareKeys: () => resourceKeys.prepare(
-        controller.family!.householdId,
-        recoveryOnly: true,
-      ),
-      sync: (downloadOnly) => engine.synchronize(
-        controller.family!.householdId,
-        downloadOnly: downloadOnly,
-      ),
-      readPolicy: () => api.calendarRetention(controller.family!.householdId),
-      provisionResource: (id, kind, share) => api.provisionResource(
-        controller.family!.householdId,
-        id,
-        kind,
-        shareWithCalendarGuardians: share,
-      ),
-      newResourceKey: () => widget.sodium.randombytes.buf(32),
-      onChanged: controller.refresh,
-      afterPublish: () async {
-        await api.sendSyncWakeUp(controller.family!.householdId);
-      },
-    );
     controller.updateRetention = (period, revision) async {
       final family = controller.family ?? (throw StateError('No family.'));
       final policy = await api.setCalendarRetention(
@@ -426,7 +475,9 @@ class _AuthenticatedCalendarBootstrapState
         period.name,
         revision,
       );
-      controller.repository.cacheRetentionPolicy(policy);
+      controller.repository
+          .forHousehold(family.householdId)
+          .cacheRetentionPolicy(policy);
       controller.refresh();
       await runtime.synchronize();
       await api.sendSyncWakeUp(family.householdId);
@@ -452,6 +503,7 @@ class _AuthenticatedCalendarBootstrapState
     await _runtime?.dispose();
     _emailInbox?.dispose();
     _runtime = runtime;
+    _engine = engine;
     _emailInbox = emailInbox;
     if (!mounted) return;
     setState(() {
@@ -467,7 +519,7 @@ class _AuthenticatedCalendarBootstrapState
         if (!mounted) return;
         if (InvitationLinks.token.value != null ||
             _guardians?.family?.role == 'guardian' && !_guardians!.ready) {
-          unawaited(_openGuardians());
+          unawaited(_openGuardians(join: InvitationLinks.token.value != null));
         } else if (controller.family == null) {
           unawaited(_openBackup(discover: true));
         }
@@ -514,9 +566,36 @@ class _AuthenticatedCalendarBootstrapState
           : null;
       if (personal && adultId == null) return;
       final local = _controller?.family;
-      if (local != null) families.removeWhere((f) => f.id != local.householdId);
+      final localIds =
+          _controller?.repository
+              .localFamilies()
+              .map((f) => f.householdId)
+              .toSet() ??
+          <String>{};
+      if (local != null) {
+        families.removeWhere(
+          (f) => discover ? localIds.contains(f.id) : f.id != local.householdId,
+        );
+      }
       if (families.isEmpty || !mounted) return;
-      // P0 has one local family; discover only backups this owner can access.
+      if (families.length > 1) {
+        final chosen = await showDialog<String>(
+          context: context,
+          builder: (context) => SimpleDialog(
+            title: const Text('Choose household snapshot'),
+            children: [
+              for (final f in families)
+                SimpleDialogOption(
+                  onPressed: () => Navigator.pop(context, f.id),
+                  child: Text('Household ${f.id.substring(0, 8)}'),
+                ),
+            ],
+          ),
+        );
+        if (chosen == null || !mounted) return;
+        families.removeWhere((f) => f.id != chosen);
+      }
+      // Discover only authenticated snapshots; names remain encrypted.
       for (final family in families) {
         var backup = await api.downloadBackup(family.id, personal: personal);
         if (discover && backup == null) continue;
@@ -526,7 +605,7 @@ class _AuthenticatedCalendarBootstrapState
             builder: (context) => BackupScreen(
               personal: personal,
               hasBackup: backup != null,
-              canCreate: local != null,
+              canCreate: localIds.contains(family.id),
               updatedAt: backup?.updatedAt,
               generatePhrase: () =>
                   BackupService.generateRecoveryPhrase(sodium: widget.sodium),
@@ -560,17 +639,42 @@ class _AuthenticatedCalendarBootstrapState
                 backup = null;
               },
               restore: (phrase) async {
-                await BackupRecovery.stage(
-                  blob: backup!.bytes,
-                  phrase: phrase,
-                  familyId: family.id,
-                  current: widget.database,
-                  sodium: widget.sodium,
-                  secrets: widget.secrets,
-                  adultId: adultId,
-                );
+                if (!personal && localIds.isNotEmpty) {
+                  await BackupRecovery.importHousehold(
+                    blob: backup!.bytes,
+                    phrase: phrase,
+                    familyId: family.id,
+                    current: widget.database,
+                    sodium: widget.sodium,
+                  );
+                  _controller!.selectHousehold(family.id);
+                  if (mounted) Navigator.of(this.context).pop();
+                  return;
+                }
+                // File/key activation requires an empty store and drained local
+                // writers. A failed restore restarts sync against unchanged data.
                 await _runtime?.dispose();
                 _runtime = null;
+                _guardians?.removeListener(_guardianChanged);
+                _guardians?.dispose();
+                _guardians = null;
+                try {
+                  await BackupRecovery.stage(
+                    blob: backup!.bytes,
+                    phrase: phrase,
+                    familyId: family.id,
+                    current: widget.database,
+                    sodium: widget.sodium,
+                    secrets: widget.secrets,
+                    adultId: adultId,
+                  );
+                } catch (_) {
+                  final session = await _sessions.load();
+                  if (mounted && session != null) {
+                    await _activateAuthenticated(session);
+                  }
+                  rethrow;
+                }
                 if (!mounted) return;
                 Navigator.of(this.context).pop();
                 widget.onRecovered?.call();
@@ -619,7 +723,7 @@ class _AuthenticatedCalendarBootstrapState
 
   @override
   void dispose() {
-    _recovery?.dispose();
+    _disposeRecoveries();
     _retentionTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     InvitationLinks.token.removeListener(_invitationReceived);
@@ -640,96 +744,119 @@ class _AuthenticatedCalendarBootstrapState
     if (controller != null) {
       return ListenableBuilder(
         listenable: controller,
-        builder: (context, _) => Stack(
-          children: [
-            CalendarScreen(
-              controller: controller,
-              onRecovery: _recovery == null
-                  ? null
-                  : () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) =>
-                            FamilyRecoveryScreen(coordinator: _recovery!),
+        builder: (context, _) {
+          final recovery = _recovery;
+          return Stack(
+            children: [
+              CalendarScreen(
+                controller: controller,
+                onRecovery: recovery == null
+                    ? null
+                    : () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) =>
+                              FamilyRecoveryScreen(coordinator: recovery),
+                        ),
                       ),
-                    ),
-              onRecoverySetup: _api?.sessionToken == null
-                  ? null
-                  : () => unawaited(() async {
-                      try {
-                        await _runtime?.synchronize();
-                        if (mounted) await _openBackup();
-                      } catch (_) {
-                        _showSyncIssue();
-                      }
-                    }()),
-              canWrite: _canWriteCalendar,
-              canManageChildren: _canManageFamily,
-              onGuardians: () => unawaited(_openGuardians()),
-              nativeAi: NativeEventAiProvider(),
-              cloudApi: _api,
-              cloudAiConsent: CloudAiConsentController(
-                CloudAiConsentStore(widget.database),
-              ),
-              emailInbox: _emailInbox,
-              onPersonalBackup: _api?.sessionToken == null
-                  ? null
-                  : () => unawaited(_openBackup(personal: true)),
-              onBackup: _api?.sessionToken == null || !_canManageFamily
-                  ? null
-                  : () => unawaited(_openBackup()),
-            ),
-            if (_api?.sessionToken != null &&
-                (controller.family == null ||
-                    _guardians?.family?.role == 'guardian' &&
-                        !_guardians!.ready))
-              Positioned(
-                bottom: MediaQuery.paddingOf(context).bottom + 16,
-                left: 16,
-                right: 16,
-                child: FilledButton.tonal(
-                  onPressed: () => unawaited(_openGuardians()),
-                  child: const Text('Join or review family invitation'),
-                ),
-              ),
-            if (controller.family == null && _api?.sessionToken != null)
-              Positioned(
-                top: MediaQuery.paddingOf(context).top,
-                right: 16,
-                child: TextButton(
-                  onPressed: () => unawaited(_chooseRecovery()),
-                  child: const Text('Restore encrypted backup'),
-                ),
-              ),
-            if (_message case final message?)
-              Positioned(
-                left: 16,
-                right: 16,
-                bottom: 16,
-                child: Material(
-                  color: Theme.of(context).colorScheme.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(message, textAlign: TextAlign.center),
-                        if (_needsAuthentication) ...[
-                          const SizedBox(height: 8),
-                          FilledButton.tonal(
-                            onPressed: _authenticating
-                                ? null
-                                : () => _authenticate(register: false),
-                            child: const Text('Authenticate to sync'),
+                onRecoverySetup: _api?.sessionToken == null
+                    ? null
+                    : () => unawaited(() async {
+                        try {
+                          await _runtime?.synchronize();
+                          if (mounted) await _openBackup();
+                        } catch (_) {
+                          _showSyncIssue();
+                        }
+                      }()),
+                canWrite: _canWriteCalendar,
+                canManageChildren: _canManageFamily,
+                onGuardians: () => unawaited(_openGuardians()),
+                onJoinHousehold: () => unawaited(_openGuardians(join: true)),
+                onRestoreHousehold: _api?.sessionToken == null
+                    ? null
+                    : () => unawaited(_chooseRecovery()),
+                onReviewPending: _api?.sessionToken == null || _engine == null
+                    ? null
+                    : (familyId, fingerprint) async {
+                        final count = await _engine!
+                            .quarantineUnavailableFamily(
+                              familyId,
+                              reviewedFingerprint: fingerprint,
+                            );
+                        controller.refresh();
+                        unawaited(
+                          _runtime?.synchronize().catchError(
+                            (Object _) => _showSyncIssue(),
                           ),
+                        );
+                        return count;
+                      },
+                nativeAi: NativeEventAiProvider(),
+                cloudApi: _api,
+                cloudAiConsent: CloudAiConsentController(
+                  CloudAiConsentStore(widget.database),
+                ),
+                emailInbox: _emailInbox,
+                onPersonalBackup: _api?.sessionToken == null
+                    ? null
+                    : () => unawaited(_openBackup(personal: true)),
+                onBackup: _api?.sessionToken == null || !_canManageFamily
+                    ? null
+                    : () => unawaited(_openBackup()),
+              ),
+              if (_api?.sessionToken != null &&
+                  (controller.family == null ||
+                      _guardians?.family?.role == 'guardian' &&
+                          !_guardians!.ready))
+                Positioned(
+                  bottom: MediaQuery.paddingOf(context).bottom + 16,
+                  left: 16,
+                  right: 16,
+                  child: FilledButton.tonal(
+                    onPressed: () => unawaited(_openGuardians()),
+                    child: const Text('Join or review family invitation'),
+                  ),
+                ),
+              if (controller.family == null && _api?.sessionToken != null)
+                Positioned(
+                  top: MediaQuery.paddingOf(context).top,
+                  right: 16,
+                  child: TextButton(
+                    onPressed: () => unawaited(_chooseRecovery()),
+                    child: const Text('Restore encrypted backup'),
+                  ),
+                ),
+              if (_message case final message?)
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: 16,
+                  child: Material(
+                    color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(message, textAlign: TextAlign.center),
+                          if (_needsAuthentication) ...[
+                            const SizedBox(height: 8),
+                            FilledButton.tonal(
+                              onPressed: _authenticating
+                                  ? null
+                                  : () => _authenticate(register: false),
+                              child: const Text('Authenticate to sync'),
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-          ],
-        ),
+            ],
+          );
+        },
       );
     }
     return Scaffold(

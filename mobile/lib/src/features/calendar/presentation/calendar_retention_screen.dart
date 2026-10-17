@@ -22,6 +22,7 @@ class _CalendarRetentionScreenState extends State<CalendarRetentionScreen> {
 
   Future<void> _save() async {
     final controller = widget.controller;
+    final householdId = controller.family?.householdId;
     final policy = controller.repository.retentionPolicy;
     if (policy == null ||
         policy['can_manage'] != true ||
@@ -60,6 +61,12 @@ class _CalendarRetentionScreenState extends State<CalendarRetentionScreen> {
       ),
     );
     if (confirmed != true || !mounted) return;
+    if (controller.family?.householdId != householdId) {
+      setState(
+        () => _message = 'Household changed. Reopen retention settings.',
+      );
+      return;
+    }
     setState(() {
       _saving = true;
       _message = null;
@@ -97,11 +104,7 @@ class _CalendarRetentionScreenState extends State<CalendarRetentionScreen> {
           CalendarRetention.values.byName(
             policy?['period'] as String? ?? 'week',
           );
-      final recoveryPending = repository.database.raw
-          .select(
-            "SELECT 1 FROM app_preferences WHERE key='retention-recovery-pending'",
-          )
-          .isNotEmpty;
+      final recoveryPending = repository.retentionPaused;
       return Scaffold(
         appBar: AppBar(title: const Text('Calendar retention')),
         body: ListView(

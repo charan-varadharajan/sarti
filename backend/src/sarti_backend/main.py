@@ -86,7 +86,9 @@ def create_app(
         started = time.monotonic()
         response = await call_next(request)
         response.headers["X-Request-ID"] = request_id
-        if request.url.path.startswith(("/v1/ai/", "/v1/auth/")):
+        if request.url.path.startswith(
+            ("/v1/ai/", "/v1/auth/", "/v1/sync/sequence-review", "/v1/email/")
+        ):
             response.headers["Cache-Control"] = "no-store"
         logger.info(
             "request_complete",

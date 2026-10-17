@@ -66,7 +66,13 @@ class FamilyRecoveryCoordinator extends ChangeNotifier {
       'INSERT OR REPLACE INTO app_preferences VALUES (?,?)',
       [
         'family-access-${local.householdId}',
-        jsonEncode({'role': 'owner', 'permission': 'admin'}),
+        jsonEncode({
+          'role': 'owner',
+          'permission': _family!.resources
+              .where((r) => r.id == local.calendarResourceId)
+              .firstOrNull
+              ?.permission,
+        }),
       ],
     );
   }
@@ -75,8 +81,7 @@ class FamilyRecoveryCoordinator extends ChangeNotifier {
     final resource = _family?.resources
         .where((r) => r.id == id && r.kind != 'personal_calendar')
         .firstOrNull;
-    if (resource == null ||
-        (resource.permission != null && resource.permission != 'admin')) {
+    if (resource == null || resource.permission != 'admin') {
       throw StateError('Current resource authority is unavailable.');
     }
     final keys = repository.database.raw.select(
@@ -138,7 +143,8 @@ class FamilyRecoveryCoordinator extends ChangeNotifier {
       repository.reconcileRecoveryIntents();
       repository.setRecoveryPhase('review');
       final queued = repository.database.raw.select(
-        "SELECT * FROM outbox WHERE state='pending'",
+        "SELECT * FROM outbox WHERE state='pending' AND family_id=?",
+        [family],
       );
       for (final row in queued) {
         _writable(row['resource_id'] as String);
@@ -311,7 +317,11 @@ class FamilyRecoveryCoordinator extends ChangeNotifier {
     final policy = repository.retentionPolicy;
     final events = repository.database.raw
         .select(
-          'SELECT e.id,v.vector_json FROM events e LEFT JOIN event_versions v ON v.event_id=e.id ORDER BY e.id',
+          'SELECT e.id,v.vector_json FROM events e LEFT JOIN event_versions v ON v.event_id=e.id WHERE e.household_id=? AND e.calendar_resource_id=? ORDER BY e.id',
+          [
+            repository.selectedHouseholdId,
+            repository.load()?.calendarResourceId,
+          ],
         )
         .map((r) => [r['id'], r['vector_json']])
         .toList();

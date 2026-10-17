@@ -42,6 +42,75 @@ in-repository record while Sarti has no external tracker.
 
 ## Resolved defects
 
+### BUG-029 — Native prepared add-event test assumes the saved event is today
+- Severity: Low; component: native calendar acceptance fixture
+- Discovered: 2026-10-16 during final iOS regression
+- Summary: CAL-MOB-001 reports missing Swimming when default start (now + one
+  hour) crosses midnight; it checked today's agenda despite saving tomorrow.
+- Cause: native fixture omitted the saved-date navigation already in its widget
+  counterpart. Calendar persistence/recurrence assertions remain intact.
+- Fix: navigate to the actual saved date before agenda assertions;
+  assert that date rather than assume the current wall-clock day.
+- Fixed: 2026-10-17; version 0.7.0+8; commit: this Stage 5 household milestone.
+- Verification: native calendar group eight pass on both platforms; all nine native
+  journeys/107 checks each pass. No production behavior/API/schema/security change.
+- Disposition: Resolved for automated acceptance; see household verification report.
+- Workaround: run the old scenario away from midnight; not needed after correction.
+
+
+### BUG-028 — Email suggestions lacked multi-household display binding
+- Severity: High; component: encrypted email delivery / mobile proposal sheet
+- Discovered: 2026-10-16 during Stage 5 multi-context security review
+- Summary: a device authorized in A/B could see A's suggestion while using B;
+  broad membership-only delivery also failed to exclude care-calendar-only roles.
+- Cause: legacy single-household client had no sealed family binding/filter and
+  gateway recipient checks used active membership without calendar resource rights.
+- Fix: sealed email v2 binds family/suggestion IDs, API includes opaque
+  family ID, client verifies/filter scopes and rejects stale selection. Gateway and
+  listing require current household calendar read grant, suitable role and expiry.
+- Fixed: 2026-10-17; version 0.7.0+8; commit: this Stage 5 household milestone.
+- Verification: real PostgreSQL/crypto/UI isolation and final full regression pass.
+- Disposition: Resolved for automated scope; caregiver sharing UI remains separate.
+  See `../testing/STAGE-5-HOUSEHOLDS-VERIFICATION.md`.
+- Workaround: do not enable multi-household email with older builds. Unbound v1
+  deliveries fail closed in the new client; expired legacy mail needs resubmission.
+
+
+### BUG-027 — Guardian local identity was limited to one household
+- Severity: High; component: SQLCipher guardian profiles and pickup references
+- Discovered: 2026-10-16 during Stage 5 additional-household/recovery integration
+- Summary: the same enrolled adult ID could not appear in two local household
+  profiles; original pickup foreign keys were not household-qualified.
+- Cause: legacy single-household guardian primary key and global ID scope checks.
+- Fix: local v12 composite household/guardian identity and matching
+  pickup/dropoff foreign keys, scoped handoff/upserts, transactional migration.
+- Fixed: 2026-10-17; version 0.7.0+8; commit: this Stage 5 household milestone.
+- Verification: actual encrypted legacy migration/rollback, same-adult scopes,
+  foreign pickup denial, all regression/native/build gates pass.
+- Disposition: Resolved for automated scope; invalid legacy data fails closed.
+  See `../testing/STAGE-5-HOUSEHOLDS-VERIFICATION.md`.
+- Workaround: do not rely on multiple households with pre-v12 mobile builds.
+
+
+### BUG-026 — Lost household access can block another household's pending uploads
+- Severity: High; component: multi-context synchronization / uncertain receipts
+- Discovered: 2026-10-16 during Stage 5 multi-household integration
+- Summary: an interrupted upload retains the device's next sequence; losing write
+  authority before retry prevented unrelated households from uploading.
+- Cause: strict global sequence correctly prevented silent renumbering, but lacked
+  explicit receipt reconciliation and local preservation of unavailable intent.
+- Fix: own-device metadata-only receipt review after lost write access,
+  explicit local quarantine preserving original payload/vector/envelope, then use
+  server high-water mark for unrelated uploads. Expired receipts remain unknown.
+- Fixed: 2026-10-17; version 0.7.0+8; commit: this Stage 5 household milestone.
+- Verification: real PostgreSQL/security, exact crypto retry/receipt/quarantine,
+  all regression/native/build gates pass.
+- Disposition: Resolved for automated scope. Quarantined work stays protected;
+  automatic re-publication is not offered. See household verification report.
+- Workaround: retain pending work and avoid manually clearing/renumbering it.
+
+
+
 ### BUG-025 — Legacy invitation paths could inherit or broaden scoped authority
 - Severity: High; component: membership re-enrollment and invitation approval
 - Discovered: 2026-10-16 during Stage 5 scoped-role security review

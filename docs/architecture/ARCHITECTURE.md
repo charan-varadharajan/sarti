@@ -235,3 +235,10 @@ See ../api/SCOPED-ADMINISTRATION.md and ../STAGE-5-REPORT.md for implemented
 foundation versus pending UI/legacy mutation/caregiver/recovery/deletion work.
 School/context roles are access infrastructure, not Stage 6 product functionality.
 No deployment/service/cloud activation is included.
+
+
+Stage 5 household runtime captures local contexts before awaits, orders uncertain
+uploads first and pins repositories/recovery/retention/reminders per context. UI
+selection changes visibility, never key sharing. Additional enrollment is explicit.
+Own-device metadata-only receipt review plus user-approved encrypted quarantine
+implements ADR-041 interrupted-upload reconciliation; no global sequence skipping.

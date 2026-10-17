@@ -1,33 +1,32 @@
 # Project status
 
 - Current work: Stage 5 implementation under accepted ADR-041; acceptance incomplete; P0 release acceptance remains open
-- Updated: 2026-10-16
+- Updated: 2026-10-17
 - Stage state: P1 voice-entry inclusion approved; hosting deferred until last; BUG-001/002/003/004 remediation delivered; provider/device validation and BUG-005 live provider acceptance deferred; physical/provider validation outstanding
-- Repository version: `0.6.0+7`; no public release tag
+- Repository version: `0.7.0+8`; no public release tag
 
 ## Current result
 
-2026-10-16: Maintainer approved ADR-041. Foundation implementation includes
-neutral contact-free passkey labels, operation-bound current-phone confirmation,
-scoped role/admin APIs, explicit grants, last-admin protection, encrypted atomic
-audit, expiry/key rotation, optional recovery onboarding/word confirmation, pinned
-local household state, device-wide serialized upload ordering and one-household
-snapshot sanitization. PostgreSQL migrations 0011–0013; local SQLCipher v10.
-Verified foundation: Flutter 229 pass/2 explicit HTTP-host skips (both hosts
-executed through backend); backend 93 pass; iOS/Android each 82 checks across nine
-journeys pass. Builds, migrations/contracts, static/security/dependency, Docker
-health/maintenance, version and tooling gates pass. Remote CI execution remains
-unverified. Exact evidence and limitations: STAGE-5-REPORT.md.
+2026-10-16: Stage 5 implementation continues under accepted ADR-041. The verified
+foundation is pushed as 76cc245. The 0.7.0+8 household milestone adds progressive
+selection/create/join, scoped async runtime/recovery/retention/reminders, missing-
+family encrypted import preserving occupied stores/in-flight work, explicit
+interrupted-upload receipt review/quarantine, household-scoped guardians/pickups
+and bound/filtered email with caregiver recipient isolation (BUG-026/027/028).
+Local SQLCipher v12; PostgreSQL stays 0013. Full final Flutter: 250 pass/2 explicit
+host-only skips (both hosts executed through backend); backend 95 pass/92%
+coverage; iOS and Android each nine journeys/107 checks pass. Both builds, static/
+security/dependency, migrations/contracts, Docker smoke, tooling/version and secret
+checks pass. BUG-026/027/028/029 resolved for automated scope. See testing/STAGE-5-HOUSEHOLDS-VERIFICATION.md.
 
-Stage 5 remains incomplete. Shipping multi-household selector/runtime/enrollment,
-caregiver reviewed encrypted copies, scoped import preserving occupied stores,
-administration step-up/audit UI and legacy mutation integration, assisted-recovery
-journey, account/context closure and retention-aware recoverable event deletion
-remain. Existing backup import still requires an empty local store. Do not
-represent API foundations or planned scenarios as complete product journeys.
-P0 physical/provider acceptance remains open. No Stage 6, hosting, live provider
-activation or deferred Android-to-iPhone portability run. Local signing edits
-are preserved. See product/STAGE-5-GAP-ANALYSIS.md and api/SCOPED-ADMINISTRATION.md.
+Stage 5 remains incomplete: administration impact/step-up/audit UI and legacy
+sensitive-route integration, caregiver reviewed independent copies, assisted-family
+recovery, authorized export, account/context closure/purge and retention-aware
+manual event deletion/restore remain. Existing-family overwrite and occupied
+personal import are unavailable. No Stage 6, hosting/provider/billing activation,
+physical acceptance or deferred Android→iPhone portability run. User signing edits
+remain excluded. Remote CI execution is separate from local verification. The
+historical foundation report follows in STAGE-5-REPORT.md.
 
 
 P1-001 scope now has a mandatory layered test plan: twelve planned voice
@@ -303,3 +302,17 @@ provider/device validation pass.
 The maintainer approved the specific P1-001 scope on 2026-10-14 while retaining
 P0 acceptance gaps. Do not begin unrelated P1 features without scope approval.
 Hosting/deployment is deferred until last.
+
+
+Stage 5 household follow-through is in progress after verified foundation commit
+76cc245. Selector/additional setup/join, pinned runtime/recovery/retention/reminders
+and explicit unavailable-upload reconciliation (BUG-026) are implemented locally.
+Local schema v11 adds encrypted original-envelope/receipt provenance; PostgreSQL
+remains 0013. Targeted tests pass; full final gates for this milestone are pending.
+Scoped occupied-store restore and remaining administration/caregiver/assisted
+recovery/deletion/restore journeys still prevent Stage 5 completion.
+
+Household milestone also implements v12 guardian composite identity (BUG-027)
+and atomic missing-family encrypted import preserving unrelated live work.
+Final milestone gates are still pending; remaining administration/caregiver/
+assisted recovery/closure/export/trash workflows keep Stage 5 incomplete.

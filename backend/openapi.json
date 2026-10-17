@@ -407,6 +407,11 @@
             "title": "Expires At",
             "type": "string"
           },
+          "family_id": {
+            "format": "uuid",
+            "title": "Family Id",
+            "type": "string"
+          },
           "received_at": {
             "format": "date-time",
             "title": "Received At",
@@ -419,6 +424,7 @@
           }
         },
         "required": [
+          "family_id",
           "suggestion_id",
           "ciphertext",
           "received_at",
@@ -1642,6 +1648,83 @@
         ],
         "title": "Role",
         "type": "string"
+      },
+      "SequenceReview": {
+        "additionalProperties": false,
+        "properties": {
+          "content_digest": {
+            "maxLength": 44,
+            "minLength": 43,
+            "title": "Content Digest",
+            "type": "string"
+          },
+          "device_sequence": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 9.223372036854776e+18,
+            "title": "Device Sequence",
+            "type": "integer"
+          },
+          "family_id": {
+            "format": "uuid",
+            "title": "Family Id",
+            "type": "string"
+          },
+          "operation_id": {
+            "format": "uuid",
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "resource_id": {
+            "format": "uuid",
+            "title": "Resource Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "operation_id",
+          "family_id",
+          "resource_id",
+          "device_sequence",
+          "content_digest"
+        ],
+        "title": "SequenceReview",
+        "type": "object"
+      },
+      "SequenceReviewResult": {
+        "additionalProperties": false,
+        "properties": {
+          "device_id": {
+            "format": "uuid",
+            "title": "Device Id",
+            "type": "string"
+          },
+          "last_device_sequence": {
+            "title": "Last Device Sequence",
+            "type": "integer"
+          },
+          "operation_id": {
+            "format": "uuid",
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "receipt": {
+            "enum": [
+              "accepted",
+              "not_accepted",
+              "unknown"
+            ],
+            "title": "Receipt",
+            "type": "string"
+          }
+        },
+        "required": [
+          "operation_id",
+          "device_id",
+          "last_device_sequence",
+          "receipt"
+        ],
+        "title": "SequenceReviewResult",
+        "type": "object"
       },
       "SessionResponse": {
         "additionalProperties": false,
@@ -4315,6 +4398,66 @@
           }
         },
         "summary": "Upload Operation",
+        "tags": [
+          "encrypted-sync"
+        ]
+      }
+    },
+    "/v1/sync/sequence-review": {
+      "post": {
+        "description": "Own-device receipt only, after lost write authority; never returns content.\n\nNo sequence is reserved, skipped or changed here. The client must preserve\nthe original intent and explicitly quarantine it before reusing an unaccepted\nsequence in another context. Missing expired receipts are not acknowledgments.",
+        "operationId": "review_sequence_v1_sync_sequence_review_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SequenceReview"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SequenceReviewResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Review Sequence",
         "tags": [
           "encrypted-sync"
         ]

@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:sarti_mobile/src/core/backup/backup_service.dart';
@@ -164,6 +165,19 @@ void main() {
     ]) {
       db.setResourceKey(id, 1, sodium.randombytes.buf(32));
     }
+    for (final family in [a, b]) {
+      db.raw.execute(
+        "INSERT INTO recovery_intents(source_operation_id,family_id,resource_id,kind,payload_json,vector_json,status,reason,original_envelope_json,server_receipt) VALUES (?,?,?,'family_created',?,?,'quarantined','lost_write_authority',?,'unknown')",
+        [
+          newId(),
+          family.householdId,
+          family.calendarResourceId,
+          jsonEncode({'householdId': family.householdId}),
+          jsonEncode({repo.deviceId: 1}),
+          'Exact original ${family.householdId}',
+        ],
+      );
+    }
     const phrase =
         'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
     final blob = await BackupRecovery.snapshot(
@@ -197,6 +211,15 @@ void main() {
             .map((r) => r['resource_id']),
         [a.calendarResourceId],
       );
+      final preserved = restored.raw.select('SELECT * FROM recovery_intents');
+      expect(preserved, hasLength(1));
+      expect(preserved.single['family_id'], a.householdId);
+      expect(
+        preserved.single['original_envelope_json'],
+        'Exact original ${a.householdId}',
+      );
+      expect(preserved.single['server_receipt'], 'unknown');
+      expect(db.raw.select('SELECT * FROM recovery_intents'), hasLength(2));
       expect(restored.raw.select('PRAGMA foreign_key_check'), isEmpty);
       expect(repo.load()!.householdId, b.householdId);
       expect(db.resourceKey(privateB, 1), isNotNull);
@@ -221,6 +244,8 @@ void main() {
     );
     db.raw.execute('''
       DROP TABLE device_sync_state;
+      ALTER TABLE recovery_intents DROP COLUMN original_envelope_json;
+      ALTER TABLE recovery_intents DROP COLUMN server_receipt;
       ALTER TABLE personal_calendars RENAME TO personal_v10;
       CREATE TABLE personal_calendars (
         adult_id TEXT PRIMARY KEY,
@@ -234,7 +259,7 @@ void main() {
     db.close();
     db = SartiDatabase.open(path, key);
     try {
-      expect(db.raw.userVersion, 10);
+      expect(db.raw.userVersion, SartiDatabase.schemaVersion);
       final upgraded = CalendarRepository(db, deviceId: device, adultId: adult);
       expect(upgraded.personalResourceId, private);
       expect(db.resourceKey(private, 1), key);

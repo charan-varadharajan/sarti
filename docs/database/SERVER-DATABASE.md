@@ -177,3 +177,9 @@ expiry is 30 days. No decryption keys are stored. Context/resource deletion casc
 records. Downgrade refuses populated new resources/audit rather than losing data.
 See `../api/SCOPED-ADMINISTRATION.md`. These migrations do not implement closure,
 account deletion or recoverable calendar trash.
+
+
+Sequence review adds no server table/retention or counter mutation. It reads only
+a matching own-device unexpired operation and that device's durable high-water.
+Seven-day relay expiry is unchanged; missing receipts at/below high-water return
+unknown. New response/request contracts are generated in backend/openapi.json.

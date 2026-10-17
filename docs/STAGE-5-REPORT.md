@@ -56,12 +56,13 @@ service/dependency is introduced.
 
 ## Remaining Stage 5 work / risks
 
-Shipping multi-household selector/runtime/enrollment; caregiver reviewed encrypted
-copies; scoped import preserving occupied stores/unsent work; administration
-step-up/audit UI and legacy sensitive mutation safeguards; assisted-family recovery
+Caregiver reviewed encrypted copies; administration step-up/audit UI and legacy
+sensitive mutation safeguards; assisted-family recovery
 journey; scoped account/context closure/purge; encrypted authorized export step-up;
 retention-aware manual deletion/restore and full requirements traceability.
 Current new API is not a claim that legacy routes enforce operation-bound proof.
+Household selection/runtime/enrollment and missing-family occupied-store import
+were added in the follow-through milestone below.
 Do not claim full E2EE role management, 30-day restoration or Stage 5 completion.
 Previously downloaded content/external backups cannot be remotely erased.
 
@@ -152,3 +153,47 @@ mobile/test/support/recovery_confirmation_helper.dart
 scripts/run_tests.py
 scripts/test_run_tests.py
 ```
+
+
+## Household follow-through (in progress after 76cc245)
+
+Implemented selector/progressive additional setup/explicit second-family join,
+context-pinned runtime and recovery, stale editor/native-result rejection and
+independent reminder cancellation. BUG-026 adds current-device metadata-only
+receipt review and explicit local quarantine retaining exact original bytes,
+payload/vector and operation IDs. Unknown receipts are not acknowledgments.
+Local v11 adds provenance columns; no new server migration/dependency/service.
+Targeted PostgreSQL/security and Flutter journey tests pass; full final gates
+are pending. Physical passkeys/devices and existing provider exclusions remain.
+No new architectural approval was required: this implements accepted ADR-041.
+Scoped occupied-store import and the other listed Stage 5 journeys remain open.
+
+Local v12 additionally scopes shared guardian identity and pickup references by
+household (BUG-027), with actual legacy encrypted migration and rollback tests.
+Missing-household family-only import now merges in one live SQLCipher transaction,
+preserving unrelated keys/counters/pending in-flight work; collision/invalid
+snapshot fails safely. Empty-store replacement still uses protected activation
+after draining writers. Occupied personal restore/existing household overwrite
+remain unavailable; neither is silently treated as a family-only merge.
+
+BUG-028 additionally closes email context ambiguity/care-only recipient leakage:
+sealed v2 family binding, scoped UI, stale-selection rejection, current calendar
+grants/role/expiry for delivery/listing. API/OpenAPI changed; no migration/provider
+activation. Real PostgreSQL/crypto and source-approved proposal tests pass; final
+combined gates remain pending. Legacy v1 mail is rejected, never attributed by guess.
+
+Development milestone version is 0.7.0+8, promoted accumulated changelog entries;
+no public/store release tag is created, and local signing edits remain excluded.
+
+
+## Verified household milestone — 2026-10-17
+
+Version 0.7.0+8: Flutter 250 pass/two host-only skips (both hosts executed through
+backend), backend 95 pass/92% reported coverage, all nine iOS/Android journeys
+107 checks each pass. Normal Android/unsigned iOS builds, migrations/OpenAPI,
+analysis/static/security/dependency, isolated Docker health/maintenance, tooling/
+version and offline secret gates pass. Four task-created test databases removed;
+development data and local signing edits preserved. BUG-026/027/028/029 resolved
+for automated scope. Exact commands/results/initial corrected failures, current
+limitations and remaining Stage 5 work are in testing/STAGE-5-HOUSEHOLDS-VERIFICATION.md.
+This is a milestone, not Stage 5 completion or a public/store release.

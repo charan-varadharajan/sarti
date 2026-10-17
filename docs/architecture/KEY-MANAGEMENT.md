@@ -119,3 +119,17 @@ Local v10 binds personal resource IDs by adult and household. A device-global
 upload counter serializes contexts without renumbering pending authenticated
 bytes. Scoped snapshots remove foreign/excluded keys from an encrypted copy.
 Current-phone step-up confirms intent without replacing device identity or keys.
+
+
+Local v11 adds original-envelope/receipt provenance to quarantined recovery intent.
+Receipt review never distributes keys, changes epochs, reserves a sequence or
+restores household authority. Unknown expired receipts stay explicitly unknown.
+Original encryption bytes and user intent remain encrypted locally; re-publication
+would require fresh scope/current keys/causal review and is not automatic.
+
+Missing-household import validates a family-only snapshot, strips former device
+publication state into reviewed recovery intent and inserts scoped rows atomically
+under the existing live SQLCipher key. It never activates another database key or
+resets unrelated device counters. Personal/occupied overwrite is not offered.
+Empty-store replacement activation drains runtime writers and disposes guardian
+refresh before journaling; a failed attempt restarts against unchanged data.

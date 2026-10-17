@@ -228,6 +228,7 @@ def test_email_suggestions_require_device_and_return_only_ciphertext() -> None:
     rows.all.return_value = [
         SimpleNamespace(
             id=suggestion_id,
+            family_id=_FAMILY_ID,
             ciphertext=b"sealed-only",
             received_at=now,
             expires_at=now + timedelta(days=7),
@@ -245,6 +246,7 @@ def test_email_suggestions_require_device_and_return_only_ciphertext() -> None:
     assert response.status_code == 200
     assert response.json()[0]["suggestion_id"] == str(suggestion_id)
     assert set(response.json()[0]) == {
+        "family_id",
         "suggestion_id",
         "ciphertext",
         "received_at",

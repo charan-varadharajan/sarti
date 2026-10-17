@@ -136,3 +136,18 @@ RECOVERY-RETENTION-001 verifies this minimization boundary.
 Reconciliation discards completed intent rows after a receipt or proven causal
 domination (including downloaded deletion). Durable applied IDs and minimal
 deletion state provide replay protection without retaining obsolete bodies.
+
+
+Stage 5 device-wide runtime captures context IDs, retries uncertain envelopes
+first and pins all async repository/recovery/retention/reminder work. When write
+authority is lost, Households offers explicit own-device receipt review. The
+server reads existing high-water/own unexpired receipts without mutating them.
+Client quarantines original intent/envelopes under the shared engine gate and
+uses actual high-water+1 for unrelated uploads. Unknown is not acceptance; no
+renumber/republication of abandoned ciphertext. Scoped import inserts a missing
+family atomically into the same live store so late unrelated writes survive.
+
+Quarantine does not extend calendar retention: an expired acknowledged calendar
+body may be removed while unresolved original intent/envelope remains protected
+separately under the existing recovery policy. Active unsent outbox work still
+defers cleanup; unrelated households' pending work does not block it.

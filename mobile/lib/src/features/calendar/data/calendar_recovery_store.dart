@@ -46,6 +46,16 @@ extension CalendarRecoveryStore on CalendarRepository {
 
   bool get recoveryPending =>
       recoveryState != null && recoveryState!['phase'] != 'ready';
+  bool get retentionPaused =>
+      recoveryPending ||
+      (recoveryState == null &&
+          database.raw
+              .select(
+                "SELECT 1 FROM app_preferences WHERE key='retention-recovery-pending'",
+              )
+              .isNotEmpty &&
+          database.raw.select('SELECT 1 FROM recovery_state').isEmpty);
+
   void requireRecoveryReady() {
     if (recoveryPending) {
       throw StateError('Review recovery before changing this calendar.');

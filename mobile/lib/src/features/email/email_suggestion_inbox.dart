@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import '../../core/ids.dart';
+
 import 'package:flutter/foundation.dart';
 import 'package:sarti_mobile/src/core/crypto/device_key_store.dart';
 import 'package:sarti_mobile/src/core/network/sarti_api.dart';
@@ -7,6 +9,7 @@ import 'package:sodium/sodium.dart';
 
 class EmailSuggestion {
   const EmailSuggestion({
+    required this.familyId,
     required this.id,
     required this.sender,
     required this.subject,
@@ -14,7 +17,7 @@ class EmailSuggestion {
     required this.receivedAt,
   });
 
-  final String id;
+  final String familyId, id;
   final String sender;
   final String subject;
   final String body;
@@ -46,6 +49,8 @@ class EmailSuggestionInbox extends ChangeNotifier {
   final Future<List<EncryptedEmailDelivery>> Function() _fetch;
   final Future<void> Function(String suggestionId) _dismissRemote;
   List<EmailSuggestion> suggestions = const [];
+  List<EmailSuggestion> forHousehold(String id) =>
+      suggestions.where((s) => s.familyId == id).toList();
   bool unavailable = false;
 
   Future<void> refresh() async {
@@ -85,7 +90,9 @@ class EmailSuggestionInbox extends ChangeNotifier {
       final value = Map<String, Object?>.from(
         jsonDecode(utf8.decode(plaintext)) as Map,
       );
-      if (value['version'] != 1 ||
+      if (value['version'] != 2 ||
+          !isResourceId(delivery.familyId) ||
+          value['family_id'] != delivery.familyId ||
           value['suggestion_id'] != delivery.suggestionId) {
         return null;
       }
@@ -99,6 +106,7 @@ class EmailSuggestionInbox extends ChangeNotifier {
         return null;
       }
       return EmailSuggestion(
+        familyId: delivery.familyId,
         id: delivery.suggestionId,
         sender: sender,
         subject: subject,

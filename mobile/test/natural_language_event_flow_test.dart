@@ -142,7 +142,8 @@ void main() {
         message: Uint8List.fromList(
           utf8.encode(
             jsonEncode({
-              'version': 1,
+              'version': 2,
+              'family_id': controller.family!.householdId,
               'suggestion_id': 'email-id',
               'sender': 'teacher@example.com',
               'subject': 'Mia has swimming tomorrow at 5pm',
@@ -158,6 +159,7 @@ void main() {
         keys: keys,
         fetch: () async => [
           EncryptedEmailDelivery(
+            familyId: controller.family!.householdId,
             suggestionId: 'email-id',
             ciphertext: ciphertext,
             receivedAt: DateTime.utc(2026, 10, 11),

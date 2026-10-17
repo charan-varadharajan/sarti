@@ -490,8 +490,7 @@ snapshot/restore inspection excludes B and all excluded private keys/content;
 live B remains unchanged. `S5-RECOVERY-001` component: seeded backup card opens
 directly; checkbox/wrong word cannot enable upload, two random words enable it,
 regeneration clears confirmation. Fixtures are synthetic, removed on teardown.
-Native entry: stage5_foundation_scenario_test.dart via `--scenario stage5`; all
-five checks added to the shared iOS/Android allowlist. This entry covers foundations,
+Native entry: stage5_foundation_scenario_test.dart via `--scenario stage5`; component and journey checks added to the shared iOS/Android allowlist. This entry covers foundations,
 not the remaining complete Stage 5 journeys in STAGE-5-TEST-PLAN.md.
 
 S5-MIGRATE-001 upgrades a real encrypted v9 file with the legacy private-binding
@@ -499,3 +498,65 @@ primary key, retaining its private resource key and exact pending envelope bytes
 new same-adult household binding remains independent and wrong SQLCipher keys fail.
 S5-PERMISSION-MOB-001 opens the prepared calendar as an administrator with a read-
 only calendar grant: shared event creation remains unavailable across view changes.
+
+
+## Stage 5 household switching and unavailable-upload review
+
+- S5-HOUSEHOLD-002: prepared two-household calendar opens directly; use More →
+  Households → A/B. Each keeps its events, children/colors, private resources and
+  exact pending work; selection survives repository recreation and reminders stay.
+- S5-HOUSEHOLD-003: from prepared A in recovery, create independent B through
+  optional setup. A's recovery remains paused; no prerequisites recreated in UI.
+- S5-HOUSEHOLD-004/005: open manual/description editor in A, switch to B while
+  editor/native callback is outstanding. Save/result cannot write into B.
+- S5-HOUSEHOLD-006: prepared remote removal in A cancels only A's reminder while
+  B is visible; mixed-household reminder reconciliation is rejected.
+- S5-INVITE-002: prepared existing B joins A explicitly, waits for pinned approval,
+  receives only granted real encrypted state, retains B keys and exact outbox.
+- S5-OFFLINE-002/003: runtime captures all context IDs, independent denial does
+  not suppress other contexts, and disposal drains an outstanding write.
+- S5-OFFLINE-004: real SQLCipher/libsodium interrupted upload; accepted/unaccepted/
+  expired receipt cases preserve original bytes, reject wrong-device/stale review,
+  quarantine intent, and allow B to use the actual next server sequence.
+- S5-OFFLINE-005: direct prepared shipping calendar → interruption review card;
+  Cancel changes nothing, explicit confirmation alone invokes reconciliation.
+- S5-OFFLINE-API-001/002: local HTTP transport sends only bound opaque receipt
+  metadata, no family content, and aborts on session change.
+
+Default unit/widget suites and native Stage 5 allowlist include these cases;
+HTTP transport cases run in the default Flutter suite. Backend
+`test_sequence_review.py` covers removed-access receipts, no ciphertext disclosure,
+wrong bindings/extra fields, expired and missing receipts, own-device isolation,
+strict subsequent upload ordering and revoked-device denial with real PostgreSQL.
+Registration/targeted passes do not replace full final regression; results belong
+in STAGE-5-REPORT.md. Physical passkeys/providers remain separate acceptance.
+
+- S5-HOUSEHOLD-007: same actual guardian ID appears in A/B with independent names
+  and valid pickup references; foreign-only pickup fails and removing A preserves B.
+- S5-MIGRATE-002: genuine encrypted v11 SQL schema upgrades preserving event child/
+  reminder/version relationships, keys and exact pending bytes. Invalid legacy
+  cross-household pickup rolls back with original bytes/schema intact.
+- S5-RECOVERY-002: prepared B family-only snapshot imports into occupied A while a
+  real encrypted A upload awaits its receipt. A's private key, exact pending rows,
+  current identity/counter/cursor/selection survive; B excludes private resources
+  and remains review-gated; A upload completes against the same live store.
+- S5-RECOVERY-003: wrong phrase, corruption, foreign family and event identity
+  collision each leave all live A rows/preferences/recovery/outbox unchanged.
+
+These tests are registered in the shared Stage 5 native entry and default Flutter
+suite. Personal restore into an occupied store and overwrite of an existing
+household are not offered; family-only missing-context import is deliberate.
+
+- S5-EMAIL-001: real sealed-box A/B bindings, swapped metadata and legacy v1 denial,
+  filtered inbox and independent dismissal.
+- S5-EMAIL-002: real PostgreSQL recipient/listing checks, care-only/outsider denial,
+  sealed family binding, narrowed calendar access and revoked-device denial.
+- S5-EMAIL-003: prepared shipping calendar/email sheet displays only its household;
+  selection changes invalidate opening an old suggestion into another calendar.
+
+Email component/widget cases are in the native Stage 5 entry and default suite;
+provider delivery itself remains deferred.
+
+CAL-MOB-001 native agenda verification follows the saved event's date, including
+when the one-hour default crosses midnight (BUG-029). Names/recurrence/child/
+reminder assertions are preserved; product scheduling behavior is unchanged.

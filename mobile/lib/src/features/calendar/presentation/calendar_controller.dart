@@ -53,6 +53,18 @@ class CalendarController extends ChangeNotifier {
     }
   }
 
+  void selectHousehold(String id) {
+    repository.selectHousehold(id);
+    refresh();
+    onLocalMutation?.call();
+  }
+
+  void requireHousehold(String id) {
+    if (family?.householdId != id) {
+      throw StateError('The selected household changed. Reopen this screen.');
+    }
+  }
+
   void createFamily(String name, String ownerName) {
     family = repository.createFamily(name: name, ownerName: ownerName);
     onFamilyCreated?.call(family!);
@@ -151,7 +163,7 @@ class CalendarController extends ChangeNotifier {
       repository.saveEvent(saved);
     }
     reminders?.replaceFor(saved);
-    refresh();
+    refresh(scheduleChanged: false);
     onLocalMutation?.call();
     return saved;
   }
@@ -161,7 +173,7 @@ class CalendarController extends ChangeNotifier {
     for (final event in events) {
       reminders?.replaceFor(event);
     }
-    refresh();
+    refresh(scheduleChanged: false);
     onLocalMutation?.call();
   }
 
@@ -185,7 +197,7 @@ class CalendarController extends ChangeNotifier {
       ),
     );
     reminders?.cancelFor(event.id);
-    refresh();
+    refresh(scheduleChanged: false);
     onLocalMutation?.call();
   }
 
@@ -198,7 +210,7 @@ class CalendarController extends ChangeNotifier {
       ),
     );
     reminders?.cancelFor(event.id);
-    refresh();
+    refresh(scheduleChanged: false);
     onLocalMutation?.call();
   }
 
@@ -210,11 +222,7 @@ class CalendarController extends ChangeNotifier {
   }
 
   List<String> applyRetention({required bool canAdminister}) {
-    if (repository.database.raw
-        .select(
-          "SELECT 1 FROM app_preferences WHERE key='retention-recovery-pending'",
-        )
-        .isNotEmpty) {
+    if (repository.retentionPaused) {
       return [];
     }
     final removed = repository.sweepRetention(
@@ -242,16 +250,30 @@ class CalendarController extends ChangeNotifier {
     } else {
       reminders?.cancelFor(id);
     }
-    refresh();
+    refresh(scheduleChanged: false);
     onLocalMutation?.call();
   }
 
-  void refresh() {
+  void refresh({bool scheduleChanged = true}) {
     final previous = family;
     family = repository.load();
     final currentIds = family?.events.map((e) => e.id).toSet() ?? <String>{};
-    for (final event in previous?.events ?? <CalendarEvent>[]) {
-      if (!currentIds.contains(event.id)) reminders?.cancelFor(event.id);
+    if (previous?.householdId == family?.householdId) {
+      for (final event in previous?.events ?? <CalendarEvent>[]) {
+        if (!currentIds.contains(event.id)) reminders?.cancelFor(event.id);
+      }
+    }
+    // Household selection changes visibility, not reminder eligibility.
+    if (scheduleChanged) {
+      final previousById = {
+        for (final event in previous?.events ?? <CalendarEvent>[])
+          event.id: event,
+      };
+      for (final event in family?.events ?? <CalendarEvent>[]) {
+        if (previousById[event.id]?.encode() != event.encode()) {
+          reminders?.replaceFor(event);
+        }
+      }
     }
     notifyListeners();
   }

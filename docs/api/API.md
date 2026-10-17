@@ -146,3 +146,11 @@ fields/periods fail validation. Family creation accepts `retention_enabled`
 (default true); upgraded preexisting local families send false for explicit
 adoption. No event text or deletion targets enter this configuration API.
 Calendar deletion payloads remain resource-encrypted in the existing relay.
+
+
+Stage 5 email response includes opaque `family_id`. New device-sealed plaintext
+uses version 2 with authenticated-by-sealed-box family/suggestion bindings; mobile
+checks both against delivery metadata and shows only the selected household.
+Legacy unbound v1 payloads fail closed and are not silently attributed. Gateway
+recipient/listing queries require live household calendar read authority, suitable
+role and unexpired membership. No new plaintext server persistence or provider.

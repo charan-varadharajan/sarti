@@ -8,7 +8,9 @@ class FamilySetupScreen extends StatefulWidget {
     super.key,
     required this.controller,
     this.onRecoverySetup,
+    this.allowAdditional = false,
   });
+  final bool allowAdditional;
   final VoidCallback? onRecoverySetup;
   final CalendarController controller;
   @override
@@ -23,7 +25,7 @@ class _FamilySetupScreenState extends State<FamilySetupScreen> {
 
   void _create({bool skip = false}) {
     if (_creating || _createdFamilyId != null) return;
-    if (widget.controller.family != null) {
+    if (widget.controller.family != null && !widget.allowAdditional) {
       setState(
         () => _error = 'A family is already available. Return to the calendar.',
       );
@@ -40,6 +42,7 @@ class _FamilySetupScreenState extends State<FamilySetupScreen> {
       _creating = true;
       _error = null;
     });
+    final previousId = widget.controller.family?.householdId;
     try {
       widget.controller.createFamily(
         family.isEmpty ? 'My family' : family,
@@ -54,7 +57,8 @@ class _FamilySetupScreenState extends State<FamilySetupScreen> {
     } catch (_) {
       // Never repeat creation if a callback failed after the local commit.
       setState(() {
-        _createdFamilyId = widget.controller.family?.householdId;
+        final currentId = widget.controller.family?.householdId;
+        _createdFamilyId = currentId != previousId ? currentId : null;
         _creating = false;
         _error = _createdFamilyId == null
             ? 'Could not create your family. Please try again.'

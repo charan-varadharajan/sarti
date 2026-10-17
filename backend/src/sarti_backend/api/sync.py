@@ -28,6 +28,7 @@ from sarti_backend.households.authorization import (
     require_active_member,
     require_resource_permission,
 )
+from sarti_backend.identity.step_up import current_session
 from sarti_backend.sync.envelope import OperationUpload, _decode, _encode
 from sarti_backend.sync.retention import delete_expired_operations
 
@@ -97,6 +98,91 @@ class KeyGrantResponse(BaseModel):
 
 router = APIRouter(prefix="/v1", tags=["encrypted-sync"])
 Authenticated = Annotated[AuthenticatedDevice, Depends(require_device)]
+
+
+class SequenceReview(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    operation_id: UUID
+    family_id: UUID
+    resource_id: UUID
+    device_sequence: int = Field(gt=0, le=2**63 - 1)
+    content_digest: str = Field(min_length=43, max_length=44)
+
+
+class SequenceReviewResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    operation_id: UUID
+    device_id: UUID
+    last_device_sequence: int
+    receipt: Literal["accepted", "not_accepted", "unknown"]
+
+
+@router.post("/sync/sequence-review", response_model=SequenceReviewResult)
+def review_sequence(
+    payload: SequenceReview, request: Request, actor: Authenticated
+) -> SequenceReviewResult:
+    """Own-device receipt only, after lost write authority; never returns content.
+
+    No sequence is reserved, skipped or changed here. The client must preserve
+    the original intent and explicitly quarantine it before reusing an unaccepted
+    sequence in another context. Missing expired receipts are not acknowledgments.
+    """
+    digest = _decode(payload.content_digest, 32)
+    database: TransactionalDatabase = request.app.state.database
+    now = datetime.now(UTC)
+    with database.transaction() as connection:
+        # Serialize with uploads and removal: resource, then current device/session.
+        connection.execute(
+            select(resources.c.id).where(resources.c.id == payload.resource_id).with_for_update()
+        )
+        current_session(connection, request, actor)
+        try:
+            require_resource_permission(
+                connection,
+                family_id=payload.family_id,
+                resource_id=payload.resource_id,
+                adult_id=actor.adult_id,
+                required="write",
+            )
+        except (PermissionDenied, TenantAccessDenied):
+            pass
+        else:
+            raise ConflictDetected("Write access remains available. Retry the original upload.")
+        last = connection.execute(
+            select(devices.c.last_sync_sequence).where(devices.c.id == actor.device_id)
+        ).scalar_one()
+        row = (
+            connection.execute(
+                select(sync_operations).where(
+                    and_(
+                        sync_operations.c.operation_id == payload.operation_id,
+                        sync_operations.c.author_device_id == actor.device_id,
+                        sync_operations.c.expires_at > now,
+                    )
+                )
+            )
+            .mappings()
+            .one_or_none()
+        )
+        if row is not None:
+            if (
+                row["family_id"] != payload.family_id
+                or row["resource_id"] != payload.resource_id
+                or row["device_sequence"] != payload.device_sequence
+                or row["content_digest"] != digest
+            ):
+                raise ConflictDetected("The original operation binding does not match.")
+            receipt: Literal["accepted", "not_accepted", "unknown"] = "accepted"
+        else:
+            receipt = "not_accepted" if last < payload.device_sequence else "unknown"
+    return SequenceReviewResult(
+        operation_id=payload.operation_id,
+        device_id=actor.device_id,
+        last_device_sequence=last,
+        receipt=receipt,
+    )
 
 
 def _grant_message(

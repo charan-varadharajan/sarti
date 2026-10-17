@@ -61,7 +61,13 @@ class _GuardianScreenState extends State<GuardianScreen> {
         ? Map<String, String>.from(review.permissions)
         : <String, String>{
             for (final r in resources)
-              if (r.kind != 'personal_calendar' &&
+              if ({
+                    'calendar',
+                    'family_profile',
+                    'child_profile',
+                    'participant_profile',
+                  }.contains(r.kind) &&
+                  (r.permission == null || r.permission == 'admin') &&
                   (r.kind != 'child_profile' ||
                       family.children.any((child) => child.id == r.id)))
                 r.id: r.kind == 'calendar' ? 'write' : 'read',
@@ -302,7 +308,7 @@ class _GuardianScreenState extends State<GuardianScreen> {
                     ),
                   ),
               ] else ...[
-                if (c.repository.load() == null &&
+                if ((c.joining || c.repository.load() == null) &&
                     c.family?.status != 'pending' &&
                     c.family?.role != 'owner') ...[
                   const Text(
